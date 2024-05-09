@@ -1,5 +1,6 @@
 include "result.mc"
 include "fileutils.mc"
+include "set.mc"
 include "sys.mc"
 
 include "compile.mc"
@@ -27,7 +28,7 @@ lang MainLang = MLangCompiler + BootParserMLang +
     let dir = filepathConcat (sysGetCwd ()) (eraseFile filepath) in 
     let libs = addCWDtoLibs (parseMCoreLibsEnv ()) in
 
-    let p = handleIncludesFile dir libs filepath in 
+    let p = handleIncludesFile (setEmpty cmpString) dir libs filepath in 
     let p = constTransformProgram builtin p in
     match symbolizeMLang symEnvDefault p with (_, p) in 
     match _consume (checkComposition p) with (_, res) in 
@@ -41,5 +42,5 @@ end
 
 mexpr
 use MainLang in 
-evalMLangFile "stdlib/seq.mc"; 
+evalMLangFile "stdlib/map.mc"; 
 ()

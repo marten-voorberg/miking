@@ -2,22 +2,21 @@ include "ast.mc"
 include "boot-parser.mc"
 include "pprint.mc"
 
+include "set.mc"
 include "stdlib.mc"
 include "fileutils.mc"
 include "sys.mc"
+
+type IncludeEnv = {currentDir : String,
+                   libs : Map String String}
 
 -- OPT(voorberg, 06/05/2024): This naively copy includes into the 
 -- MLang program, even if they have already been included. There 
 -- is obviously a lot of potential for improvement here.
 lang MLangIncludeHandler = MLangAst + BootParserMLang
-  sem handleIncludesProgram : String -> Map String String -> MLangProgram -> MLangProgram 
-  sem handleIncludesProgram dir libs =| prog ->
-    let f = lam decls. lam decl. 
-      concat decls (flattenIncludes dir libs decl) in 
-    {prog with decls = foldl f [] prog.decls}
-
-  sem handleIncludesFile : String -> Map String String -> String -> MLangProgram
-  sem handleIncludesFile dir libs =| path ->
+  sem parseFileWithIncludes : Map String String -> String -> MLangProgram
+  sem parseFileWithIncludes libs =| path ->
+    let env = {currentDir = eraseFile path, libs = libs} in 
     match _consume (parseMLangFile path) with (_, errOrProg) in
     switch errOrProg
       case Left err then error (join [
@@ -26,20 +25,63 @@ lang MLangIncludeHandler = MLangAst + BootParserMLang
         "' could not be parsed!"
       ])
       case Right prog then 
-        handleIncludesProgram dir libs prog
+        let decls = prog.decls in 
+        let envs = make (length decls) env in 
+        let declEnvPairs = zip envs decls in 
+
+        match mapAccumL flattenIncludes (setEmpty cmpString) declEnvPairs
+        with (_, listOfDecls) in 
+
+        {prog with decls = join listOfDecls}
     end
 
-  sem flattenIncludes : String -> Map String String -> Decl -> [Decl]
-  sem flattenIncludes dir libs =
-  | DeclInclude {path = path} ->
-    let path = findPath dir libs path in 
-    let prog = handleIncludesFile (eraseFile path) libs path in 
-    prog.decls
-  | other -> [other]
 
-  sem findPath : String -> Map String String -> String -> String
-  sem findPath dir libs =| path ->
-    let libs = mapInsert "current" dir libs in 
+  -- sem handleIncludesFile : Set String -> IncludeEnv -> (Set String, MLangProgram)
+  -- sem handleIncludesFile includes =| args ->
+  --   match _consume (parseMLangFile args.path) with (_, errOrProg) in
+  --   switch errOrProg
+  --     case Left err then error (join [
+  --       "File '",
+  --       path,
+  --       "' could not be parsed!"
+  --     ])
+  --     case Right prog then 
+  --       handleIncludesProgram dir libs prog
+  --   end
+
+  sem flattenIncludes : Set String -> (IncludeEnv, Decl) -> (Set String, [Decl])
+  sem flattenIncludes included =
+  | (env, DeclInclude {path = path}) ->
+    let path = findPath env path in 
+
+    if setMem path included then 
+      (included, [])
+    else 
+      let path = findPath env path in 
+      match _consume (parseMLangFile path) with (_, errOrProg) in
+      switch errOrProg
+        case Left err then error (join [
+          "File '",
+          path,
+          "' could not be parsed!"
+        ])
+        case Right prog then 
+          let env = {env with currentDir = eraseFile path} in 
+
+          let decls = prog.decls in 
+          let envs = make (length decls) env in 
+          let declEnvPairs = zip envs decls in 
+
+          match mapAccumL flattenIncludes included declEnvPairs 
+          with (included, listOfDecls) in 
+
+          (included, join listOfDecls)
+        end
+  | (_, other) -> (included, [other])
+
+  -- sem findPath : IncludeEnv -> String -> String
+  sem findPath env =| path ->
+    let libs = mapInsert "current" env.currentDir env.libs in 
     let prefixes = mapValues libs in 
     let paths = map (lam prefix. filepathConcat prefix path) prefixes in 
 
@@ -49,13 +91,11 @@ lang MLangIncludeHandler = MLangAst + BootParserMLang
     switch (setSize existingFilesAsSet)
       case 0 then 
         printLn path;
-        printLn dir;
         error "File not found!"
-      case 1 then head (setToSeq existingFilesAsSet)
+      case _ then head (setToSeq existingFilesAsSet)
       case _ then 
         printLn path;
         iter printLn existingFiles;
-        printLn dir;
         error "Multiple files were found!"
     end
 end
@@ -67,4 +107,4 @@ use MLangIncludeHandler in
 let dir = sysGetCwd () in 
 let libs = addCWDtoLibs (parseMCoreLibsEnv ()) in
 
-printLn (mlang2str (handleIncludesFile dir libs "stdlib/seq.mc"))
+printLn (mlang2str (parseFileWithIncludes libs "stdlib/seq.mc"))
