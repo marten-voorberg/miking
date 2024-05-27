@@ -12,20 +12,21 @@ include "ast-builder.mc"
 include "symbolize.mc"
 include "composition-check.mc"
 include "include-handler.mc"
+include "pprint.mc"
 include "language-composer.mc"
+include "postprocess.mc"
 include "const-transformer.mc"
 
 include "mexpr/eval.mc"
 include "mexpr/builtin.mc"
 include "mexpr/ast-builder.mc"
 include "mexpr/phase-stats.mc"
-include "mexpr/pprint.mc"
 
 lang MainLang = MLangCompiler + BootParserMLang + 
                 MLangSym + MLangCompositionCheck +
-                MExprPrettyPrint + MExprEval + MExprEq + 
+                MLangPrettyPrint + MExprEval + MExprEq + 
                 MLangConstTransformer + MLangIncludeHandler +
-                PhaseStats + LanguageComposer
+                PhaseStats + LanguageComposer + PostProcess
 
   sem myEval : Expr -> Expr
   sem myEval =| e ->
@@ -71,6 +72,7 @@ lang MainLang = MLangCompiler + BootParserMLang +
     endPhaseStats log "const-transformation" uunit_;
 
     let p = composeProgram p in 
+    -- printLn (mlang2str p);
     endPhaseStats log "language-inclusion-generation" uunit_;
 
 
@@ -90,6 +92,9 @@ lang MainLang = MLangCompiler + BootParserMLang +
         match res with (_, rhs) in 
         match rhs with Right expr in
         endPhaseStats log "mlang-mexpr-lower" expr;
+
+        -- let expr = postprocess env expr in 
+        -- endPhaseStats log "postprocess" expr;
 
         printLn (expr2str expr);
 

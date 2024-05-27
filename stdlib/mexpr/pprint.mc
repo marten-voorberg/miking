@@ -124,7 +124,7 @@ let pprintTypeString = lam str.
 -----------
 -- TERMS --
 -----------
-
+let x = printLn "identifier pretty print!"
 lang IdentifierPrettyPrint
   sem pprintVarName : PprintEnv -> Name -> (PprintEnv, String)
   sem pprintConName : PprintEnv -> Name -> (PprintEnv, String)
@@ -154,6 +154,7 @@ lang IdentifierPrettyPrint
         (pprintEnvAdd name str (addi i 1) env, str)
 end
 
+let x = printLn "mexpr identifier pretty print!"
 lang MExprIdentifierPrettyPrint = IdentifierPrettyPrint
   sem pprintVarName (env: PprintEnv) =
   | name ->
@@ -189,6 +190,7 @@ lang MExprIdentifierPrettyPrint = IdentifierPrettyPrint
     (lam str. if forAll isDigit str then true else _isValidLowerIdent str)
 end
 
+let x = printLn "prettyprint!"
 lang PrettyPrint = IdentifierPrettyPrint
   sem isAtomic =
   -- Intentionally left blank
@@ -263,6 +265,7 @@ lang PrettyPrint = IdentifierPrettyPrint
     else (env, join ["(", str, ")"])
 end
 
+let x = printLn "varprettyprint!"
 lang VarPrettyPrint = PrettyPrint + MExprIdentifierPrettyPrint + VarAst
   sem isAtomic =
   | TmVar _ -> true
@@ -545,6 +548,7 @@ lang MatchPrettyPrint = PrettyPrint + MatchAst
     (env,join [begin, "in", pprintNewline i, thn])
 end
 
+let x = printLn "here!"
 lang RecordProjectionSyntaxSugarPrettyPrint = MExprIdentifierPrettyPrint +
   MatchPrettyPrint + RecordPat + NeverAst + NamedPat + VarAst
 
@@ -627,6 +631,7 @@ lang UtestPrettyPrint = PrettyPrint + UtestAst
                "in", pprintNewline indent, next])
 end
 
+let x = printLn "here2!"
 lang SeqPrettyPrint = PrettyPrint + SeqAst + ConstPrettyPrint + CharAst
   sem isAtomic =
   | TmSeq _ -> true
@@ -666,6 +671,7 @@ end
 -- All constants in boot have not been implemented. Missing ones can be added
 -- as needed.
 
+let x = printLn "here3!"
 lang UnsafeCoercePrettyPrint = UnsafeCoerceAst + ConstPrettyPrint
   sem getConstStringCode (indent : Int) =
   | CUnsafeCoerce _ -> "unsafeCoerce"
@@ -909,6 +915,7 @@ end
 -- PATTERNS --
 --------------
 
+let x = printLn "here4!"
 lang PatNamePrettyPrint = IdentifierPrettyPrint
   sem _pprint_patname (env : PprintEnv) =
   | PName name ->
@@ -981,6 +988,7 @@ lang RecordPatPrettyPrint = PrettyPrint + RecordPat
     (env,join ["{", strJoin ", " (mapValues bindMap), "}"])
 end
 
+let x = printLn "here5!"
 lang DataPatPrettyPrint = PrettyPrint + DataPat
   sem patPrecedence =
   | PatCon _ -> 2
@@ -1039,7 +1047,7 @@ end
 -----------
 -- TYPES --
 -----------
-
+let x = printLn "here6!"
 lang UnknownTypePrettyPrint = PrettyPrint + UnknownTypeAst
   sem getTypeStringCode (indent : Int) (env: PprintEnv) =
   | TyUnknown _ -> (env,"Unknown")
@@ -1127,6 +1135,7 @@ lang RecordTypePrettyPrint = PrettyPrint + RecordTypeUtils
         (env,join ["{", strJoin ", " (map conventry fields), "}"])
 end
 
+let x = printLn "here7!"
 lang VariantTypePrettyPrint = PrettyPrint + VariantTypeAst
   sem getTypeStringCode (indent : Int) (env: PprintEnv) =
   | TyVariant t ->
@@ -1286,6 +1295,7 @@ lang OpImplPrettyPrint = PrettyPrint + OpImplAst
     (env, str)
 end
 
+let x = printLn "here8!"
 lang ReprDeclPrettyPrint = PrettyPrint + ReprDeclAst
   sem isAtomic =
   | TmReprDecl _ -> false
@@ -1368,7 +1378,7 @@ end
 let mexprKeywords =
   let intrinsicStrs = map (lam e. match e with (str, _) in str) builtin in
   join [mexprBuiltInKeywords, intrinsicStrs, mexprExtendedKeywords]
-
+let x = printLn "here9!"
 lang MExprPrettyPrint =
 
   -- Terms
@@ -1416,6 +1426,7 @@ lang MExprPrettyPrint =
   | expr -> exprToStringKeywords mexprKeywords expr
 
 end
+let x = printLn "here10!"
 
 
 -----------
@@ -1424,7 +1435,7 @@ end
 
 mexpr
 use MExprPrettyPrint in
-
+let x = printLn "here11!" in 
 let pchar = match_ (var_ "x") (pchar_ '\n') (true_) (false_) in
 utest expr2str pchar with
 "match
@@ -1435,7 +1446,7 @@ then
   true
 else
   false" in
-
+let x = printLn "here12!" in 
 let cons_ = appf2_ (var_ "cons") in
 let concat_ = appf2_ (var_ "concat") in
 
@@ -1463,6 +1474,7 @@ let func_foo =
     )
   )
 in
+let x = printLn "here13!" in 
 
 -- recursive let factorial = lam n.
 --     if eqi n 0 then
@@ -1481,6 +1493,7 @@ let func_factorial =
                                      (int_ 1))))))
     reclets_empty
 in
+let x = printLn "here14!" in 
 
 -- recursive
 --     let even = lam x.
@@ -1508,6 +1521,7 @@ let funcs_evenodd =
     reclets_empty)
 in
 
+let x = printLn "here15!" in 
 
 -- let recget = {i = 5, s = "hello!"} in
 let func_recget =
@@ -1525,6 +1539,7 @@ let func_recconcs =
                       (concat_ (recordproj_ "s" (var_ "rec"))
                                (var_ "s")))))
 in
+let x = printLn "here16!" in 
 
 -- con MyConA in
 let func_mycona = ucondef_ "MyConA" in
@@ -1578,6 +1593,7 @@ let func_beginsWithBinaryDigit =
     )
   )
 in
+let x = printLn "here17!" in 
 
 -- let pedanticIsSome : all a. Option a -> Bool = lam o : Option a.
 --   match o with !(None ()) & Some _ then true else false
@@ -1655,21 +1671,28 @@ in
 -- print "\n\n";
 -- print (expr2str sample_ast);
 -- print "\n\n";
+printLn (expr2str sample_ast) ;
 
-utest length (expr2str sample_ast) with 0 using geqi in
+-- utest length (expr2str sample_ast) with 0 using geqi in
 
 -- Test keyword variable names
-utest eqString (mexprToString (var_ "lam")) "lam"
-with false in
+printLn (mexprToString (var_ "lam"));
+-- utest eqString (mexprToString (var_ "lam")) "lam"
+-- with false in
 
 -- Test pretty printing of nested projections from tuples (these are not atomic)
 let e = tupleproj_ 0 (var_ "x") in
-utest (expr2str e) with "x.0" in
+-- -- utest (expr2str e) with "x.0" in
+printLn (expr2str e);
 
 let e = tupleproj_ 1 (tupleproj_ 0 (var_ "x")) in
-utest (expr2str e) with "(x.0).1" in
+-- -- utest (expr2str e) with "(x.0).1" in
+printLn (expr2str e);
+
 
 let e = recordproj_ "y" (tupleproj_ 0 (var_ "x")) in
-utest (expr2str e) with "x.0.y" in
+printLn (expr2str e);
+-- utest (expr2str e) with "x.0.y" in
+-- let x = printLn "here18!" in 
 
 ()

@@ -854,4 +854,7 @@ let tyconApps = bindall_ [
 ] in
 utest expr2str (symbolizeAllowFree tyconApps) with expr2str tyconApps using eqString in
 
+let utestprog = (bind_ (ulet_ "x" (int_ 10)) (utest_ (var_ "x") (int_ 10) uunit_)) in 
+utest testSymbolize utestprog false with true in
+
 ()

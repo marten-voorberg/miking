@@ -28,6 +28,19 @@ include "mlang/main.mc"
 include "peval/compile.mc"
 
 
+recursive let printSym = lam e. use MExprAst in 
+  switch e
+    case TmVar t then printLn (join [
+        "TmVar -",
+        nameGetStr t.ident,
+        " - ",
+        (match nameGetSym t.ident with Some sym then int2string (sym2hash sym) else "NO-SYMBOL")
+      ]);
+      TmVar t
+    case other then smap_Expr_Expr printSym other
+  end
+end
+
 lang MCoreCompile =
   BootParser +
   PMExprDemote +
@@ -59,6 +72,108 @@ let insertTunedOrDefaults = lam options : Options. lam ast. lam file.
       insert env table ast
     else error (join ["Tune file ", tuneFile, " does not exist"])
   else default ast
+
+let compileWithUtestsNoSym = lam options : Options. lam sourcePath. lam ast.
+  use MCoreCompile in
+    let log = mkPhaseLogState options.debugPhases in
+
+    -- If option --debug-profile, insert instrumented profiling expressions
+    -- in AST
+    let ast =
+      if options.debugProfile then instrumentProfiling ast
+      else ast
+    in
+    endPhaseStats log "instrument-profiling" ast;
+
+    printSym ast;
+    printLn "\n\n\n\n\n";
+
+    let ast =
+      removeMetaVarExpr
+        (typeCheckExpr
+           {typcheckEnvDefault with
+            disableConstructorTypes = not options.enableConstructorTypes}
+           ast)
+    in
+    endPhaseStats log "type-check" ast;
+
+    printSym ast;
+    printLn "\n\n\n\n\n";
+
+    (if options.debugTypeCheck then
+       printLn (use TyAnnotFull in annotateMExpr ast);
+       endPhaseStats log "debug-type-check" ast
+     else ());
+
+    let ast = compileSpecialize ast in
+    printSym ast;
+    printLn "\n\n\n\n\n";
+    -- If --runtime-checks is set, runtime safety checks are instrumented in
+    -- the AST. This includes for example bounds checking on sequence
+    -- operations.
+    let ast = if options.runtimeChecks then injectRuntimeChecks ast else ast in
+    endPhaseStats log "runtime-checks" ast;
+    printSym ast;
+    printLn "\n\n\n\n\n";
+
+
+    -- If option --test, then generate utest runner calls. Otherwise strip away
+    -- all utest nodes from the AST.
+    let ast = generateUtest options.runTests ast in
+    endPhaseStats log "generate-utest" ast;
+    printSym ast;
+    printLn "\n\n\n\n\n";
+
+
+    let ast =
+      if and (options.enableConstantFold) (not options.disableOptimizations)
+      then constantFold ast else ast
+    in
+    endPhaseStats log "constant folding" ast;
+    (if options.debugConstantFold then
+      printLn (expr2str ast) else ());
+    printSym ast;
+    printLn "\n\n\n\n\n";
+
+    let ast = lowerAll ast in
+    endPhaseStats log "pattern-lowering" ast;
+    (if options.debugShallow then
+      printLn (expr2str ast) else ());
+    printSym ast;
+    printLn "\n\n\n\n\n";
+
+    recursive let printSym = lam e.
+      switch e
+        case TmVar t then printLn (join [
+            "TmVar -",
+            nameGetStr t.ident,
+            " - ",
+            (match nameGetSym t.ident with Some sym then int2string (sym2hash sym) else "NO-SYMBOL")
+          ]);
+          TmVar t
+        case other then smap_Expr_Expr printSym other
+      end
+    in 
+    printSym ast;
+
+
+    let res =
+      if options.toJVM then compileMCoreToJVM ast else
+      if options.toJavaScript then compileMCoreToJS
+        { compileJSOptionsEmpty with
+          targetPlatform = parseJSTarget options.jsTarget
+        , generalOptimizations = not options.disableJsGeneralOptimizations
+        , tailCallOptimizations = not options.disableJsTCO
+        } ast sourcePath
+      else compileMCore ast
+        { debugTypeAnnot = lam ast. if options.debugTypeAnnot then printLn (expr2str ast) else ()
+        , debugGenerate = lam ocamlProg. if options.debugGenerate then printLn ocamlProg else ()
+        , exitBefore = lam. if options.exitBefore then exit 0 else ()
+        , postprocessOcamlTops = lam tops. if options.runtimeChecks then wrapInTryWith tops else tops
+        , compileOcaml = ocamlCompile options sourcePath
+        } in
+    endPhaseStats log "backend" ast;
+    res
 
 let compileWithUtests = lam options : Options. lam sourcePath. lam ast.
   use MCoreCompile in
@@ -142,7 +257,7 @@ let compile = lam files. lam options : Options. lam args.
   if options.mlangPipeline then
     printLn "WARNING: You are using an experimental, unstable pipeline.";
     use MainLang in 
-    iter (compileMLangToOcaml options compileWithUtests) files
+    iter (compileMLangToOcaml options compileWithUtestsNoSym) files
   else
     let compileFile = lam file.
       let log = mkPhaseLogState options.debugPhases in

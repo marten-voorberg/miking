@@ -208,7 +208,7 @@ lang MLangCompiler = MLangAst + MExprAst
 
     let compileSemToResult : CompilationContext -> [Decl] -> CompilationContext
       = lam ctx. lam sems.
-        let bindings = map (compileSem langStr ctx semNames) sems in 
+        let bindings = map (lam s. compileSem langStr ctx semNames s) sems in 
         withExpr ctx (TmRecLets {bindings = bindings,
                                  inexpr = uunit_, 
                                  ty = tyunknown_,
@@ -296,7 +296,7 @@ lang MLangCompiler = MLangAst + MExprAst
         -- else (error_ (str_ "Inexhaustive match!"))
         else 
           let s = join ["Inexhaustive match in ", langStr, ".", nameGetStr d.ident, "!\n"] in 
-          semi_ (print_ (str_ s)) never_
+          semi_ (print_ (str_ s)) (error_ (str_ s))
     in 
     let cases = match mapLookup (langStr, nameGetStr d.ident) ctx.compositionCheckEnv.semPatMap 
                 with Some x then x
@@ -338,7 +338,7 @@ lang MLangCompiler = MLangAst + MExprAst
             TmLam {ident = targetName,
                    tyAnnot = tyunknown_,
                    tyParam = tyunknown_,
-                   body = body,
+                   body = semi_ (print_ (str_ (join ["->", langStr, ".", nameGetStr d.ident, "!\n"]))) body,
                    ty = tyunknown_,
                    info = d.info}
     in 
@@ -615,4 +615,23 @@ let p : MLangProgram = {
     expr = bind_ (use_ "L1") (appf1_ (var_ "iseven") (int_ 11))
 } in 
 utest testEval p with false_ using eqExpr in
+
+let decls = [
+  decl_lang_ "L0" [
+    decl_sem_
+      "isodd" 
+      []
+      [(pvar_ "x", if_ (eqi_ (int_ 0) (var_ "x")) false_ (appf1_ (var_ "iseven") (subi_ (var_ "x") (int_ 1))))],
+    decl_sem_
+      "iseven"
+      []
+      []
+  ],
+  decl_langi_ "L1" ["L0"] [
+    decl_sem_
+      "iseven" 
+      []
+      [(pvar_ "x", if_ (eqi_ (int_ 0) (var_ "x")) true_ (appf1_ (var_ "isodd") (subi_ (var_ "x") (int_ 1))))]
+  ]
+] in 
 ()

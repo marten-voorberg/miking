@@ -54,10 +54,23 @@ lang MLangSym = MLangAst + MExprSym
 
     sem symbolizeExpr env = 
     | TmUse t -> 
+        printLn (concat "Desugaring TmUse for: " (nameGetStr t.ident));
         -- TODO: Prevent TmUse <lang> in that specific lang.
         match mapLookup (nameGetStr t.ident) env.langEnv with Some langEnv 
             then 
-                symbolizeExpr (updateEnv env langEnv) t.inexpr
+                let env = updateEnv env langEnv in 
+
+                let pairs = mapToSeq env.currentEnv.varEnv in 
+                let pprintPair = lam pair. 
+                    match pair with (fst, snd) in 
+                    printLn (strJoin " - " [
+                        fst, 
+                        int2string (sym2hash (match nameGetSym snd with Some x in x))
+                    ])
+                in 
+                iter pprintPair pairs;
+
+                symbolizeExpr env t.inexpr
             else 
                 symLookupError 
                     {kind = "language", info = [t.info], allowFree = false}
@@ -245,11 +258,16 @@ lang MLangSym = MLangAst + MExprSym
         -- 4. Assign names to semantic functions
         let symbSem = lam langEnv : NameEnv. lam declSem. 
             match declSem with DeclSem s in 
-            match setSymbol langEnv.varEnv s.ident with (varEnv, ident) in 
-
+            match setSymbol langEnv.varEnv ident with (varEnv, ident) in 
             let langEnv = {langEnv with varEnv = varEnv} in 
             let decl = DeclSem {s with ident = ident} in 
         
+            printLn (strJoin " - " [
+                nameGetStr t.ident,
+                nameGetStr ident,
+                int2string (sym2hash (match nameGetSym ident with Some x in x))
+            ]);
+
             (langEnv, decl)
         in 
         match mapAccumL symbSem langEnv semDecls with (langEnv, semDecls) in 
@@ -432,6 +450,29 @@ match l1 with DeclLang l in
 utest isFullySymbolizedDecl l1 () with true in 
 utest isFullySymbolized p.expr with true in 
 utest nameHasSym l.ident with true in
+
+-- Test TmUse points to the correct symbol
+let p : MLangProgram = {
+    decls = [
+        decl_lang_ "L1" [
+            decl_sem_ "f" [] []
+        ],
+        decl_langi_ "L2" ["L1"] []
+    ],
+    expr = bind_ (use_ "L2") (var_ "f")
+} in 
+let p = composeProgram p in 
+match symbolizeMLang symEnvDefault p with (_, p) in 
+utest isFullySymbolizedProgram p () with true in 
+match p.expr with TmVar tmVar in 
+match head p.decls with DeclLang l1 in 
+utest l1.ident with nameNoSym "L1" using nameEqStr in 
+match head l1.decls with DeclSem f1 in 
+match get p.decls 1 with DeclLang l2 in 
+utest l2.ident with nameNoSym "L2" using nameEqStr in 
+match head l2.decls with DeclSem f2 in 
+utest nameEqSym f1.ident f2.ident with false in 
+utest nameEqSym (tmVar.ident) f2.ident with true in
 
 -- Test DeclType wand DeclConDef with polymorhpic parameters
 let p : MLangProgram = {
@@ -783,5 +824,44 @@ let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
 -- printLn (mlang2str p);
 utest isFullySymbolizedProgram p () with true in
+
+-- Test case related to type definitions in language fragments
+let p : MLangProgram = {
+    decls = [
+        decl_lang_ "L0" [
+            decl_sem_ 
+                "f" 
+                []
+                [(pvarw_, int_ 1)]
+        ],
+        decl_langi_ "L1" ["L0"] [
+            decl_sem_ 
+                    "f" 
+                    []
+                    [(pint_ 10, int_ 2)]
+        ],
+         decl_langi_ "L2" ["L1"] []
+    ],
+    expr = bind_ (use_ "L2") (var_ "f")
+} in 
+let p = composeProgram p in  
+match symbolizeMLang symEnvDefault p with (_, p) in 
+-- printLn (mlang2str p);
+utest isFullySymbolizedProgram p () with true in
+
+recursive let printSym = lam e.
+    switch e
+    case TmVar t then printLn (join [
+        "TmVar -",
+        nameGetStr t.ident,
+        " - ",
+        (match nameGetSym t.ident with Some sym then int2string (sym2hash sym) else "NO-SYMBOL")
+        ]);
+        TmVar t
+    case other then smap_Expr_Expr printSym other
+    end
+in 
+printSym p.expr;
+
 
 ()

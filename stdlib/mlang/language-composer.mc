@@ -63,11 +63,18 @@ let projIdent = lam info.
 
 
 type ComposerContext = {
-  langMap : Map (String, String) DeclInfo
+  langMap : Map (String, String) DeclInfo,
+  includeMap : Map (String, String) [(String, String)],
+  include2 : Map String [String]
 }
 
+let removeDups : [(String, String)] -> [(String, String)] = lam incl. 
+  setToSeq (setOfSeq (tupleCmp2 cmpString cmpString) incl)
+
 let emptyComposerContext : ComposerContext = {
-  langMap = mapEmpty (tupleCmp2 cmpString cmpString)
+  langMap = mapEmpty (tupleCmp2 cmpString cmpString),
+  includeMap = mapEmpty (tupleCmp2 cmpString cmpString),
+  include2 = mapEmpty cmpString
 }  
 
 let ctxWithDeclInfo = lam ctx. lam s. lam declInfo.
@@ -85,7 +92,11 @@ lang LanguageComposer = MLangAst
   sem composeLang : ComposerContext -> Decl -> (ComposerContext, Decl)
   sem composeLang ctx =
   | DeclLang l -> 
-    let includes = map nameGetStr l.includes in 
+    let includes : [String] = map nameGetStr l.includes in 
+    let transitiveIncludes : [String] = foldl (lam acc. lam i. 
+      match mapLookup i ctx.include2 with Some xs in concat acc xs) [] includes in
+    let includes = setToSeq (setOfSeq cmpString (concat includes transitiveIncludes)) in 
+
     match mapAccumL (handleDecl (nameGetStr l.ident) includes) ctx l.decls with (ctx, decls) in 
 
     let synOrSemNames = mapOption 
@@ -97,6 +108,7 @@ lang LanguageComposer = MLangAst
     match addImplicitIncludes (nameGetStr l.ident) includes synOrSemStrings ctx 
     with (ctx, generatedDecls) in 
 
+    let ctx = {ctx with include2 = mapInsert (nameGetStr l.ident) includes ctx.include2} in 
     (ctx, DeclLang {l with decls = concat decls generatedDecls})
   | other -> (ctx, other)
 
@@ -116,7 +128,14 @@ lang LanguageComposer = MLangAst
     else
       let includedSems = filter isSemInfo foundIncludes in 
 
+      let key = (langStr, nameGetStr d.ident) in 
       let includes = map projIdent includedSems in 
+
+      -- let transitiveIncludes = join (map (lam i. match mapLookup i ctx.includeMap with Some is then is else error (match i with (fst, snd) in concat fst snd)) includes) in 
+      -- let transitiveIncludes = removeDups transitiveIncludes in 
+      -- let includes = concat includes transitiveIncludes in 
+
+      let ctx = {ctx with includeMap = mapInsert key includes ctx.includeMap} in 
       (ctxWithDeclInfo ctx (langStr, nameGetStr d.ident) (decl2info langStr decl), 
        DeclSem {d with includes = includes})
   | decl & DeclSyn d ->
@@ -134,7 +153,15 @@ lang LanguageComposer = MLangAst
     else
       let includedSyns = filter isSynInfo foundIncludes in 
 
+      -- let key = (langStr, nameGetStr d.ident) in 
       let includes = map projIdent includedSyns in 
+
+      -- let transitiveIncludes = join (map (lam i. match mapLookup i ctx.includeMap with Some is in is) includes) in 
+      -- let transitiveIncludes = removeDups transitiveIncludes in 
+      -- let includes = concat includes transitiveIncludes in 
+
+      -- let ctx = {ctx with includeMap = mapInsert key includes ctx.includeMap} in 
+
       let info = {ident = d.ident, info = d.info} in 
       (ctxWithDeclInfo ctx (langStr, nameGetStr d.ident) (decl2info langStr decl), 
        DeclSyn {d with includes = includes})
@@ -247,7 +274,7 @@ utest length f2.includes with 1 in
 
 match get p.decls 3 with DeclLang {decls = innerDecls} in 
 match head innerDecls with DeclSem f12 in 
-utest length f12.includes with 2 in 
+utest length f12.includes with 3 in 
 
 let p : MLangProgram = {
   decls = [
@@ -281,7 +308,7 @@ utest length f2.includes with 1 in
 
 match get p.decls 3 with DeclLang {decls = innerDecls} in 
 match head innerDecls with DeclSyn f12 in 
-utest length f12.includes with 2 in 
+utest length f12.includes with 3 in 
 
 let p : MLangProgram = {
   decls = [

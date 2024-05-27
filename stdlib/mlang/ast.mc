@@ -126,7 +126,6 @@ lang SemDeclAst = DeclAst
              -- and the second string identifies the name.
              includes : [(String, String)],
              info : Info}
-
   sem infoDecl = 
   | DeclSem d -> d.info
 end
