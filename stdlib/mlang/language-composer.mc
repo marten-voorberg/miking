@@ -235,7 +235,8 @@ lang LanguageComposer = MLangAst
                               params = s.params,
                               defs = [],
                               includes = includes,
-                              info = s.info} in 
+                              info = s.info,
+                              declKind = sumext_kind_} in 
           let info = decl2info langStr decl in 
           (ctxWithDeclInfo ctx (langStr, nameGetStr s.ident) info, decl)
         case SemInfo s then
@@ -252,7 +253,8 @@ lang LanguageComposer = MLangAst
                               args = args,
                               cases = [],
                               includes = includes,
-                              info = s.info} in 
+                              info = s.info,
+                              declKind = sumext_kind_} in 
           let info = decl2info langStr decl in 
           (ctxWithDeclInfo ctx (langStr, nameGetStr s.ident) info, decl)
         case _ then never

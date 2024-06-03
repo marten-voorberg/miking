@@ -7,6 +7,9 @@ include "ast.mc"
 
 -- Extending the bind function for mlang expressions
 
+let base_kind_ = BaseKind () 
+let sumext_kind_ = SumExtKind () 
+
 recursive let mlang_bindF_ = use MLangAst in
   lam f : Expr -> Expr -> Expr. lam letexpr. lam expr.
   bindF_ (lam letexpr. lam expr.
@@ -84,7 +87,8 @@ let decl_nsynn_ = use MLangAst in
            defs = map (lam t. {ident = t.0, tyIdent = t.1}) ndefs,
            params = [],
            includes = [],
-           info = NoInfo {}}
+           info = NoInfo {},
+           declKind = base_kind_}
 
 let decl_nsyn_ = use MLangAst in
   lam n. lam defs: [(String, Type)].
@@ -98,19 +102,32 @@ let decl_syn_ = use MLangAst in
   lam s. lam defs: [(String, Type)].
   decl_nsyn_ (nameNoSym s) defs
 
+let decl_syn_prodext_ = use MLangAst in 
+  lam s. lam globExt : Type. lam indivExts : [(String, Type)]. 
+  let parseExt = lam indivExt. 
+    {ident = nameNoSym indivExt.0, tyIdent = indivExt.1} in 
+  SynDeclProdExt {ident = nameNoSym s, 
+               params = [],
+               includes = [],
+               globalExt = globExt,
+               individualExts = map parseExt indivExts,
+               info = NoInfo ()}
+
 let decl_syn_params_ = use MLangAst in 
   lam s : String. lam ss : [String]. lam defs : [(String, Type)].
   DeclSyn {ident = nameNoSym s,
            defs = map (lam t. {ident = nameNoSym t.0, tyIdent = t.1}) defs,
            params = map nameNoSym ss,
            includes = [],
-           info = NoInfo {}}
+           info = NoInfo {},
+           declKind = base_kind_}
 
 let decl_nsemty_ = use MLangAst in
   lam n. lam ty.
   DeclSem {ident = n, tyAnnot = ty,
            tyBody = tyunknown_, includes = [],
-           args = None (), cases = [], info = NoInfo {}}
+           args = None (), cases = [], info = NoInfo {},
+           declKind = base_kind_}
 
 let decl_semty_ = use MLangAst in
   lam s. lam ty.
@@ -123,7 +140,8 @@ let decl_semty_cases_ = use MLangAst in
            tyBody = tyunknown_, includes = [],
            args = Some [],
            cases = map (lam t. {pat = t.0, thn = t.1}) cases,
-           info = NoInfo {}}
+           info = NoInfo {},
+           declKind = base_kind_}
 
 let decl_sem_args_ty_cases_ = use MLangAst in 
   lam s : String. lam args : [(String, Type)]. lam ty : Type. lam cases.
@@ -132,7 +150,8 @@ let decl_sem_args_ty_cases_ = use MLangAst in
            tyBody = tyunknown_, includes = [],
            args = Some (map (lam t. {ident = nameNoSym t.0, tyAnnot = t.1}) args),
            cases = map (lam t. {pat = t.0, thn = t.1}) cases,
-           info = NoInfo {}}
+           info = NoInfo {},
+           declKind = base_kind_}
 
 let decl_nsem_ = use MLangAst in
   lam n. lam nargs: [(Name, Type)]. lam cases: [(Pat, Expr)].
@@ -140,7 +159,8 @@ let decl_nsem_ = use MLangAst in
            tyBody = tyunknown_, includes = [],
            args = Some (map (lam t. {ident = t.0, tyAnnot = t.1}) nargs),
            cases = map (lam t. {pat = t.0, thn = t.1}) cases,
-           info = NoInfo {}}
+           info = NoInfo {},
+           declKind = base_kind_}
 
 let decl_nusem_ = use MLangAst in
   lam n. lam nuargs: [Name]. lam cases.

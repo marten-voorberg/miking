@@ -106,11 +106,17 @@ lang BootParserMLang = BootParser + MLangAst
       {ident = ident, tyIdent = ty}
     in 
 
+    let kind = switch gint d 0 
+      case 0 then base_kind_ 
+      case 1 then sumext_kind_ 
+    end in 
+
     DeclSyn {ident = gname d 0,
              includes = [],
              defs = map parseCon (range 0 nCons 1),
              params = map (lam i. gname d (addi (addi 1 nCons) i)) (range 0 nParams 1),
-             info = ginfo d 0}
+             info = ginfo d 0,
+             declKind = kind}
   | 703 -> 
     let nCases = glistlen d 0 in 
     let nArgs = glistlen d 1 in 
@@ -125,18 +131,40 @@ lang BootParserMLang = BootParser + MLangAst
       Some (map (lam i. {ident = gname d i, tyAnnot = gtype d i}) (range 1 (addi 1 nArgs) 1))
     in
 
+    let kind = switch gint d 0 
+      case 0 then base_kind_ 
+      case 1 then sumext_kind_ 
+    end in 
+
     DeclSem {ident = gname d 0,
              tyAnnot = gtype d 0,
              tyBody = tyunknown_,
              args = args,
              cases = map parseCase (range 0 nCases 1),
              includes = [],
-             info = ginfo d 0}
+             info = ginfo d 0,
+             declKind = kind}
   | 705 ->
     DeclType {ident = gname d 0,
               params = map (gname d) (range 1 (addi 1 (glistlen d 0)) 1),
               tyIdent = gtype d 0,
               info = ginfo d 0}
+  | 710 ->
+    let nCons = glistlen d 0 in 
+    let nParams = if eqi nCons 0 then 0 else glistlen d 1 in 
+
+    let parseCon = lam i. 
+      let ident = gname d (addi i 1) in 
+      let ty = gtype d (addi i 1) in 
+      {ident = ident, tyIdent = ty}
+    in 
+
+    SynDeclProdExt {ident = gname d 0,
+                    includes = [],
+                    individualExts = map parseCon (range 0 nCons 1),
+                    globalExt = gtype d 0,
+                    params = map (lam i. gname d (addi (addi 1 nCons) i)) (range 0 nParams 1),
+                    info = ginfo d 0}
 
   sem matchTop : Unknown -> Int -> Decl
   sem matchTop d = 
@@ -528,5 +556,39 @@ let p = parseProgram str in
 match head p.decls with DeclLang l in 
 match head l.decls with DeclSem f in 
 match optionIsNone f.args with true in 
+
+-- Test syn sum extension
+let str = strJoin "\n" [
+  "lang Base",
+  "  syn S = ",
+  "  | Foo {y : Int}",
+  "  | Bar {z : String}",
+  "  sem f x = ",
+  "  | _ -> 0",
+  "end",
+  "lang SumExt",
+  "  syn S += ",
+  "  | Baz {y : Int}",
+  "  sem f x += ",
+  "  | 10 -> 10",
+  "end",
+  "mexpr",
+  "()"
+] in
+let p = parseProgram str in 
+printLn (mlang2str p) ;
+
+-- Test syn product extension
+let str = strJoin "\n" [
+  "lang Base",
+  "  syn S *= {x : Int}",
+  "  | Foo {y : Int}",
+  "  | Bar {z : String}",
+  "end",
+  "mexpr",
+  "()"
+] in
+let p = parseProgram str in 
+printLn (mlang2str p) ;
 
 ()

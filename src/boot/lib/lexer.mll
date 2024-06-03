@@ -56,6 +56,8 @@ let reserved_strings = [
   ("Tensor",        fun(i) -> Parser.TTENSOR{i=i;v=()});
 
   (* v *)
+  ("+=",            fun(i) -> Parser.PLUSEQ{i=i;v=()});
+  ("*=",            fun(i) -> Parser.TIMESEQ{i=i;v=()});
   ("=",             fun(i) -> Parser.EQ{i=i;v=()});
   ("+",             fun(i) -> Parser.ADD{i=i;v=()});
   ("++",            fun(i) -> Parser.CONCAT{i=i;v=()});
@@ -171,7 +173,7 @@ let uident = ucase_letter (digit | '_' | us_letter)*
 
 let symtok =  "="  | "+" |  "-" | "*"  | "/" | "%"  | "<"  | "<=" | ">" | ">=" | "<<" | ">>" | ">>>" | "==" |
               "!=" | "!" | "&&" | "||" | "++"| "$" | "("  | ")"  | "["  | "]" | "{"  | "}"  |
-              "::" | ":" | ","  | ";"  | "."  | "&" | "|" | "->" | "=>" | "++"
+              "::" | ":" | ","  | ";"  | "."  | "&" | "|" | "->" | "=>" | "++" | "+=" | "*="
 
 let line_comment = "--" [^ '\013' '\010']*
 let unsigned_integer = digit+

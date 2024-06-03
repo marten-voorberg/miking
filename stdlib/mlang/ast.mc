@@ -22,6 +22,10 @@ include "stringid.mc"
 include "mexpr/ast.mc"
 include "mexpr/info.mc"
 
+type DeclKind
+con BaseKind : () -> DeclKind 
+con SumExtKind : () -> DeclKind
+
 -- TmUse --
 lang UseAst = Ast
   syn Expr =
@@ -90,12 +94,22 @@ lang SynDeclAst = DeclAst
              -- The first string identifies the langauge of the include
              -- and the second string identifies the name.
              includes : [(String, String)],
-             info : Info}
+             info : Info,
+             declKind : DeclKind}
 
   sem infoDecl = 
   | DeclSyn d -> d.info
 end
 
+lang SynProdExtDeclAst = DeclAst 
+  syn Decl = 
+  | SynDeclProdExt {ident : Name,
+                 params : [Name],
+                 globalExt : Type, 
+                 individualExts : [{ident : Name, tyIdent : Type}],
+                 includes : [(String, String)],
+                 info : Info}
+end
 -- DeclSem --
 lang SemDeclAst = DeclAst
   type DeclSemType = {ident : Name,
@@ -107,7 +121,8 @@ lang SemDeclAst = DeclAst
                       -- The first string identifies the langauge of the include
                       -- and the second string identifies the name.
                       includes : [(String, String)],
-                      info : Info}
+                      info : Info,
+                      declKind : DeclKind}
   syn Decl =
   | DeclSem DeclSemType
 
@@ -216,6 +231,6 @@ lang MLangAst =
   -- Declarations
   + LangDeclAst + SynDeclAst + SemDeclAst + LetDeclAst + TypeDeclAst
   + RecLetsDeclAst + DataDeclAst + UtestDeclAst + ExtDeclAst + IncludeDeclAst 
-  + TyUseAst
+  + TyUseAst + SynProdExtDeclAst
 
 end

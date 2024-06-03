@@ -104,8 +104,14 @@ lang SynDeclPrettyPrint = DeclPrettyPrint + SynDeclAst + DataPrettyPrint
         (env, join ["| ", str, " ", ty])
       ) env t.defs
     with (env, defStrings) in
+
+    let eqSym = switch t.declKind 
+      case BaseKind _ then " ="
+      case SumExtKind _ then " +="
+    end in 
+
     (env, strJoin (pprintNewline indent)
-                  (cons (join ["syn ", typeNameStr, params, " ="]) defStrings))
+                  (cons (join ["syn ", typeNameStr, params, eqSym]) defStrings))
 end
 
 lang SemDeclPrettyPrint = DeclPrettyPrint + SemDeclAst + UnknownTypeAst
@@ -142,13 +148,43 @@ lang SemDeclPrettyPrint = DeclPrettyPrint + SemDeclAst + UnknownTypeAst
             (env, join ["| ", patStr, " ->", pprintNewline (pprintIncr indent), exprStr])
           ) env t.cases
         with (arg, caseStrs) in
+
+        let eqSym = switch t.declKind 
+          case BaseKind _ then " ="
+          case SumExtKind _ then " +="
+          case _ then "?"
+        end in 
+
         let final = strJoin (pprintNewline indent) (
-                cons (join ["sem ", baseStr, strJoin " " (cons "" argStrs), " ="])
+                cons (join ["sem ", baseStr, strJoin " " (cons "" argStrs), eqSym])
                      caseStrs) in
         (env, Some final)
       else (env, None ())
     with (env, mImpl) in
     (env, strJoin "\n" (mapOption identity [mDecl, mImpl]))
+end
+
+lang SynProdExtDeclPrettyPrint = DeclPrettyPrint + SynProdExtDeclAst
+  sem pprintDeclCode (indent : Int) (env : PprintEnv) =
+  | SynDeclProdExt t -> 
+    match pprintTypeName env t.ident with (env, typeNameStr) in
+    match mapAccumL pprintEnvGetStr env t.params with (env, params) in
+    let params = join (map (concat " ") params) in
+    match
+      mapAccumL (lam env. lam indivExt.
+        match pprintConName env indivExt.ident with (env, str) in
+        match getTypeStringCode (pprintIncr indent) env indivExt.tyIdent
+        with (env, ty) in
+        (env, join ["| ", str, " ", ty])
+      ) env t.individualExts
+    with (env, indivExtStr) in
+
+    match getTypeStringCode (pprintIncr indent) env t.globalExt 
+    with (env, globExtStr) in
+
+    (env, strJoin (pprintNewline indent)
+                  (cons (join ["syn ", typeNameStr, params, " *= ", globExtStr]) indivExtStr))
+
 end
 
 lang LetDeclPrettyPrint = DeclPrettyPrint + LetDeclAst + LetPrettyPrint
@@ -235,7 +271,7 @@ lang MLangPrettyPrint = MExprPrettyPrint +
   DeclPrettyPrint + LangDeclPrettyPrint + SynDeclPrettyPrint +
   SemDeclPrettyPrint + LetDeclPrettyPrint + TypeDeclPrettyPrint +
   RecLetsDeclPrettyPrint + DataDeclPrettyPrint + UtestDeclPrettyPrint +
-  ExtDeclPrettyPrint + IncludeDeclPrettyPrint + 
+  ExtDeclPrettyPrint + IncludeDeclPrettyPrint + SynProdExtDeclPrettyPrint + 
   
 
   -- Top-level pretty printer
@@ -314,6 +350,7 @@ let prog2: MLangProgram = {
         ("Apple", tyint_),
         ("Pear", tyseq_ tyfloat_)
       ],
+      decl_syn_prodext_ "Foo" (tyint_) [("Bar", tychar_), ("Baz", tystr_)],
       decl_usem_ "getFruit" ["x"] [
         (pcon_ "Apple" (pvar_ "i"), appf1_ (var_ "int2string") (var_ "i")),
         (pcon_ "Pear" (pvar_ "fs"),

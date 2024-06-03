@@ -236,7 +236,7 @@ lang CarriedTypeHelpers = CarriedTypeBase + SemDeclAst + PrettyPrint
           , tyAnnot = tyunknown_
           , tyBody = tyunknown_  -- TODO(vipa, 2023-03-09): Provide a proper type here
           , args = Some [{ident = fName, tyAnnot = tyunknown_}, {ident = accName, tyAnnot = tyunknown_}]
-          , includes = []
+          , includes = [], declKind = BaseKind ()
           , cases =
             [ { pat = npcon_ constructor.name (npvar_ valName)
               , thn = match_
@@ -264,7 +264,7 @@ lang CarriedTypeHelpers = CarriedTypeBase + SemDeclAst + PrettyPrint
         , tyAnnot = tyunknown_
         , tyBody = tyunknown_  -- TODO(vipa, 2023-03-09): provide a proper type here
         , args = Some []
-        , includes = []
+        , includes = [], declKind = BaseKind ()
         , cases =
           [ { pat = npcon_ constructor.name (npvar_ targetName)
             , thn = recordproj_ request.field (nvar_ targetName)
@@ -277,7 +277,7 @@ lang CarriedTypeHelpers = CarriedTypeBase + SemDeclAst + PrettyPrint
         , tyAnnot = tyunknown_
         , tyBody = tyunknown_  -- TODO(vipa, 2023-03-09): provide a proper type here
         , args = Some [{ident = valName, tyAnnot = tyunknown_}]
-        , includes = []
+        , includes = [], declKind = BaseKind ()
         , cases =
           [ { pat = npcon_ constructor.name (npvar_ targetName)
             , thn = nconapp_ constructor.name (recordupdate_ (nvar_ targetName) request.field (nvar_ valName))
@@ -306,7 +306,7 @@ lang CarriedTypeHelpers = CarriedTypeBase + SemDeclAst + PrettyPrint
       { ident = request.names.smapAccumL
       , tyAnnot = ty
       , tyBody = ty
-      , includes = []
+      , includes = [], declKind = BaseKind ()
       , args = Some
         [ {ident = fName, tyAnnot = tyunknown_}
         , {ident = accName, tyAnnot = tyunknown_}
@@ -326,7 +326,7 @@ lang CarriedTypeHelpers = CarriedTypeBase + SemDeclAst + PrettyPrint
       { ident = request.names.smap
       , tyAnnot = ty
       , tyBody = ty
-      , includes = []
+      , includes = [], declKind = BaseKind ()
       , args = Some
         [ {ident = fName, tyAnnot = tyunknown_}
         ]
@@ -352,7 +352,7 @@ lang CarriedTypeHelpers = CarriedTypeBase + SemDeclAst + PrettyPrint
       { ident = request.names.sfold
       , tyAnnot = ty
       , tyBody = ty
-      , includes = []
+      , includes = [], declKind = BaseKind ()
       , args = Some
         [ {ident = fName, tyAnnot = tyunknown_}
         , {ident = accName, tyAnnot = tyunknown_}
@@ -389,7 +389,7 @@ let _mkFieldStubs
       , tyBody = ty
       , args = Some []
       , cases = []
-      , includes = []
+      , includes = [], declKind = BaseKind ()
       , info = NoInfo ()
       } in
     let getf_ = appf1_ (nvar_ request.names.get) in
@@ -401,7 +401,7 @@ let _mkFieldStubs
       , tyBody = ty
       , args = Some [{ident = valName, tyAnnot = tyunknown_}]
       , cases = []
-      , includes = []
+      , includes = [], declKind = BaseKind ()
       , info = NoInfo ()
       } in
     let setf_ = appf2_ (nvar_ request.names.set) in
@@ -415,7 +415,7 @@ let _mkFieldStubs
       in DeclSem
       { ident = request.names.mapAccum
       , tyAnnot = ty
-      , includes = []
+      , includes = [], declKind = BaseKind ()
       , tyBody = ty
       , args = Some [{ident = fName, tyAnnot = tyunknown_}, {ident = accName, tyAnnot = tyunknown_}]
       , cases =
@@ -438,7 +438,7 @@ let _mkFieldStubs
       in DeclSem
       { ident = request.names.map
       , tyAnnot = ty
-      , includes = []
+      , includes = [], declKind = BaseKind ()
       , tyBody = ty
       , args = Some [{ident = fName, tyAnnot = tyunknown_}]
       , cases =
@@ -603,7 +603,7 @@ lang CarriedTypeGenerate = CarriedTypeHelpers + LangDeclAst + TypeDeclAst + SynD
       (setEmpty nameCmp)
       input.constructors in
     let synTypes = setFold
-      (lam acc. lam synType. cons (DeclSyn {ident = synType, includes = [], params = [], defs = [], info = NoInfo ()}) acc)
+      (lam acc. lam synType. cons (DeclSyn {ident = synType, includes = [], declKind = BaseKind (), params = [], defs = [], info = NoInfo ()}) acc)
       []
       synTypes in
     type DeclLangRec =
@@ -636,7 +636,7 @@ lang CarriedTypeGenerate = CarriedTypeHelpers + LangDeclAst + TypeDeclAst + SynD
         , decls =
           join
             [ [ DeclType {ident = recordTyName, params = [], tyIdent = carriedRepr carried, info = NoInfo ()}
-              , DeclSyn {ident = synType, includes = [], params = [], defs = [{ident = name, tyIdent = ntycon_ recordTyName}], info = NoInfo ()}
+              , DeclSyn {ident = synType, includes = [], declKind = BaseKind (), params = [], defs = [{ident = name, tyIdent = ntycon_ recordTyName}], info = NoInfo ()}
               ]
             , sfunctions
             , join accessors

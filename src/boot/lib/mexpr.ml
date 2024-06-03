@@ -144,6 +144,8 @@ let idDeclUtest = 708
 
 let idDeclExt = 709
 
+let idDeclSynProdExt = 710
+
 let sym = Symb.gensym ()
 
 let patNameToStr = function NameStr (x, _) -> x | NameWildcard -> us ""
@@ -500,7 +502,7 @@ let getData = function
       , []
       , []
       , decls )
-  | PTreeDecl (Data (fi, ident, nParams, decls)) ->
+  | PTreeDecl (Data (fi, ident, nParams, decls, kind)) ->
       let lst =
         List.map
           (fun x ->
@@ -515,10 +517,44 @@ let getData = function
         if List.length lst = 0 then []
         else List.hd (List.map (fun (_, params, _, _) -> params) lst)
       in
+
+      let kindInt = match kind with 
+      | Base -> 0
+      | SumExt -> 1
+      in
+
       ( idDeclSyn
       , fis
       , [List.length decls; nParams]
       , tys
+      , []
+      , ident :: List.concat [allStr; tyParams]
+      , [kindInt]
+      , []
+      , []
+      , []
+      , []
+      , [] )
+  | PTreeDecl (DataProdExt (fi, ident, nParams, decls, globExt)) -> 
+      let lst =
+        List.map
+          (fun x ->
+            match x with CDecl (fi, params, con, ty) -> (fi, params, con, ty)
+            )
+          decls
+      in
+      let allStr = List.map (fun (_, _, con, _) -> con) lst in
+      let fis = fi :: List.map (fun (fi, _, _, _) -> fi) lst in
+      let tys = List.map (fun (_, _, _, ty) -> ty) lst in
+      let tyParams =
+        if List.length lst = 0 then []
+        else List.hd (List.map (fun (_, params, _, _) -> params) lst)
+      in
+
+      ( idDeclSynProdExt
+      , fis
+      , [List.length decls; nParams]
+      , globExt :: tys
       , []
       , ident :: List.concat [allStr; tyParams]
       , []
@@ -527,7 +563,11 @@ let getData = function
       , []
       , []
       , [] )
-  | PTreeDecl (Inter (fi, ident, ty, paramListOpt, cases)) -> (
+  | PTreeDecl (Inter (fi, ident, ty, paramListOpt, cases, kind)) -> (
+    let kindInt = match kind with 
+    | Base -> 0
+    | SumExt -> 1
+    in
     match paramListOpt with
     | Some paramList ->
         let argIdents =
@@ -538,13 +578,14 @@ let getData = function
         in
         let pats = List.map fst cases in
         let tms = List.map snd cases in
+
         ( idDeclSem
         , [fi]
         , [List.length cases; List.length paramList]
         , ty :: argTys
         , tms
         , ident :: argIdents
-        , []
+        , [kindInt]
         , []
         , []
         , pats
@@ -561,7 +602,7 @@ let getData = function
         , [ty]
         , tms
         , [ident]
-        , []
+        , [kindInt]
         , []
         , []
         , pats

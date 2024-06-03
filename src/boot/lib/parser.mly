@@ -93,6 +93,8 @@
 %token <unit Ast.tokendata> TTENSOR
 
 %token <unit Ast.tokendata> EQ            /* "="   */
+%token <unit Ast.tokendata> PLUSEQ        /* "+="   */
+%token <unit Ast.tokendata> TIMESEQ       /* "*="   */
 %token <unit Ast.tokendata> ARROW         /* "->"  */
 %token <unit Ast.tokendata> ADD           /* "+"   */
 
@@ -275,15 +277,30 @@ decls:
   |
     { [] }
 decl:
+  // Syn base definition
   | SYN type_ident type_params EQ constrs
     { let fi = mkinfo $1.i $4.i in
-      Data (fi, $2.v, List.length $3, List.map (set_con_params $3) $5) }
+      Data (fi, $2.v, List.length $3, List.map (set_con_params $3) $5, Base) }
+  // Syn sum extension
+  | SYN type_ident type_params PLUSEQ constrs
+    { let fi = mkinfo $1.i $4.i in
+      Data (fi, $2.v, List.length $3, List.map (set_con_params $3) $5, SumExt ) }
+  // Syn product extension
+  | SYN type_ident type_params TIMESEQ constr_params constrs
+    { let fi = mkinfo $1.i $4.i in
+      DataProdExt (fi, $2.v, List.length $3, List.map (set_con_params $3) $6, ($5 fi)) }
+  // Sem base definition 
   | SEM var_ident params EQ cases
     { let fi = mkinfo $1.i $4.i in
-      Inter (fi, $2.v, TyUnknown fi, Some $3, $5) }
+      Inter (fi, $2.v, TyUnknown fi, Some $3, $5, Base) }
+  // Sem sum extension
+  | SEM var_ident params PLUSEQ cases
+    { let fi = mkinfo $1.i $4.i in
+      Inter (fi, $2.v, TyUnknown fi, Some $3, $5, SumExt) }
+  // Sem type declaration
   | SEM var_ident COLON ty
     { let fi = mkinfo $1.i (ty_info $4) in
-      Inter (fi, $2.v, $4, None, []) }
+      Inter (fi, $2.v, $4, None, [], Base) }
   | TYPE type_ident type_params EQ ty
     { let fi = mkinfo $1.i $4.i in
       Alias (fi, $2.v, $3, $5) }
