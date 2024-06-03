@@ -51,16 +51,43 @@ lang DeclLetTypeCheck = DeclTypeCheck + LetDeclAst + LamAst + FunTypeAst +
                           tyBody = tyBody})
 end
 
+lang DeclSemTypeCheck = SemDeclAst + ResolveType + DeclTypeCheck + 
+                        SubstituteUnknown + ResolveType + SubstituteNewReprs
+  sem typeCheckSemDecls : TCEnv -> [DeclSemType] -> (TCEnv, [DeclSemType])
+  sem typeCheckSemDecls env =
+  | sems -> 
+    -- First: Generate a new environment containing the recursive bindings
+    -- let semIteratee = lam acc. lam t : DeclSemType. 
+    --   let tyAnnot = resolveType t.info env false t.tyAnnot in
+    --   let tyAnnot = substituteNewReprs env tyAnnot in
+    --   let tyBody = substituteUnknown t.info {env with currentLvl = 1} (Poly ()) tyAnnot in
+    --   let newEnv = _insertVar t.ident tyBody acc.0 in
+    --   let newTyVars = foldr (uncurry mapInsert) acc.1 (stripTyAll tyBody).0 in
+    --   ((newEnv, newTyVars), {t with tyAnnot = tyAnnot, tyBody = tyBody})
+    -- in
+    -- match mapAccumL semIteratee (env, mapEmpty nameCmp) sems
+    -- with ((recLetEnv, tyVars), sems) in
+
+    -- let newTyVarEnv =
+    --   mapFoldWithKey (lam vs. lam v. lam k. mapInsert v (newLvl, k) vs) recLetEnv.tyVarEnv tyVars in
+    -- let newEnv = {recLetEnv with currentLvl = 1, tyVarEnv = newTyVarEnv} in
+  
+    (env, sems)
+end
+
 lang DeclLangTypeCheck = DeclTypeCheck + LangDeclAst + SemDeclAst + SynDeclAst +
-                         TypeDeclAst 
+                         TypeDeclAst + DeclSemTypeCheck
   sem typeCheckDecl env = 
   | DeclLang d -> 
     let typeDecls = mapOption (lam d. match d with DeclType d then Some (DeclType d) else None ()) d.decls in 
     let synDecls = mapOption (lam d. match d with DeclSyn d then Some (DeclSyn d) else None ()) d.decls in 
-    let semDecls = mapOption (lam d. match d with DeclSem d then Some (DeclSem d) else None ()) d.decls in 
+    let semDeclTypes = mapOption (lam d. match d with DeclSem d then Some d else None ()) d.decls in 
 
     match mapAccumL typeCheckDecl env typeDecls with (env, typeDecls) in 
     match mapAccumL typeCheckDecl env synDecls with (env, synDecls) in
+    match typeCheckSemDecls env semDeclTypes with (env, semDeclTypes) in 
+
+    let semDecls = map (lam x. DeclSem x) semDeclTypes in 
 
     (env, DeclLang {d with decls = join [typeDecls, synDecls, semDecls]})
 end

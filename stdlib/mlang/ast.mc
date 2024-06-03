@@ -98,17 +98,18 @@ end
 
 -- DeclSem --
 lang SemDeclAst = DeclAst
+  type DeclSemType = {ident : Name,
+                      tyAnnot : Type,
+                      tyBody : Type,
+                      args : Option [{ident : Name, tyAnnot : Type}],
+                      cases : [{pat : Pat, thn : Expr}],
+                      -- The list of semantic function s whose cases should be included.
+                      -- The first string identifies the langauge of the include
+                      -- and the second string identifies the name.
+                      includes : [(String, String)],
+                      info : Info}
   syn Decl =
-  | DeclSem {ident : Name,
-             tyAnnot : Type,
-             tyBody : Type,
-             args : Option [{ident : Name, tyAnnot : Type}],
-             cases : [{pat : Pat, thn : Expr}],
-             -- The list of semantic function s whose cases should be included.
-             -- The first string identifies the langauge of the include
-             -- and the second string identifies the name.
-             includes : [(String, String)],
-             info : Info}
+  | DeclSem DeclSemType
 
   sem infoDecl = 
   | DeclSem d -> d.info
