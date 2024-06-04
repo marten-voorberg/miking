@@ -27,7 +27,19 @@ include "set.mc"
 include "result.mc"
 include "digraph.mc"
 
+type ComposotionCheckOptions = {
+  disableStrictSumExtension : Bool
+}
+
+let defaultCompositionCheckOptions = {
+  disableStrictSumExtension = false
+}
+
 type CompositionCheckEnv = {
+  -- NOTE(voorberg, 04/06/2024): It might be cleaner to move the options out
+  -- of the environment since they will not be updated during the checks anyways.
+  options : ComposotionCheckOptions,
+
   nextId : Int,
   -- Mapping from the symbolized name of a syn or sem to their base declaration
   baseMap : Map (String, String) Name,
@@ -72,6 +84,7 @@ let collectPats = lam env. lam includes.
 let tupleStringCmp = tupleCmp2 cmpString cmpString
 
 let _emptyCompositionCheckEnv : CompositionCheckEnv = {
+  options = defaultCompositionCheckOptions,
   nextId = 0,
   baseMap = mapEmpty tupleStringCmp,
   paramMap = mapEmpty tupleStringCmp,
@@ -121,6 +134,14 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
     semIdent : Name,
     info : Info
   }
+  | SyntaxBaseHasIncludes {
+    ident : Name,
+    info : Info
+  }
+  | SyntaxSumExtHasNoIncludes {
+    ident : Name,
+    info : Info
+  }
 
   syn CompositionWarning = 
 
@@ -161,14 +182,40 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
       "' includes or defined patterns which are overlapping or equal!"
     ] in 
     errorMulti [(e.info, "")] msg
-
+  | SyntaxBaseHasIncludes e -> 
+    let msg =  join [
+      "Invalid language composition because the declaration '",
+      nameGetStr e.ident,
+      "' includes other declarations even though it is a base declaration",
+      " as indicated by the '=' symbol! You can use the",
+      "--disable-strict-sum-extension flag to disable this check."
+    ] in 
+    errorMulti [(e.info, "")] msg
+  | SyntaxSumExtHasNoIncludes e ->
+    let msg = join [
+      "Invalid language composition because the declaration '",
+      nameGetStr e.ident,
+      "' does not include any other other declarations even though it is",
+      "syntactically declared as a sum extension through the += symbol!",
+      "You can use the",
+      "--disable-strict-sum-extension flag to disable this check."
+    ] in 
+    errorMulti [(e.info, "")] msg
+  
   sem checkComposition : MLangProgram -> Result CompositionWarning CompositionError CompositionCheckEnv
   sem checkComposition =| prog -> 
-    result.foldlM validateTopLevelComposition _emptyCompositionCheckEnv prog.decls 
+    checkCompositionWithOptions defaultCompositionCheckOptions prog
+
+  sem checkCompositionWithOptions : ComposotionCheckOptions -> 
+                                    MLangProgram -> 
+                                    Result CompositionWarning CompositionError CompositionCheckEnv
+  sem checkCompositionWithOptions options =| prog -> 
+    let env = {_emptyCompositionCheckEnv with options = options} in 
+    result.foldlM validateTopLevelComposition env prog.decls 
 
   sem validateTopLevelComposition : CompositionCheckEnv -> 
-                 Decl -> 
-                 Result CompositionWarning CompositionError CompositionCheckEnv
+                                    Decl -> 
+                                    Result CompositionWarning CompositionError CompositionCheckEnv
   sem validateTopLevelComposition env = 
   | DeclLang l -> 
     result.foldlM (validateLangDeclComposition (nameGetStr l.ident)) env l.decls
@@ -176,15 +223,15 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
 
   sem validateLangDeclComposition langStr env = 
   | DeclSem s & d ->
-    _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr, validateSemCaseOrdering langStr]
+    _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr, validateStrictSumExtension, validateSemCaseOrdering langStr]
   | DeclSyn s & d ->
-    _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr ]
+    _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr, validateStrictSumExtension]
   | other -> result.ok env
 
   sem validateSynSemParams : String ->
-                    CompositionCheckEnv -> 
-                    Decl -> 
-                    Result CompositionWarning CompositionError CompositionCheckEnv
+                             CompositionCheckEnv -> 
+                             Decl -> 
+                             Result CompositionWarning CompositionError CompositionCheckEnv
   sem validateSynSemParams langStr env = 
   | DeclSyn s -> 
     let str = nameGetStr s.ident in 
@@ -233,9 +280,9 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
        result.ok (insertArgsMap env (langStr, nameGetStr s.ident) (Some args))
 
   sem validateSynSemBase : String -> 
-                  CompositionCheckEnv -> 
-                  Decl -> 
-                  Result CompositionWarning CompositionError CompositionCheckEnv
+                           CompositionCheckEnv -> 
+                           Decl -> 
+                           Result CompositionWarning CompositionError CompositionCheckEnv
   sem validateSynSemBase langStr env =
   | DeclSyn s -> 
     let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair} in
@@ -276,6 +323,37 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
           semIdent = s.ident, 
           info = s.info
         })
+
+  sem _strictSumExtensionHelper env ident info includes = 
+  | BaseKind _ -> 
+    if null includes then 
+      result.ok env
+    else result.err (SyntaxBaseHasIncludes {
+      ident = ident,
+      info = info
+    })
+  | SumExtKind _ -> 
+    if null includes then 
+      result.err (SyntaxSumExtHasNoIncludes {
+        ident = ident,
+        info = info
+      })
+    else 
+      result.ok env
+
+  sem validateStrictSumExtension env = 
+  | DeclSem s ->
+    if env.options.disableStrictSumExtension then
+      result.ok env
+    else
+      _strictSumExtensionHelper env s.ident s.info s.includes s.declKind
+  | DeclSyn s ->
+    if env.options.disableStrictSumExtension then
+      result.ok env
+    else
+      _strictSumExtensionHelper env s.ident s.info s.includes s.declKind
+  | _ -> 
+    result.ok env 
 
   sem validateSemCaseOrdering langStr env = 
   | DeclSem s -> 
@@ -390,6 +468,10 @@ use TestLang in
 use MLangPrettyPrint in 
 use LanguageComposer in 
 
+let checkCompositionDisableStrictness = lam p : MLangProgram.
+  checkCompositionWithOptions {disableStrictSumExtension = true} p
+in
+
 let handleResult = lam res.
   switch result.consume res 
     case (_, Left errors) then iter raiseError errors
@@ -457,8 +539,8 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertDifferentBaseSyn (checkComposition p) ;
--- handleResult (checkComposition p) ;
+assertDifferentBaseSyn (checkCompositionDisableStrictness p) ;
+-- handleResult (checkCompositionDisableStrictness p) ;
 
 let p : MLangProgram = {
     decls = [
@@ -477,7 +559,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p) ;
+assertValid (checkCompositionDisableStrictness p) ;
 
 -- Test invalid language composition due to lack of base
 let p : MLangProgram = {
@@ -496,7 +578,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertDifferentBaseSem (checkComposition p) ;
+assertDifferentBaseSem (checkCompositionDisableStrictness p) ;
 
 -- Test semantic functions with valid base
 let p : MLangProgram = {
@@ -520,7 +602,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p) ;
+assertValid (checkCompositionDisableStrictness p) ;
 
 let p : MLangProgram = {
     decls = [
@@ -543,7 +625,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p) ;
+assertValid (checkCompositionDisableStrictness p) ;
 
 -- Test semantic function with matching number of params
 let p : MLangProgram = {
@@ -559,7 +641,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p) ;
+assertValid (checkCompositionDisableStrictness p) ;
 
 -- Test semantic function with non-matching number of params
 let p : MLangProgram = {
@@ -575,7 +657,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertMismatchedSemsParams (checkComposition p) ;
+assertMismatchedSemsParams (checkCompositionDisableStrictness p) ;
 
 -- Test that semantic params get copied correctly. 
 let p : MLangProgram = {
@@ -592,7 +674,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertDifferentBaseSem (checkComposition p) ;
+assertDifferentBaseSem (checkCompositionDisableStrictness p) ;
 
 -- Test sem with valid patterns
 let p : MLangProgram = {
@@ -608,7 +690,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p) ;
+assertValid (checkCompositionDisableStrictness p) ;
 
 -- Test invalid sem with equal patterns
 let p : MLangProgram = {
@@ -624,7 +706,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertInvalidSemParams (checkComposition p) ;
+assertInvalidSemParams (checkCompositionDisableStrictness p) ;
 
 -- Test sem with invalid overlapping patterns
 let p : MLangProgram = {
@@ -640,7 +722,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertInvalidSemParams (checkComposition p) ;
+assertInvalidSemParams (checkCompositionDisableStrictness p) ;
 
 -- Test invalid sem where patterns are spread accross langauges
 -- Test sem with invalid overlapping patterns
@@ -661,7 +743,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertInvalidSemParams (checkComposition p) ;
+assertInvalidSemParams (checkCompositionDisableStrictness p) ;
 
 -- Test that the check on the number of parameters also works when
 -- the number of parameters is specified through a type annotation. 
@@ -680,7 +762,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p);
+assertValid (checkCompositionDisableStrictness p);
 
 -- Test that the cehck on the number of parameters also works when 
 -- a semantic function is implicitly present in a language
@@ -700,7 +782,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p);
+assertValid (checkCompositionDisableStrictness p);
 
 -- Test that patterns which are included multiple times
 -- are only considered once during language composition. Since L1 and L2 
@@ -726,7 +808,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p);
+assertValid (checkCompositionDisableStrictness p);
 
 -- Test syn with parameters
 let p : MLangProgram = {
@@ -742,7 +824,7 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p);
+assertValid (checkCompositionDisableStrictness p);
 
 -- Test sem with arguments not defind on base definition
 let p : MLangProgram = {
@@ -758,6 +840,6 @@ let p : MLangProgram = {
 } in 
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
-assertValid (checkComposition p);
+assertValid (checkCompositionDisableStrictness p);
 
 ()

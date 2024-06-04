@@ -138,5 +138,12 @@ let optionsConfig : ParseConfig Options = [
   ([("--mlang-pipeline", "", "")],
     "Compile using the MLang Pipeline. Note that this is an unstable, experimental feature!",
     lam p: ArgPart Options.
-      let o: Options = p.options in {o with mlangPipeline = true})
+      let o: Options = p.options in {o with mlangPipeline = true}),
+  ([("--disable-strict-sum-extension", "", "")],
+    (join ["Disable the strict composition checks for sum extension when",
+      "using the --mlang-pipeline. By default, you must use '+=' when",
+      "extending another syn or sem. When this flag is used, you are ",
+      "also allowed to use '=' everywhere."]),
+    lam p: ArgPart Options.
+      let o: Options = p.options in {o with disableStrictSumExtension = true})
 ]

@@ -53,7 +53,9 @@ lang MLangPipeline = MLangCompiler + BootParserMLang +
     match symbolizeMLang symEnvDefault p with (_, p) in 
     endPhaseStats log "symbolization" uunit_;
 
-    match result.consume (checkComposition p) with (_, res) in 
+    let checkOptions = {defaultCompositionCheckOptions with 
+      disableStrictSumExtension = options.disableStrictSumExtension} in 
+    match result.consume (checkCompositionWithOptions checkOptions p) with (_, res) in 
     endPhaseStats log "composition-check" uunit_;
 
     switch res 
