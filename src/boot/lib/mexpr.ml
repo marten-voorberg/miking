@@ -517,12 +517,7 @@ let getData = function
         if List.length lst = 0 then []
         else List.hd (List.map (fun (_, params, _, _) -> params) lst)
       in
-
-      let kindInt = match kind with 
-      | Base -> 0
-      | SumExt -> 1
-      in
-
+      let kindInt = match kind with Base -> 0 | SumExt -> 1 in
       ( idDeclSyn
       , fis
       , [List.length decls; nParams]
@@ -535,7 +530,7 @@ let getData = function
       , []
       , []
       , [] )
-  | PTreeDecl (DataProdExt (fi, ident, nParams, decls, globExt)) -> 
+  | PTreeDecl (DataProdExt (fi, ident, nParams, decls, globExt)) ->
       let lst =
         List.map
           (fun x ->
@@ -550,7 +545,6 @@ let getData = function
         if List.length lst = 0 then []
         else List.hd (List.map (fun (_, params, _, _) -> params) lst)
       in
-
       ( idDeclSynProdExt
       , fis
       , [List.length decls; nParams]
@@ -564,50 +558,46 @@ let getData = function
       , []
       , [] )
   | PTreeDecl (Inter (fi, ident, ty, paramListOpt, cases, kind)) -> (
-    let kindInt = match kind with 
-    | Base -> 0
-    | SumExt -> 1
-    in
-    match paramListOpt with
-    | Some paramList ->
-        let argIdents =
-          List.map (fun x -> match x with Param (_, s, _) -> s) paramList
-        in
-        let argTys =
-          List.map (fun x -> match x with Param (_, _, ty) -> ty) paramList
-        in
-        let pats = List.map fst cases in
-        let tms = List.map snd cases in
-
-        ( idDeclSem
-        , [fi]
-        , [List.length cases; List.length paramList]
-        , ty :: argTys
-        , tms
-        , ident :: argIdents
-        , [kindInt]
-        , []
-        , []
-        , pats
-        , []
-        , [] )
-    | None ->
-        let pats = List.map fst cases in
-        let tms = List.map snd cases in
-        (* NOTE(15-05-2024, voorberg): If the amount of parameters has not
-           been specified by this definition, we send -1. *)
-        ( idDeclSem
-        , [fi]
-        , [List.length cases; -1]
-        , [ty]
-        , tms
-        , [ident]
-        , [kindInt]
-        , []
-        , []
-        , pats
-        , []
-        , [] ) )
+      let kindInt = match kind with Base -> 0 | SumExt -> 1 in
+      match paramListOpt with
+      | Some paramList ->
+          let argIdents =
+            List.map (fun x -> match x with Param (_, s, _) -> s) paramList
+          in
+          let argTys =
+            List.map (fun x -> match x with Param (_, _, ty) -> ty) paramList
+          in
+          let pats = List.map fst cases in
+          let tms = List.map snd cases in
+          ( idDeclSem
+          , [fi]
+          , [List.length cases; List.length paramList]
+          , ty :: argTys
+          , tms
+          , ident :: argIdents
+          , [kindInt]
+          , []
+          , []
+          , pats
+          , []
+          , [] )
+      | None ->
+          let pats = List.map fst cases in
+          let tms = List.map snd cases in
+          (* NOTE(15-05-2024, voorberg): If the amount of parameters has not
+             been specified by this definition, we send -1. *)
+          ( idDeclSem
+          , [fi]
+          , [List.length cases; -1]
+          , [ty]
+          , tms
+          , [ident]
+          , [kindInt]
+          , []
+          , []
+          , pats
+          , []
+          , [] ) )
   | PTreeDecl (Alias (fi, ident, params, ty)) ->
       ( idDeclType
       , [fi]

@@ -254,7 +254,8 @@ and decl =
   (* TODO(?,?): Local? *)
   | Data of info * ustring * int * cdecl list * decl_type
   | DataProdExt of info * ustring * int * cdecl list * ty
-  | Inter of info * ustring * ty * param list option * (pat * tm) list * decl_type
+  | Inter of
+      info * ustring * ty * param list option * (pat * tm) list * decl_type
   | Alias of info * ustring * ustring list * ty
 
 and with_kind = WithType | WithValue
