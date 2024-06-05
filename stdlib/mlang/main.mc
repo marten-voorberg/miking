@@ -18,6 +18,7 @@ include "include-handler.mc"
 include "language-composer.mc"
 include "const-transformer.mc"
 include "postprocess.mc"
+include "type-check.mc"
 
 include "mexpr/eval.mc"
 include "mexpr/builtin.mc"
@@ -29,7 +30,8 @@ lang MLangPipeline = MLangCompiler + BootParserMLang +
                      MLangSym + MLangCompositionCheck +
                      MExprPrettyPrint + MExprEval + MExprEq + 
                      MLangConstTransformer + MLangIncludeHandler +
-                     PhaseStats + LanguageComposer + PostProcess
+                     PhaseStats + LanguageComposer + PostProcess + 
+                     MLangTypeCheck
 
   sem myEval : Expr -> Expr
   sem myEval =| e ->
@@ -57,6 +59,9 @@ lang MLangPipeline = MLangCompiler + BootParserMLang +
       disableStrictSumExtension = options.disableStrictSumExtension} in 
     match result.consume (checkCompositionWithOptions checkOptions p) with (_, res) in 
     endPhaseStats log "composition-check" uunit_;
+
+    -- let p = typeCheckProgram p in 
+    -- endPhaseStats log "mlang-type-checking" uunit_;
 
     switch res 
       case Left errs then 
