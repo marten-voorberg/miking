@@ -135,6 +135,53 @@ lang AppTypeUnify = Unify + AppTypeAst
       (unifyTypes u env (t1.rhs, t2.rhs))
 end
 
+lang ExtRowUnify = Unify + ExtRecordType 
+  sem unifyPresence : all u. Unifier u -> UnifyEnv -> (Presence, Presence) -> u
+  sem unifyPresence u env =
+  | (TmPre _, TmPre _) | (TmAbs _, TmAbs _) -> 
+    printLn "Case 1";
+    u.empty
+  | (TmPre _, TmAbs _) | (TmAbs _, TmPre _) -> 
+    printLn "Case 2";
+    u.err (Types (tyunit_, tyunit_))
+  | (TmAbs _, TmPreVar {ident = ident}) | (TmPreVar {ident = ident}, TmAbs _) -> 
+    printLn "Case 3";
+    u.err (Types (tyunit_, tyunit_))
+    -- unifyTypes u env (tyunit_, tyunit_)
+  | (TmPre _, TmPreVar {ident = ident}) | (TmPreVar {ident = ident}, TmPre _) -> 
+    printLn "Case 4";
+    u.err (Types (tyunit_, tyunit_))
+  | (p1, p2) ->
+    printLn "Case 5";
+    let pprint = lam p. 
+      match p with TmPreVar {ident = ident} then (concat "theta_" (nameGetStr ident))
+      else match p with TmAbs _ then "abs"
+      else "pre"
+    in 
+    error (join [pprint p1, " ", pprint p2])
+  --   unifyTypes u env (tyunit_, tyunit_)
+
+  sem unifyBase u env = 
+  | (ExtRecordRow t1 & ty1, ExtRecordRow t2 & ty2) ->
+    if nameEq t1.ident t2.ident then  
+      let labels = mapKeys t1.row in 
+
+      let pairs : [(Presence, Presence)] = map (lam l. (
+        match mapLookup l t1.row with Some p in p, 
+        match mapLookup l t2.row with Some p in p)
+      ) labels in 
+
+      let up = lam p. unifyPresence u env p in 
+      map up pairs;
+
+      -- iter (unifyPresence u env) pairs ;
+      unifyTypes u env (tyunit_, tyunit_)
+    else
+      -- The names of the extensible records must match!
+      printLn "we are here!";
+      u.err (Types (ty1, ty2))
+end
+
 lang AllTypeUnify = Unify + AllTypeAst
   sem unifyBase u env =
   | (TyAll t1, TyAll t2) ->
@@ -913,6 +960,8 @@ lang MExprUnify =
   VarTypeUnify + MetaVarTypeUnify + FunTypeUnify + AppTypeUnify + AllTypeUnify +
   ConTypeUnify + DataTypeUnify + UnknownTypeUnify + BoolTypeUnify + IntTypeUnify +
   FloatTypeUnify + CharTypeUnify + SeqTypeUnify + TensorTypeUnify + RecordTypeUnify +
+
+  ExtRowUnify + 
 
   BaseKindUnify + RecordKindUnify + DataKindUnify
 end

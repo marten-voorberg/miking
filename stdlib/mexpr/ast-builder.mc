@@ -572,6 +572,21 @@ let tmRecord = use MExprAst in
     info = NoInfo ()
   }
 
+let ext_record_ = lam s. lam b.
+  use ExtRecordAst in 
+  TmExtRecord {bindings = mapFromSeq cmpString b,
+               n = nameNoSym s,
+               ty = tyunknown_,
+               info = NoInfo ()}
+
+let ext_proj_ = lam s. lam lhs. lam l. 
+  use ExtRecordAst in 
+  TmExtProject {e = lhs, 
+                label = l,
+                n = nameNoSym s,
+                ty = tyunknown_,
+                info = NoInfo ()}
+
 let record_ = tmRecord (NoInfo ())
 
 let urecord_ = record_ tyunknown_

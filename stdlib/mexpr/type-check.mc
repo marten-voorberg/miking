@@ -48,6 +48,8 @@ type TCEnv = {
   disableRecordPolymorphism : Bool,
   disableConstructorTypes : Bool,
 
+  extRecordType : use Ast in Map Name (Map String Type),
+
   -- Reptypes relevant fields
   reptypes : {
     delayedReprUnifications : Ref [(ReprVar, ReprVar)],
@@ -73,6 +75,7 @@ let typcheckEnvEmpty = {
   conDeps  = mapEmpty nameCmp,
   matches  = [mapEmpty nameCmp],
   matchVars = mapEmpty nameCmp,
+  extRecordType = mapEmpty nameCmp,
   matchLvl = 0,
   currentLvl = 0,
   disableRecordPolymorphism = true,
@@ -1330,6 +1333,54 @@ lang SeqTypeCheck = TypeCheck + SeqAst
     TmSeq {t with tms = tms, ty = ityseq_ t.info elemTy}
 end
 
+lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst 
+  sem typeCheckExpr env =
+  | TmExtRecord t ->
+    match mapLookup t.n env.extRecordType with Some labelToType in 
+
+    let bindings = mapToSeq t.bindings in 
+
+    let typeCheckBinding = lam p : (String, Expr). 
+      match p with (l, e) in 
+      let actualTy = typeCheckExpr env e in 
+      let expectedTy = match mapLookup l labelToType with Some ty then ty
+                       else error "Illegal label!" in 
+      unify env [t.info] (tyTm actualTy) expectedTy 
+    in 
+
+    iter typeCheckBinding bindings ;
+
+    let allLabels = map (lam p. p.0) (mapToSeq labelToType) in 
+    let labelPresence = lam l. 
+      match mapLookup l t.bindings with Some _ 
+      then (l, TmPre {}) 
+      else (l, TmAbs {})
+    in 
+
+    let presencePairs = map labelPresence allLabels in 
+    
+    let ty = ExtRecordRow {ident = t.n, row = mapFromSeq cmpString presencePairs} in 
+    printLn (type2str ty) ;
+
+    TmExtRecord {t with ty = ty}
+  | TmExtProject t -> 
+    match mapLookup t.n env.extRecordType with Some labelToType in 
+    let labelPrsesencePairs = map (lam p. (p.0, TmPreVar {ident = nameSym (concat "theta_" p.0)})) (mapToSeq labelToType) in
+
+    let row = mapFromSeq cmpString labelPrsesencePairs in 
+    let row = mapInsert t.label (TmPre {}) row in 
+    let expectedTy = ExtRecordRow {ident = t.n, row = row} in 
+
+    let lhs = typeCheckExpr env t.e in 
+    let actualTy = tyTm lhs in 
+
+    unify env [t.info] expectedTy actualTy ;
+
+    match mapLookup t.label labelToType with Some ty in 
+
+    TmExtProject {t with ty = ty, e = lhs}
+end
+
 lang RecordTypeCheck = TypeCheck + RecordAst + RecordTypeAst
   sem typeCheckExpr env =
   | TmRecord t ->
@@ -1730,6 +1781,8 @@ lang MExprTypeCheckMost =
 
   -- Value restriction
   MExprNonExpansive +
+
+  ExtRecordTypeCheck + 
 
   -- Meta variable handling
   MetaVarTypeCmp + MetaVarTypeEq + MetaVarTypePrettyPrint
@@ -2300,6 +2353,13 @@ let tests = [
 in
 
 iter runTest tests;
+
+let e = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
+let e = ext_proj_ "Foo" e "x" in 
+-- let e = ext_record_ "Foo" [("x", int_ 1), ("y", int_ 10)] in 
+let m = mapInsert (nameNoSym "Foo") (mapFromSeq cmpString [("x", tyint_), ("y", tychar_), ("z", tyint_)]) (mapEmpty nameCmp) in 
+let env = {_tcEnvEmpty with extRecordType = m} in 
+let e = typeCheckExpr env e in 
 
 ()
 

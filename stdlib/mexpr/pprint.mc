@@ -352,6 +352,33 @@ lang RecordPrettyPrint = PrettyPrint + RecordAst
                    " }"])
 end
 
+lang ExtRecordPrettyPrint = PrettyPrint + ExtRecordAst 
+  sem isAtomic =
+  | TmExtRecord _ -> true
+
+  sem pprintCode (indent : Int) (env: PprintEnv) =
+  | TmExtRecord {bindings = bindings, n = n} ->
+    if mapIsEmpty bindings then (env,"{{}}")
+    else
+      let innerIndent = pprintIncr (pprintIncr indent) in
+      match
+        mapMapAccum
+          (lam env. lam k. lam v.
+             match pprintCode innerIndent env v with (env, str) in
+             (env,
+              join [k, " = ", str]))
+           env bindings
+      with (env, bindMap) in
+      let binds = mapValues bindMap in
+      let merged =
+        strJoin ", " binds
+      in
+      (env,join ["{{", merged, "}}^", nameGetStr n])
+  | TmExtProject t -> 
+    (env, join [pprintCode indent env t.e, ".", t.label])
+end
+
+
 lang LetPrettyPrint = PrettyPrint + LetAst + UnknownTypeAst
   sem isAtomic =
   | TmLet _ -> false
@@ -1090,6 +1117,27 @@ lang TensorTypePrettyPrint = PrettyPrint + TensorTypeAst
     (env, join ["Tensor[", ty, "]"])
 end
 
+lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordType  
+  sem getTypeStringCode indent env = 
+  | ExtRecordRow t -> 
+    let pprintPresence = lam p. 
+      switch p 
+        case TmPreVar {ident = ident} then nameGetStr ident
+        case TmAbs _ then "abs"
+        case TmPre _ then "pre"
+      end
+    in 
+
+    let pprintPair = lam p.
+      match p with (l, pre) in 
+      join [l, "^", pprintPresence pre]
+    in 
+
+    let rowStr = strJoin ", " (map pprintPair (mapToSeq t.row)) in 
+    
+    (env, join [nameGetStr t.ident, " of <", rowStr, ">"])
+end
+
 lang RecordTypePrettyPrint = PrettyPrint + RecordTypeUtils
   sem getTypeStringCode (indent : Int) (env: PprintEnv) =
   | (TyRecord t) & ty ->
@@ -1409,6 +1457,8 @@ lang MExprPrettyPrint =
   -- Identifiers
   MExprIdentifierPrettyPrint +
 
+  ExtRecordPrettyPrint + ExtRecordTypePrettyPrint + 
+
   -- Syntactic Sugar
   RecordProjectionSyntaxSugarPrettyPrint
 
@@ -1671,5 +1721,8 @@ utest (expr2str e) with "(x.0).1" in
 
 let e = recordproj_ "y" (tupleproj_ 0 (var_ "x")) in
 utest (expr2str e) with "x.0.y" in
+
+let e = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
+printLn (expr2str e);
 
 ()

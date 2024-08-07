@@ -538,6 +538,55 @@ lang RecordAst = Ast
     else never
 end
 
+lang ExtRecordAst = Ast
+  syn Expr = 
+  | TmExtRecord {bindings : Map String Expr, 
+                 n : Name,
+                 ty : Type,
+                 info : Info}
+  | TmExtProject {e : Expr,
+                  n : Name,
+                  label : String,
+                  ty : Type,
+                  info : Info}
+  
+  sem infoTm =
+  | TmExtRecord r -> r.info
+  | TmExtProject r -> r.info
+
+  sem tyTm =
+  | TmExtRecord t -> t.ty
+  | TmExtProject t -> t.ty
+
+  sem withInfo info =
+  | TmExtRecord t -> TmExtRecord {t with info = info}
+  | TmExtProject t -> TmExtProject {t with info = info}
+
+  sem withType  ty =
+  | TmExtRecord t -> TmExtRecord {t with ty = ty}
+  | TmExtProject t -> TmExtProject {t with ty = ty}
+
+  sem smapAccumL_Expr_Expr f acc =
+  | TmExtRecord t ->
+    match mapMapAccum (lam acc. lam. lam e. f acc e) acc t.bindings with (acc, bindings) then
+      (acc, TmExtRecord {t with bindings = bindings})
+    else never
+  | TmExtProject t -> 
+    match smapAccumL_Expr_Expr f acc t.e with (acc, e) in 
+    (acc, TmExtProject {t with e = e})
+end
+
+lang ExtRecordType = Ast 
+  syn Presence = 
+  | TmPreVar {ident : Name}
+  | TmAbs {} 
+  | TmPre {}
+
+  syn Type = 
+  | ExtRecordRow {ident : Name,
+                  row : Map String Presence}
+end
+
 -- TmType --
 lang TypeAst = Ast
   syn Expr =
