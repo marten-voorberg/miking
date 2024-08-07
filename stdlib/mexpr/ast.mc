@@ -577,14 +577,19 @@ lang ExtRecordAst = Ast
 end
 
 lang ExtRecordType = Ast 
-  syn Presence = 
-  | TmPreVar {ident : Name}
-  | TmAbs {} 
-  | TmPre {}
+  -- syn Presence = 
+  -- | TmPreVar {ident : Name}
+  -- | TmAbs {} 
+  -- | TmPre {}
 
   syn Type = 
+  | TyAbs ()
+  | TyPre ()
   | ExtRecordRow {ident : Name,
-                  row : Map String Presence}
+                  row : Map String Type}
+
+  syn Kind = 
+  | Presence ()
 end
 
 -- TmType --

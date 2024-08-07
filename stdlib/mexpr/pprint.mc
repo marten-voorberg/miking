@@ -1119,22 +1119,16 @@ end
 
 lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordType  
   sem getTypeStringCode indent env = 
+  | TyPre _ -> (env, "pre")
+  | TyAbs _ -> (env, "abs")
   | ExtRecordRow t -> 
-    let pprintPresence = lam p. 
-      switch p 
-        case TmPreVar {ident = ident} then nameGetStr ident
-        case TmAbs _ then "abs"
-        case TmPre _ then "pre"
-      end
-    in 
-
     let pprintPair = lam p.
       match p with (l, pre) in 
-      join [l, "^", pprintPresence pre]
+      join [l, "^", typeToString env pre]
     in 
 
     let rowStr = strJoin ", " (map pprintPair (mapToSeq t.row)) in 
-    
+
     (env, join [nameGetStr t.ident, " of <", rowStr, ">"])
 end
 

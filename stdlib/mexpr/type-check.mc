@@ -13,6 +13,7 @@
 
 include "error.mc"
 include "math.mc"
+include "tuple.mc"
 include "seq.mc"
 
 include "mexpr/annotate.mc"
@@ -1353,8 +1354,8 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst
     let allLabels = map (lam p. p.0) (mapToSeq labelToType) in 
     let labelPresence = lam l. 
       match mapLookup l t.bindings with Some _ 
-      then (l, TmPre {}) 
-      else (l, TmAbs {})
+      then (l, TyPre ()) 
+      else (l, TyAbs ())
     in 
 
     let presencePairs = map labelPresence allLabels in 
@@ -1365,10 +1366,14 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst
     TmExtRecord {t with ty = ty}
   | TmExtProject t -> 
     match mapLookup t.n env.extRecordType with Some labelToType in 
-    let labelPrsesencePairs = map (lam p. (p.0, TmPreVar {ident = nameSym (concat "theta_" p.0)})) (mapToSeq labelToType) in
+    let labels = map fst (mapToSeq labelToType) in 
+    let label2metavar = lam label. 
+      (label, newnmetavar (concat "theta_" label) (Presence ())  0 (NoInfo ()))
+    in 
+    let labelPrsesencePairs = map label2metavar labels in
 
     let row = mapFromSeq cmpString labelPrsesencePairs in 
-    let row = mapInsert t.label (TmPre {}) row in 
+    let row = mapInsert t.label (TyPre ()) row in 
     let expectedTy = ExtRecordRow {ident = t.n, row = row} in 
 
     let lhs = typeCheckExpr env t.e in 
@@ -2360,6 +2365,13 @@ let e = ext_proj_ "Foo" e "x" in
 let m = mapInsert (nameNoSym "Foo") (mapFromSeq cmpString [("x", tyint_), ("y", tychar_), ("z", tyint_)]) (mapEmpty nameCmp) in 
 let env = {_tcEnvEmpty with extRecordType = m} in 
 let e = typeCheckExpr env e in 
+
+-- let e = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
+-- let e = ext_proj_ "Foo" e "z" in 
+-- -- let e = ext_record_ "Foo" [("x", int_ 1), ("y", int_ 10)] in 
+-- let m = mapInsert (nameNoSym "Foo") (mapFromSeq cmpString [("x", tyint_), ("y", tychar_), ("z", tyint_)]) (mapEmpty nameCmp) in 
+-- let env = {_tcEnvEmpty with extRecordType = m} in 
+-- let e = typeCheckExpr env e in 
 
 ()
 
