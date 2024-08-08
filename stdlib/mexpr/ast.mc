@@ -577,19 +577,11 @@ lang ExtRecordAst = Ast
 end
 
 lang ExtRecordType = Ast 
-  -- syn Presence = 
-  -- | TmPreVar {ident : Name}
-  -- | TmAbs {} 
-  -- | TmPre {}
-
   syn Type = 
   | TyAbs ()
   | TyPre ()
   | ExtRecordRow {ident : Name,
                   row : Map String Type}
-
-  syn Kind = 
-  | Presence ()
 end
 
 -- TmType --
@@ -1609,6 +1601,11 @@ lang AliasTypeAst = AllTypeAst
     end
 end
 
+lang PresenceKindAst = Ast
+  syn Kind = 
+  | Presence ()
+end
+
 lang PolyKindAst = Ast
   syn Kind =
   | Poly ()
@@ -1663,5 +1660,5 @@ lang MExprAst =
   DataTypeAst + VarTypeAst + AppTypeAst + TensorTypeAst + AllTypeAst + AliasTypeAst +
 
   -- Kinds
-  PolyKindAst + MonoKindAst + RecordKindAst + DataKindAst
+  PolyKindAst + MonoKindAst + RecordKindAst + DataKindAst + PresenceKindAst
 end

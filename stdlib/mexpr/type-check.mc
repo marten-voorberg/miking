@@ -381,7 +381,7 @@ end
 
 lang GetKind =
   VarTypeAst + MetaVarTypeAst + RecordTypeAst + DataTypeAst +
-  PolyKindAst + RecordKindAst + DataKindAst
+  PolyKindAst + RecordKindAst + DataKindAst + PresenceKindAst + ExtRecordType
 
   sem getKind : TCEnv -> Type -> Kind
   sem getKind env =
@@ -394,6 +394,7 @@ lang GetKind =
   | TyData r -> Data { types =
                          mapMap (lam cons. {lower = cons, upper = Some (setEmpty nameCmp)})
                                 (computeData r) }
+  | TyPre _ | TyAbs _ -> Presence ()
   | _ -> Poly ()
 end
 
@@ -1334,7 +1335,8 @@ lang SeqTypeCheck = TypeCheck + SeqAst
     TmSeq {t with tms = tms, ty = ityseq_ t.info elemTy}
 end
 
-lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst 
+-- TODO: Figure out how to get rid of PresenceKindAst
+lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKindAst
   sem typeCheckExpr env =
   | TmExtRecord t ->
     match mapLookup t.n env.extRecordType with Some labelToType in 
@@ -1354,7 +1356,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst
     let allLabels = map (lam p. p.0) (mapToSeq labelToType) in 
     let labelPresence = lam l. 
       match mapLookup l t.bindings with Some _ 
-      then (l, TyPre ()) 
+      then (l, TyPre ())
       else (l, TyAbs ())
     in 
 
@@ -1365,10 +1367,11 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst
 
     TmExtRecord {t with ty = ty}
   | TmExtProject t -> 
+    -- TODO: change level to be env.currentLevel (and think about it a little)
     match mapLookup t.n env.extRecordType with Some labelToType in 
     let labels = map fst (mapToSeq labelToType) in 
     let label2metavar = lam label. 
-      (label, newnmetavar (concat "theta_" label) (Presence ())  0 (NoInfo ()))
+      (label, newnmetavar (concat "theta_" label) (Presence ()) 0 (NoInfo ()))
     in 
     let labelPrsesencePairs = map label2metavar labels in
 

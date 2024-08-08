@@ -181,7 +181,7 @@ lang ExtRowUnify = Unify + ExtRecordType
         match mapLookup l t2.row with Some p in p)
       ) labels in 
 
-      let up = lam p. u.unify env p.0 p.1 in 
+      let up = lam p. unifyTypes u env p in 
       -- let up = lam p. unifyBase u env p in 
       map up pairs;
 
@@ -278,6 +278,11 @@ lang BaseKindUnify = Unify + PolyKindAst + MonoKindAst
     (u.empty, k)
   | (Mono _, Poly _ | Mono _) ->
     (u.empty, Mono ())
+end
+
+lang PresenceKindAstUnify = Unify + PresenceKindAst
+  sem unifyKinds u env = 
+  | (Presence _, Presence _) -> u.empty
 end
 
 lang RecordKindUnify = UnifyRecords + RecordKindAst
