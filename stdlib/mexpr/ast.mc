@@ -582,6 +582,11 @@ lang ExtRecordType = Ast
   | TyPre ()
   | ExtRecordRow {ident : Name,
                   row : Map String Type}
+
+  sem smapAccumL_Type_Type f acc =
+  | ExtRecordRow t ->
+    match mapMapAccum (lam acc. lam. lam e. f acc e) acc t.row with (acc, row) in
+    (acc, ExtRecordRow {t with row = row})
 end
 
 -- TmType --

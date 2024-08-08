@@ -1369,7 +1369,6 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKin
     let presencePairs = map labelPresence allLabels in 
     
     let ty = ExtRecordRow {ident = t.n, row = mapFromSeq cmpString presencePairs} in 
-    printLn (type2str ty) ;
 
     TmExtRecord {t with ty = ty}
   | TmExtProject t -> 
@@ -1377,7 +1376,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKin
     match mapLookup t.n env.extRecordType with Some labelToType in 
     let labels = map fst (mapToSeq labelToType) in 
     let label2metavar = lam label. 
-      (label, newnmetavar (concat "theta_" label) (Presence ()) 0 (NoInfo ()))
+      (label, newnmetavar (concat "theta_" label) (Presence ()) env.currentLvl (NoInfo ()))
     in 
     let labelPrsesencePairs = map label2metavar labels in
 
@@ -2368,12 +2367,24 @@ in
 
 iter runTest tests;
 
-let e = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
-let e = ext_proj_ "Foo" e "x" in 
+let rec = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
+let rec2 = ext_record_ "Foo" [("y", char_ 'c')] in 
+let e = ext_proj_ "Foo" rec "x" in 
 -- let e = ext_record_ "Foo" [("x", int_ 1), ("y", int_ 10)] in 
 let m = mapInsert (nameNoSym "Foo") (mapFromSeq cmpString [("x", tyint_), ("y", tychar_), ("z", tyint_)]) (mapEmpty nameCmp) in 
 let env = {_tcEnvEmpty with extRecordType = m} in 
-let e = typeCheckExpr env e in 
+-- let e = typeCheckExpr env e in 
+
+let f = ulet_ "f" (ulam_ "r" (ext_proj_ "Foo" (var_ "r") "x")) in
+let f = typeCheckExpr env f in 
+let inexpr = appf1_ (var_ "f") rec2 in 
+let res = bind_ f inexpr in 
+let res = typeCheckExpr env res in 
+
+printLn (type2str (tyTm res)) ;
+
+-- match f with TmLet {tyBody = tyBody} in 
+-- printLn (type2str tyBody) ;
 
 -- let e = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
 -- let e = ext_proj_ "Foo" e "z" in 
