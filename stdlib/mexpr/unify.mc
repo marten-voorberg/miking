@@ -163,14 +163,10 @@ lang ExtRowUnify = Unify + ExtRecordType
 
   sem unifyBase u env = 
   | (TyPre _, TyPre _) | (TyAbs _, TyAbs _) -> 
-    printLn "Unifying the same presence!" ;
+    -- printLn "Unifying the same presence!" ;
     u.empty
-  -- | (TyPre _, TyMetaVar _) & (ty1, ty2) ->
-  --   u.unify env ty2 ty1
-  -- | (TyMetaVar _, TyPre _) & (ty1, ty2) ->
-  --   u.unify env ty1 ty2
   | (ty1, ty2) & (TyPre _, TyAbs _) | (TyAbs _, TyPre _) -> 
-    printLn "This should be an error!" ;
+    -- printLn "This should be an error!" ;
     u.err (Types (ty1, ty2))
   | (ExtRecordRow t1 & ty1, ExtRecordRow t2 & ty2) ->
     if nameEq t1.ident t2.ident then  
@@ -283,6 +279,9 @@ end
 lang PresenceKindAstUnify = Unify + PresenceKindAst
   sem unifyKinds u env = 
   | (Presence _, Presence _) -> u.empty
+
+  sem addKinds u env = 
+  | (Presence _, Presence _) -> (u.empty, Presence ())
 end
 
 lang RecordKindUnify = UnifyRecords + RecordKindAst
@@ -979,7 +978,7 @@ lang MExprUnify =
 
   ExtRowUnify + 
 
-  BaseKindUnify + RecordKindUnify + DataKindUnify
+  BaseKindUnify + RecordKindUnify + DataKindUnify + PresenceKindAstUnify
 end
 
 lang RepTypesUnify = TyWildUnify + ReprTypeUnify

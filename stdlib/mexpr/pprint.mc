@@ -1358,6 +1358,11 @@ lang MonoKindPrettyPrint = PrettyPrint + MonoKindAst
   | Mono () -> (env, "Mono")
 end
 
+lang PresenceKindPrettyPrint = PrettyPrint + PresenceKindAst 
+  sem getKindStringCode (indent : Int) (env : PprintEnv) =
+  | Presence () -> (env, "Presence")
+end
+
 lang RecordKindPrettyPrint = PrettyPrint + RecordKindAst + RecordTypeAst
   sem getKindStringCode (indent : Int) (env : PprintEnv) =
   | Record r ->
@@ -1446,7 +1451,7 @@ lang MExprPrettyPrint =
 
   -- Kinds
   PolyKindPrettyPrint + MonoKindPrettyPrint + RecordKindPrettyPrint +
-  DataKindPrettyPrint +
+  DataKindPrettyPrint + PresenceKindPrettyPrint + 
 
   -- Identifiers
   MExprIdentifierPrettyPrint +
