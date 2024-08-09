@@ -48,7 +48,7 @@ let reserved_strings = [
   ("recextend",     fun(i) -> Parser.EXTEND{i=i;v=()});
   ("recupdate",     fun(i) -> Parser.UPDATE{i=i;v=()});
   ("rectype",       fun(i) -> Parser.RECTYPE{i=i;v=()});
-  ("field",         fun(i) -> Parser.FIELD{i=i;v=()});
+  ("recfield",      fun(i) -> Parser.FIELD{i=i;v=()});
   ("of",            fun(i) -> Parser.OF{i=i;v=()});
 
   (* Types *)

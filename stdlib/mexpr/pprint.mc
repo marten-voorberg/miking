@@ -352,33 +352,6 @@ lang RecordPrettyPrint = PrettyPrint + RecordAst
                    " }"])
 end
 
-lang ExtRecordPrettyPrint = PrettyPrint + ExtRecordAst 
-  sem isAtomic =
-  | TmExtRecord _ -> true
-
-  sem pprintCode (indent : Int) (env: PprintEnv) =
-  | TmExtRecord {bindings = bindings, n = n} ->
-    if mapIsEmpty bindings then (env,"{{}}")
-    else
-      let innerIndent = pprintIncr (pprintIncr indent) in
-      match
-        mapMapAccum
-          (lam env. lam k. lam v.
-             match pprintCode innerIndent env v with (env, str) in
-             (env,
-              join [k, " = ", str]))
-           env bindings
-      with (env, bindMap) in
-      let binds = mapValues bindMap in
-      let merged =
-        strJoin ", " binds
-      in
-      (env,join ["{{", merged, "}}^", nameGetStr n])
-  | TmExtProject t -> 
-    (env, join [pprintCode indent env t.e, ".", t.label])
-end
-
-
 lang LetPrettyPrint = PrettyPrint + LetAst + UnknownTypeAst
   sem isAtomic =
   | TmLet _ -> false
@@ -1456,7 +1429,7 @@ lang MExprPrettyPrint =
   -- Identifiers
   MExprIdentifierPrettyPrint +
 
-  ExtRecordPrettyPrint + ExtRecordTypePrettyPrint + 
+  ExtRecordTypePrettyPrint + 
 
   -- Syntactic Sugar
   RecordProjectionSyntaxSugarPrettyPrint

@@ -1345,7 +1345,7 @@ end
 lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKindAst
   sem typeCheckExpr env =
   | TmExtRecord t ->
-    match mapLookup t.n env.extRecordType with Some labelToType in 
+    match mapLookup t.ident env.extRecordType with Some labelToType in 
 
     let bindings = mapToSeq t.bindings in 
 
@@ -1368,12 +1368,12 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKin
 
     let presencePairs = map labelPresence allLabels in 
     
-    let ty = ExtRecordRow {ident = t.n, row = mapFromSeq cmpString presencePairs} in 
+    let ty = ExtRecordRow {ident = t.ident, row = mapFromSeq cmpString presencePairs} in 
 
     TmExtRecord {t with ty = ty}
   | TmExtProject t -> 
     -- TODO: change level to be env.currentLevel (and think about it a little)
-    match mapLookup t.n env.extRecordType with Some labelToType in 
+    match mapLookup t.ident env.extRecordType with Some labelToType in 
     let labels = map fst (mapToSeq labelToType) in 
     let label2metavar = lam label. 
       (label, newnmetavar (concat "theta_" label) (Presence ()) env.currentLvl (NoInfo ()))
@@ -1382,7 +1382,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKin
 
     let row = mapFromSeq cmpString labelPrsesencePairs in 
     let row = mapInsert t.label (TyPre ()) row in 
-    let expectedTy = ExtRecordRow {ident = t.n, row = row} in 
+    let expectedTy = ExtRecordRow {ident = t.ident, row = row} in 
 
     let lhs = typeCheckExpr env t.e in 
     let actualTy = tyTm lhs in 

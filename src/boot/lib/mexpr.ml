@@ -46,6 +46,14 @@ let idTmExt = 115
 
 let idTmUse = 116
 
+let idTmRecType = 117 
+
+let idTmRecField = 118
+
+let idTmRecCreation = 119
+
+let idTmRecProj = 120
+
 (* Types *)
 let idTyUnknown = 200
 
@@ -281,6 +289,15 @@ let getData = function
       , []
       , []
       , [] )
+  | PTreeTm (TmRecType (fi, n, tm)) -> 
+      (idTmRecType, [fi], [], [], [tm], [n], [], [], [], [], [], [])
+  | PTreeTm (TmRecField (fi, n, ty, tm)) -> 
+      (idTmRecField, [fi], [], [ty], [tm], [n], [], [], [], [], [], [])
+  | PTreeTm (TmRecCreation (fi, name, r)) -> 
+      let labels, tms = r |> Record.bindings |> List.split in
+      (idTmRecCreation, [fi], [List.length labels], [], tms, name :: labels, [], [], [], [], [], [])
+  | PTreeTm (TmRecProj (fi, tm, name, label)) -> 
+      (idTmRecProj, [fi], [], [], [tm], [name; label], [], [], [], [], [], [])
   (* Types *)
   | PTreeTy (TyUnknown fi) ->
       (idTyUnknown, [fi], [], [], [], [], [], [], [], [], [], [])

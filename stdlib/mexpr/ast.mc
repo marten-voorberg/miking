@@ -540,12 +540,21 @@ end
 
 lang ExtRecordAst = Ast
   syn Expr = 
-  | TmExtRecord {bindings : Map String Expr, 
-                 n : Name,
-                 ty : Type,
-                 info : Info}
+  | TmRecType {ident : Name,
+               ty : Type,
+               inexpr : Expr, 
+               info : Info}
+  | TmRecField {ident : Name, 
+                tyIdent : Type, 
+                inexpr : Expr,
+                ty : Type,
+                info : Info}
+  | TmExtRecord  {bindings : Map String Expr, 
+                  ident : Name,
+                  ty : Type,
+                  info : Info}
   | TmExtProject {e : Expr,
-                  n : Name,
+                  ident : Name,
                   label : String,
                   ty : Type,
                   info : Info}

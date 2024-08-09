@@ -491,7 +491,7 @@ atom:
         (fun acc (k,v) -> Record.add k v acc) Record.empty) }
   | LBRACKET EXTEND mexpr WITH labels RBRACKET { TmNever($1.i) }
   | LBRACKET UPDATE mexpr WITH labels RBRACKET { TmNever($1.i) }
-  | atom ARROW var_ident { TmRecProj(mkinfo (tm_info $1) $3.i, $1, $3.v) }
+  | LPAREN atom OF con_ident RPAREN ARROW var_ident { TmRecProj(mkinfo $1.i $7.i, $2, $4.v, $7.v) }
 
 proj_label:
   | INT

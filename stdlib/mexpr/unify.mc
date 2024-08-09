@@ -165,7 +165,7 @@ lang ExtRowUnify = Unify + ExtRecordType
   | (TyPre _, TyPre _) | (TyAbs _, TyAbs _) -> 
     -- printLn "Unifying the same presence!" ;
     u.empty
-  | (ty1, ty2) & (TyPre _, TyAbs _) | (TyAbs _, TyPre _) -> 
+  | (ty1, ty2) & ((TyPre _, TyAbs _) | (TyAbs _, TyPre _)) -> 
     -- printLn "This should be an error!" ;
     u.err (Types (ty1, ty2))
   | (ExtRecordRow t1 & ty1, ExtRecordRow t2 & ty2) ->

@@ -575,7 +575,7 @@ let tmRecord = use MExprAst in
 let ext_record_ = lam s. lam b.
   use ExtRecordAst in 
   TmExtRecord {bindings = mapFromSeq cmpString b,
-               n = nameNoSym s,
+               ident = nameNoSym s,
                ty = tyunknown_,
                info = NoInfo ()}
 
@@ -583,7 +583,7 @@ let ext_proj_ = lam s. lam lhs. lam l.
   use ExtRecordAst in 
   TmExtProject {e = lhs, 
                 label = l,
-                n = nameNoSym s,
+                ident = nameNoSym s,
                 ty = tyunknown_,
                 info = NoInfo ()}
 
