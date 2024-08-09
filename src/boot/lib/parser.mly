@@ -413,12 +413,12 @@ mexpr:
   | EXTERNAL ident NOT COLON ty IN mexpr
       { let fi = mkinfo $1.i (tm_info $7) in
         TmExt(fi,$2.v,Symb.Helpers.nosym,true,$5,$7) }
-  | RECTYPE type_ident type_params IN mexpr
-      { let fi = mkinfo $1.i $4.i in
-        TmType(fi, $2.v, $3, TyVariant (fi, []), $5) }
+  | RECTYPE type_ident IN mexpr
+      { let fi = mkinfo $1.i $3.i in
+        TmRecType(fi, $2.v, $4) }
   | FIELD var_ident ty_op IN mexpr
       { let fi = mkinfo $1.i $4.i in
-        TmConDef(fi,$2.v,Symb.Helpers.nosym,$3 $1.i,$5)}
+        TmRecField(fi,$2.v,$3 $1.i,$5)}
 
 lets:
   | LET var_ident ty_op EQ mexpr
@@ -486,10 +486,12 @@ atom:
           TmRecordUpdate (mkinfo $1.i $5.i, acc, k, v)
         ) $2 $4}
   // Extensible record creation
-  | LBRACKET con_ident OF labels RBRACKET { TmNever($1.i) }
+  | LBRACKET con_ident OF labels RBRACKET 
+      { TmRecCreation(mkinfo $1.i $5.i, $2.v, $4 |> List.fold_left
+        (fun acc (k,v) -> Record.add k v acc) Record.empty) }
   | LBRACKET EXTEND mexpr WITH labels RBRACKET { TmNever($1.i) }
   | LBRACKET UPDATE mexpr WITH labels RBRACKET { TmNever($1.i) }
-  | atom ARROW var_ident { TmNever($2.i) }
+  | atom ARROW var_ident { TmRecProj(mkinfo (tm_info $1) $3.i, $1, $3.v) }
 
 proj_label:
   | INT

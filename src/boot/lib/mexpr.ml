@@ -2825,6 +2825,8 @@ and eval (env : (Symb.t * tm) list) (pe : peval) (t : tm) =
   (* Only at runtime *)
   | TmClos _ | TmRef _ | TmTensor _ ->
       t
+  | (TmRecType _ | TmRecField _ | TmRecCreation _ | TmRecProj _) as t ->
+    raise_error (tm_info t) ("Extensible record type evaluation is unsupported by boot!")
 
 (* Same as eval, but records all toplevel definitions and returns them along
    with the evaluated result *)
@@ -2867,3 +2869,5 @@ let rec eval_toplevel (env : (Symb.t * tm) list) (pe : peval) = function
     | TmBox _
     | TmExt _ ) as t ->
       (env, eval env pe t)
+  | (TmRecType _ | TmRecField _ | TmRecCreation _ | TmRecProj _) as t ->
+    raise_error (tm_info t) ("Extensible record type symbolization is unsupported by boot!")
