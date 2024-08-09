@@ -12,7 +12,9 @@ include "pprint.mc"
 
 include "mlang/include-handler.mc"
 include "mlang/pprint.mc"
+include "mlang/type-check.mc"
 include "mlang/symbolize.mc"
+include "mlang/const-transformer.mc"
 
 include "mexpr/type-check.mc"
 
@@ -28,12 +30,25 @@ end
 lang BigPipeline = BigIncludeHandler + 
                      BigSym + 
                      BigPrettyPrint + 
-                     ExtRecCollectEnv
+                     ExtRecCollectEnv + 
+                     MLangTypeCheck +
+                     ExtRecordTypeCheck+ 
+                     MLangConstTransformer
+
                      
 
   sem doIt =| filepath ->
     let p = parseAndHandleIncludes filepath in 
+
+    let p = constTransformProgram builtin p in
+
     match symbolizeMLang symEnvDefault p with (_, p) in 
+
+    let env = collectEnv (mapEmpty nameCmp) p.expr in 
+    let tcEnv = {_tcEnvEmpty with extRecordType = env} in 
+
+    let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
+
     p
 
   sem pprintEnv =

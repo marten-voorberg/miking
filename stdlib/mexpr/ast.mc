@@ -576,6 +576,12 @@ lang ExtRecordAst = Ast
   | TmExtProject t -> TmExtProject {t with ty = ty}
 
   sem smapAccumL_Expr_Expr f acc =
+  | TmRecType t ->
+    match f acc t.inexpr with (acc, inexpr) in 
+    (acc, TmRecType {t with inexpr = inexpr})
+  | TmRecField t ->
+    match f acc t.inexpr with (acc, inexpr) in 
+    (acc, TmRecField {t with inexpr = inexpr})
   | TmExtRecord t ->
     match mapMapAccum (lam acc. lam. lam e. f acc e) acc t.bindings with (acc, bindings) then
       (acc, TmExtRecord {t with bindings = bindings})
@@ -591,6 +597,9 @@ lang ExtRecordType = Ast
   | TyPre ()
   | ExtRecordRow {ident : Name,
                   row : Map String Type}
+
+  sem tyWithInfo info = 
+  | t & (TyAbs _ | TyPre _ | ExtRecordRow _) -> t
 
   sem smapAccumL_Type_Type f acc =
   | ExtRecordRow t ->

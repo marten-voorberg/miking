@@ -1346,6 +1346,10 @@ end
 -- TODO: Figure out how to get rid of PresenceKindAst
 lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKindAst
   sem typeCheckExpr env =
+  | TmRecField t -> 
+    TmRecField {t with inexpr = typeCheckExpr env t.inexpr}
+  | TmRecType t ->
+    TmRecType {t with inexpr = typeCheckExpr env t.inexpr}
   | TmExtRecord t ->
     match mapLookup t.ident env.extRecordType with Some labelToType in 
 
