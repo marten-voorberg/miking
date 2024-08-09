@@ -544,7 +544,7 @@ lang ExtRecordAst = Ast
                ty : Type,
                inexpr : Expr, 
                info : Info}
-  | TmRecField {ident : Name, 
+  | TmRecField {label : String, 
                 tyIdent : Type, 
                 inexpr : Expr,
                 ty : Type,

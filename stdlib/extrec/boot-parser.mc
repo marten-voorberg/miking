@@ -16,7 +16,7 @@ lang ExtRecBootParser = BootParserMLang + ExtRecordAst
                inexpr = gterm t 0,
                info = ginfo t 0}
   | 118 -> 
-    TmRecField {ident = gname t 0,
+    TmRecField {label = gstr t 0,
                 tyIdent = gtype t 0,
                 inexpr = gterm t 0,
                 ty = tyunknown_,

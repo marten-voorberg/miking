@@ -16,12 +16,11 @@ lang ExtRecPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
       " in", pprintNewline indent,
       inexpr])
   | TmRecField t -> 
-    match pprintVarName env t.ident with (env, name) in 
     let ty =  typeToString env t.tyIdent in 
     match pprintCode indent env t.inexpr with (env, inexpr) in
     (env, join [
       "recfield ",
-      name, 
+      t.label, 
       " : ",
       ty,
       " in ",

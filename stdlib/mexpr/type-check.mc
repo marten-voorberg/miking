@@ -34,6 +34,8 @@ include "mexpr/repr-ast.mc"
 
 type ReprSubst = use Ast in {vars : [Name], pat : Type, repr : Type}
 
+type ExtRecEnvType = use Ast in Map Name (Map String Type)
+
 type TCEnv = {
   -- Normal typechecking related fields
   varEnv : use Ast in Map Name Type,
@@ -49,7 +51,7 @@ type TCEnv = {
   disableRecordPolymorphism : Bool,
   disableConstructorTypes : Bool,
 
-  extRecordType : use Ast in Map Name (Map String Type),
+  extRecordType : ExtRecEnvType,
 
   -- Reptypes relevant fields
   reptypes : {
