@@ -45,6 +45,11 @@ let reserved_strings = [
   ("all",           fun(i) -> Parser.ALL{i=i;v=()});
   ("dive",          fun(i) -> Parser.DIVE{i=i;v=()});
   ("prerun",        fun(i) -> Parser.PRERUN{i=i;v=()});
+  ("recextend",     fun(i) -> Parser.EXTEND{i=i;v=()});
+  ("recupdate",     fun(i) -> Parser.UPDATE{i=i;v=()});
+  ("rectype",       fun(i) -> Parser.RECTYPE{i=i;v=()});
+  ("field",         fun(i) -> Parser.FIELD{i=i;v=()});
+  ("of",            fun(i) -> Parser.OF{i=i;v=()});
 
   (* Types *)
   ("Unknown",       fun(i) -> Parser.TUNKNOWN{i=i;v=()});

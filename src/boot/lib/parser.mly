@@ -81,6 +81,12 @@
 %token <unit Ast.tokendata> ALL
 %token <unit Ast.tokendata> DIVE
 %token <unit Ast.tokendata> PRERUN
+/* Extensible record type keywords */
+%token <unit Ast.tokendata> EXTEND
+%token <unit Ast.tokendata> UPDATE
+%token <unit Ast.tokendata> RECTYPE
+%token <unit Ast.tokendata> FIELD
+%token <unit Ast.tokendata> OF
 
 
 /* Types */
@@ -407,6 +413,12 @@ mexpr:
   | EXTERNAL ident NOT COLON ty IN mexpr
       { let fi = mkinfo $1.i (tm_info $7) in
         TmExt(fi,$2.v,Symb.Helpers.nosym,true,$5,$7) }
+  | RECTYPE type_ident type_params IN mexpr
+      { let fi = mkinfo $1.i $4.i in
+        TmType(fi, $2.v, $3, TyVariant (fi, []), $5) }
+  | FIELD var_ident ty_op IN mexpr
+      { let fi = mkinfo $1.i $4.i in
+        TmConDef(fi,$2.v,Symb.Helpers.nosym,$3 $1.i,$5)}
 
 lets:
   | LET var_ident ty_op EQ mexpr
@@ -473,6 +485,11 @@ atom:
       { List.fold_left (fun acc (k,v) ->
           TmRecordUpdate (mkinfo $1.i $5.i, acc, k, v)
         ) $2 $4}
+  // Extensible record creation
+  | LBRACKET con_ident OF labels RBRACKET { TmNever($1.i) }
+  | LBRACKET EXTEND mexpr WITH labels RBRACKET { TmNever($1.i) }
+  | LBRACKET UPDATE mexpr WITH labels RBRACKET { TmNever($1.i) }
+  | atom ARROW var_ident { TmNever($2.i) }
 
 proj_label:
   | INT
