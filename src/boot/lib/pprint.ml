@@ -611,6 +611,8 @@ and print_tm fmt (prec, t) =
     | TmRecType _
     | TmRecField _
     | TmRecCreation _ 
+    | TmRecExtend _ 
+    | TmRecUpdate _
     | TmRecProj _ 
     | TmTensor _ ->
         Atom
@@ -799,6 +801,10 @@ and print_tm' fmt t =
       let name = string_of_ustring n in 
       let label = string_of_ustring l in 
       fprintf fmt "@[<hv 0>%a->%s.%s" print_tm (App, tm) name label
+  | (TmRecExtend _) as t ->
+    raise_error (tm_info t) "Pprint unsupported for TmRecExtend!"
+  | (TmRecUpdate _) as t ->
+    raise_error (tm_info t) "Pprint unsupported for TmRecUpdate!"
     
 
 (** Print an environment on the given formatter. *)

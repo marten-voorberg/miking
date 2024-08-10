@@ -16,6 +16,20 @@ lang ExtRecordSym = Sym + ExtRecordAst
                            allowFree = env.allowFree} env.currentEnv.tyConEnv t.ident in 
     let bindings = mapMap (symbolizeExpr env) t.bindings in 
     TmExtRecord {t with ident = ident, bindings = bindings}
+  | TmExtUpdate t ->
+    let ident = getSymbol {kind = "type constructor", 
+                           info = [t.info],
+                           allowFree = env.allowFree} env.currentEnv.tyConEnv t.ident in 
+    let e = symbolizeExpr env t.e in 
+    let bindings = mapMap (symbolizeExpr env) t.bindings in 
+    TmExtUpdate {t with ident = ident, bindings = bindings, e = e}
+  | TmExtExtend t ->
+    let ident = getSymbol {kind = "type constructor", 
+                           info = [t.info],
+                           allowFree = env.allowFree} env.currentEnv.tyConEnv t.ident in 
+    let e = symbolizeExpr env t.e in 
+    let bindings = mapMap (symbolizeExpr env) t.bindings in 
+    TmExtExtend {t with ident = ident, bindings = bindings, e = e}
   | TmExtProject t -> 
     let ident= getSymbol {kind = "type constructor", 
                           info = [t.info],

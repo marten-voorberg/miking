@@ -42,6 +42,54 @@ lang ExtRecPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
         strJoin ", " binds
       in
       (env,join ["{", nameGetStr ident, " of ", merged, "}"])
+  | TmExtUpdate {bindings = bindings, ident = ident, e = e} ->
+    match pprintCode indent env e with (env, eStr) in 
+    let innerIndent = pprintIncr (pprintIncr indent) in
+      match
+        mapMapAccum
+          (lam env. lam k. lam v.
+             match pprintCode innerIndent env v with (env, str) in
+             (env,
+              join [k, " = ", str]))
+           env bindings
+      with (env, bindMap) in
+      let binds = mapValues bindMap in
+      let merged =
+        strJoin ", " binds
+      in
+      (env, join [
+        "{recupdate ",
+        eStr,
+        " of ",
+        nameGetStr ident,
+        " with ",
+        merged,
+        "}"
+      ])
+  | TmExtExtend {bindings = bindings, ident = ident, e = e} ->
+    match pprintCode indent env e with (env, eStr) in 
+    let innerIndent = pprintIncr (pprintIncr indent) in
+      match
+        mapMapAccum
+          (lam env. lam k. lam v.
+             match pprintCode innerIndent env v with (env, str) in
+             (env,
+              join [k, " = ", str]))
+           env bindings
+      with (env, bindMap) in
+      let binds = mapValues bindMap in
+      let merged =
+        strJoin ", " binds
+      in
+      (env, join [
+        "{recextend ",
+        eStr,
+        " of ",
+        nameGetStr ident,
+        " with ",
+        merged,
+        "}"
+      ])
   | TmExtProject {e = e, ident = ident, label = label} -> 
     match pprintCode indent env e with (env, exprStr) in 
     (env, join [

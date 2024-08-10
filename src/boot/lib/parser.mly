@@ -489,8 +489,14 @@ atom:
   | LBRACKET con_ident OF labels RBRACKET 
       { TmRecCreation(mkinfo $1.i $5.i, $2.v, $4 |> List.fold_left
         (fun acc (k,v) -> Record.add k v acc) Record.empty) }
-  | LBRACKET EXTEND mexpr WITH labels RBRACKET { TmNever($1.i) }
-  | LBRACKET UPDATE mexpr WITH labels RBRACKET { TmNever($1.i) }
+  | LBRACKET EXTEND mexpr OF con_ident WITH labels RBRACKET 
+    { let r = $7 |> List.fold_left
+        (fun acc (k,v) -> Record.add k v acc) Record.empty in 
+      TmRecExtend(mkinfo $1.i $8.i, $3, $5.v, r) }
+  | LBRACKET UPDATE mexpr OF con_ident WITH labels RBRACKET 
+    { let r = $7 |> List.fold_left
+        (fun acc (k,v) -> Record.add k v acc) Record.empty in 
+      TmRecUpdate(mkinfo $1.i $8.i, $3, $5.v, r) }
   | LPAREN atom OF con_ident RPAREN ARROW var_ident { TmRecProj(mkinfo $1.i $7.i, $2, $4.v, $7.v) }
 
 proj_label:
