@@ -731,7 +731,7 @@ lang MatchAst = Ast
              thn    : Expr,
              els    : Expr,
              ty     : Type,
-             info     : Info}
+             info   : Info}
 
   syn Pat =
   -- Intentionally left blank

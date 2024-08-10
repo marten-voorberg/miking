@@ -9,6 +9,7 @@ include "boot-parser.mc"
 include "symbolize.mc"
 include "collect-env.mc"
 include "pprint.mc"
+include "monomorphise.mc"
 
 include "mlang/include-handler.mc"
 include "mlang/pprint.mc"
@@ -33,7 +34,8 @@ lang BigPipeline = BigIncludeHandler +
                      ExtRecCollectEnv + 
                      MLangTypeCheck +
                      ExtRecordTypeCheck+ 
-                     MLangConstTransformer
+                     MLangConstTransformer + 
+                     ExtRecMonomorphise
 
                      
 
@@ -48,6 +50,8 @@ lang BigPipeline = BigIncludeHandler +
     let tcEnv = {_tcEnvEmpty with extRecordType = env} in 
 
     let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
+
+    let p = {p with expr = monomorphiseExpr env p.expr} in 
 
     p
 
@@ -82,6 +86,6 @@ printLn (mlang2str p) ;
 
 printLn "\n\n";
 
-let env = collectEnv (mapEmpty nameCmp) p.expr in 
-printLn (pprintEnv env) ;
+-- let env = collectEnv (mapEmpty nameCmp) p.expr in 
+-- printLn (pprintEnv env) ;
 ()
