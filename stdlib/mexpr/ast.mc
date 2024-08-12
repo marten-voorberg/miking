@@ -541,6 +541,7 @@ end
 lang ExtRecordAst = Ast
   syn Expr = 
   | TmRecType {ident : Name,
+               params : [Name],
                ty : Type,
                inexpr : Expr, 
                info : Info}

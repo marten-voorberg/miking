@@ -784,7 +784,7 @@ and print_tm' fmt t =
       let e = if e then "!" else "" in
       fprintf fmt "@[<hov 0>@[<hov %d>external %s %s : %s in@]@ %a@]"
         !ref_indent x e ty print_tm (Match, t)
-  | TmRecType (_, n, tm) ->
+  | TmRecType (_, n, _, tm) ->
       let name = string_of_ustring (pprint_type_str n) in
       fprintf fmt "@[<hov 0>@[<hov %d>rectype %s in@]@ %a@]" !ref_indent name
         print_tm (Match, tm)

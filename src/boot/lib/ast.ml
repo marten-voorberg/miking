@@ -342,7 +342,7 @@ and tm =
   (* Box *)
   | TmBox of info * (tm * env option) ref
   (* Extensible Record Types *)
-  | TmRecType of info * ustring * tm 
+  | TmRecType of info * ustring * ustring list * tm 
   | TmRecField of info * ustring * ty * tm 
   | TmRecCreation of info * ustring * tm Record.t
   | TmRecProj of info * tm * ustring * ustring
@@ -480,8 +480,8 @@ let smap_accum_left_tm_tm (f : 'a -> tm -> 'a * tm) (acc : 'a) : tm -> 'a * tm
       f acc t |> fun (acc, t') -> (acc, TmRecordUpdate (fi, r', l, t'))
   | TmType (fi, x, params, ty, t) ->
       f acc t |> fun (acc, t') -> (acc, TmType (fi, x, params, ty, t'))
-  | TmRecType (fi, name, t) ->
-      f acc t |> fun (acc, t') -> (acc, TmRecType (fi, name, t'))
+  | TmRecType (fi, name, params, t) ->
+      f acc t |> fun (acc, t') -> (acc, TmRecType (fi, name, params, t'))
   | TmRecField (fi, name, ty, t) ->
       f acc t |> fun (acc, t') -> (acc, TmRecField (fi, name, ty, t'))
   | TmRecProj (fi, tm, n1, n2) -> 
@@ -751,7 +751,7 @@ let tm_info = function
   | TmPreRun (fi, _, _)
   | TmBox (fi, _)
   | TmExt (fi, _, _, _, _, _)
-  | TmRecType (fi, _, _)
+  | TmRecType (fi, _, _, _)
   | TmRecField (fi, _, _, _) 
   | TmRecCreation (fi, _, _)
   | TmRecProj (fi, _, _, _)

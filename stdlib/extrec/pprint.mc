@@ -10,9 +10,12 @@ lang ExtRecPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
   | TmRecType t ->
     match pprintTypeName env t.ident with (env, name) in
     match pprintCode indent env t.inexpr with (env, inexpr) in
+    match mapAccumL pprintEnvGetStr env t.params with (env, paramsStr) in
     (env, join [
       "rectype ",
       name,
+      " ",
+      strJoin " " paramsStr,
       " in", pprintNewline indent,
       inexpr])
   | TmRecField t -> 

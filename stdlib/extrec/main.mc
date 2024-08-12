@@ -57,14 +57,15 @@ lang BigPipeline = BigIncludeHandler +
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
-    let env = collectEnv (mapEmpty nameCmp) p.expr in 
-    let tcEnv = {_tcEnvEmpty with extRecordType = env} in 
+    -- let env = collectEnv (mapEmpty nameCmp) p.expr in 
+    -- let tcEnv = {_tcEnvEmpty with extRecordType = env} in 
 
-    let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
+    -- let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
 
-    printLn (strJoin "\n" (dumpTypes [] p.expr));
+    -- printLn (strJoin "\n" (dumpTypes [] p.expr));
+    printLn (expr2str p.expr);
 
-    let p = {p with expr = monomorphiseExpr env p.expr} in 
+    -- let p = {p with expr = monomorphiseExpr env p.expr} in 
 
     p
 
@@ -101,10 +102,10 @@ end
 mexpr 
 use BigPipeline in
 let p = doIt "example.mc" in 
-printLn (mlang2str p) ; 
+-- printLn (mlang2str p) ; 
 
-printLn "\n\n";
+-- printLn "\n\n";
 
-runIt "example.mc";
+-- runIt "example.mc";
 
 ()

@@ -5,7 +5,12 @@ lang ExtRecordSym = Sym + ExtRecordAst
   | TmRecType t ->
     match setSymbol env.currentEnv.tyConEnv t.ident with (tyConEnv, ident) in
     let env = symbolizeUpdateTyConEnv env tyConEnv in 
+
+    let params = map (setSymbol env.currentEnv.tyVarEnv) t.params in
+    let params = map snd params in 
+
     TmRecType {t with ident = ident,
+                      params = params,
                       inexpr = symbolizeExpr env t.inexpr}
   | TmRecField t -> 
     TmRecField {t with inexpr = symbolizeExpr env t.inexpr,

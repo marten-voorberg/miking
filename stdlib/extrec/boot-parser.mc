@@ -11,7 +11,11 @@ include "name.mc"
 lang ExtRecBootParser = BootParserMLang + ExtRecordAst
   sem matchTerm t = 
   | 117 -> 
+    let n = glistlen t 0 in 
+    let params = map (lam i. gname t (addi i 1)) (range 0 n 1) in 
+
     TmRecType {ident = gname t 0,
+               params = params,
                ty = tyunknown_,
                inexpr = gterm t 0,
                info = ginfo t 0}

@@ -293,8 +293,8 @@ let getData = function
       , []
       , []
       , [] )
-  | PTreeTm (TmRecType (fi, n, tm)) -> 
-      (idTmRecType, [fi], [], [], [tm], [n], [], [], [], [], [], [])
+  | PTreeTm (TmRecType (fi, n, params, tm)) -> 
+      (idTmRecType, [fi], [List.length params], [], [tm], n :: params, [], [], [], [], [], [])
   | PTreeTm (TmRecField (fi, n, ty, tm)) -> 
       (idTmRecField, [fi], [], [ty], [tm], [n], [], [], [], [], [], [])
   | PTreeTm (TmRecCreation (fi, name, r)) -> 

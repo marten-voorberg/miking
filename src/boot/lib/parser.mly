@@ -413,12 +413,12 @@ mexpr:
   | EXTERNAL ident NOT COLON ty IN mexpr
       { let fi = mkinfo $1.i (tm_info $7) in
         TmExt(fi,$2.v,Symb.Helpers.nosym,true,$5,$7) }
-  | RECTYPE type_ident IN mexpr
-      { let fi = mkinfo $1.i $3.i in
-        TmRecType(fi, $2.v, $4) }
+  | RECTYPE type_ident type_params IN mexpr
+      { let fi = mkinfo $1.i $4.i in
+        TmRecType(fi, $2.v, $3, $5) }
   | FIELD var_ident ty_op IN mexpr
       { let fi = mkinfo $1.i $4.i in
-        TmRecField(fi,$2.v,$3 $1.i,$5)}
+        TmRecField(fi, $2.v, $3 $1.i, $5)}
 
 lets:
   | LET var_ident ty_op EQ mexpr
