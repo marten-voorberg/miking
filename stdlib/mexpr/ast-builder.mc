@@ -587,6 +587,31 @@ let ext_proj_ = lam s. lam lhs. lam l.
                 ty = tyunknown_,
                 info = NoInfo ()}
 
+let typre_ = 
+  use ExtRecordType in 
+  TyPre ()
+
+let tyabs_ = 
+  use ExtRecordType in 
+  TyAbs ()
+
+let nty_record_row_ = lam n : Name. lam row: [(String, use Ast in Type)]. 
+  use ExtRecordType in 
+  ExtRecordRow {ident = n,
+                row = mapFromSeq cmpString row}
+
+let ty_record_row_ = lam s. lam row. 
+  nty_record_row_ (nameNoSym s) row
+
+let nty_mapping_ = lam row : [(Name, use Ast in Type)]. 
+  use ExtRecordType in 
+  TyMapping {mapping = mapFromSeq nameCmp row}
+
+let ty_mapping_ = lam row : [(String, use Ast in Type)].
+  use ExtRecordType in 
+  let row = map (lam p. (nameNoSym p.0, p.1)) row in 
+  nty_mapping_ row
+
 let record_ = tmRecord (NoInfo ())
 
 let urecord_ = record_ tyunknown_

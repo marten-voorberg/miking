@@ -1112,7 +1112,17 @@ lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordType
 
     let rowStr = strJoin ", " (map pprintPair (mapToSeq t.row)) in 
 
-    (env, join [nameGetStr t.ident, " of <", rowStr, ">"])
+    -- (env, join [nameGetStr t.ident, " of <", rowStr, ">"])
+    (env, join ["<", rowStr, ">"])
+  | TyMapping t -> 
+    let work = lam env. lam name. lam ty.
+      match pprintTypeName env name with (env, nameStr) in 
+      let tyStr = typeToString env ty in 
+      (env, join [nameStr, " => ", tyStr])
+    in 
+    match mapMapAccum work env t.mapping with (env, m) in 
+    (env, join ["{{", strJoin ", " (mapValues m), "}}"])
+
 end
 
 lang RecordTypePrettyPrint = PrettyPrint + RecordTypeUtils
@@ -1346,6 +1356,22 @@ lang PresenceKindPrettyPrint = PrettyPrint + PresenceKindAst
   | Presence () -> (env, "Presence")
 end
 
+lang MappingKindPrettyPrint = PrettyPrint + MappingKindAst
+  sem getKindStringCode indent env = 
+  | KiMapping {domain = domain} -> 
+    let domainSeq = setToSeq domain in 
+    let pprintName = lam name. 
+      match pprintTypeName env name with (env, nameStr) in 
+      nameStr
+    in 
+    let domainStrs = map pprintName domainSeq in 
+    (env, join [
+      "Mapping {",
+      strJoin ", " domainStrs,
+      "}"
+    ])
+end
+
 lang RecordKindPrettyPrint = PrettyPrint + RecordKindAst + RecordTypeAst
   sem getKindStringCode (indent : Int) (env : PprintEnv) =
   | Record r ->
@@ -1434,7 +1460,7 @@ lang MExprPrettyPrint =
 
   -- Kinds
   PolyKindPrettyPrint + MonoKindPrettyPrint + RecordKindPrettyPrint +
-  DataKindPrettyPrint + PresenceKindPrettyPrint + 
+  DataKindPrettyPrint + PresenceKindPrettyPrint + MappingKindPrettyPrint + 
 
   -- Identifiers
   MExprIdentifierPrettyPrint +
@@ -1704,7 +1730,14 @@ utest (expr2str e) with "(x.0).1" in
 let e = recordproj_ "y" (tupleproj_ 0 (var_ "x")) in
 utest (expr2str e) with "x.0.y" in
 
-let e = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
-printLn (expr2str e);
+-- let e = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
+-- printLn (expr2str e);
+
+let row = ty_record_row_ "Foo" [("x", tyabs_), ("y", typre_)] in 
+let row2 = ty_record_row_ "Bar" [("z", tyabs_)] in 
+printLn (type2str row);
+printLn (type2str row2);
+let mapping = ty_mapping_ [("Foo", row), ("Bar", row2)] in 
+printLn (type2str mapping);
 
 ()

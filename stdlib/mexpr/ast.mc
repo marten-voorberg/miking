@@ -634,6 +634,7 @@ lang ExtRecordType = Ast
   | TyExtRec {info : Info, 
               ident : Name,
               ty : Type}
+  | TyMapping {mapping : Map Name Type}
   | ExtRecordRow {ident : Name,
                   row : Map String Type}
 
@@ -1668,6 +1669,11 @@ lang PresenceKindAst = Ast
   | Presence ()
 end
 
+lang MappingKindAst = Ast 
+  syn Kind = 
+  | KiMapping {domain : Set Name}
+end
+
 lang PolyKindAst = Ast
   syn Kind =
   | Poly ()
@@ -1722,5 +1728,6 @@ lang MExprAst =
   DataTypeAst + VarTypeAst + AppTypeAst + TensorTypeAst + AllTypeAst + AliasTypeAst +
 
   -- Kinds
-  PolyKindAst + MonoKindAst + RecordKindAst + DataKindAst + PresenceKindAst
+  PolyKindAst + MonoKindAst + RecordKindAst + DataKindAst + PresenceKindAst +
+  MappingKindAst
 end
