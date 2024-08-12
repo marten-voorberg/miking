@@ -18,6 +18,7 @@ include "mlang/symbolize.mc"
 include "mlang/const-transformer.mc"
 
 include "mexpr/type-check.mc"
+include "mexpr/eval.mc"
 
 lang BigPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint 
 end
@@ -29,15 +30,25 @@ lang BigIncludeHandler = MLangIncludeHandler + BootParserMLang + ExtRecBootParse
 end
 
 lang BigPipeline = BigIncludeHandler + 
-                     BigSym + 
-                     BigPrettyPrint + 
-                     ExtRecCollectEnv + 
-                     MLangTypeCheck +
-                     ExtRecordTypeCheck+ 
-                     MLangConstTransformer + 
-                     ExtRecMonomorphise
+                   BigSym + 
+                   BigPrettyPrint + 
+                   ExtRecCollectEnv + 
+                   MLangTypeCheck +
+                   ExtRecordTypeCheck+ 
+                   MLangConstTransformer + 
+                   ExtRecMonomorphise + 
+                   MExprEval
 
-                     
+  -- For some reason, this is missing some function definitions, but
+  -- I can not figure out why. 
+  sem dumpTypes : [String] -> Expr -> [String]
+  sem dumpTypes acc = 
+  | TmLet t -> 
+    let acc = snoc acc (join [nameGetStr t.ident, " : ", type2str t.tyBody]) in 
+    let acc = sfold_Expr_Expr dumpTypes acc t.body in 
+    sfold_Expr_Expr dumpTypes acc t.inexpr
+  | expr ->
+    sfold_Expr_Expr dumpTypes acc expr
 
   sem doIt =| filepath ->
     let p = parseAndHandleIncludes filepath in 
@@ -51,9 +62,17 @@ lang BigPipeline = BigIncludeHandler +
 
     let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
 
+    printLn (strJoin "\n" (dumpTypes [] p.expr));
+
     let p = {p with expr = monomorphiseExpr env p.expr} in 
 
     p
+
+  sem runIt =| filepath ->
+    let p = doIt filepath in 
+    let result = eval (evalCtxEmpty ()) p.expr in 
+    printLn (expr2str result);
+    result
 
   sem pprintEnv =
   | env ->
@@ -86,6 +105,6 @@ printLn (mlang2str p) ;
 
 printLn "\n\n";
 
--- let env = collectEnv (mapEmpty nameCmp) p.expr in 
--- printLn (pprintEnv env) ;
+runIt "example.mc";
+
 ()
