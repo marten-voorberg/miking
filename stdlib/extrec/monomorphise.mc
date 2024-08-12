@@ -5,8 +5,6 @@ include "map.mc"
 include "stringid.mc"
 include "set.mc"
 
-let placeholder = lam. never 
-
 lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst 
   sem monomorphiseExpr : ExtRecEnvType -> Expr -> Expr
   sem monomorphiseExpr env = 
