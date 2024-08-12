@@ -631,6 +631,9 @@ lang ExtRecordType = Ast
   syn Type = 
   | TyAbs ()
   | TyPre ()
+  | TyExtRec {info : Info, 
+              ident : Name,
+              ty : Type}
   | ExtRecordRow {ident : Name,
                   row : Map String Type}
 

@@ -8,7 +8,7 @@ include "mlang/pprint.mc"
 
 include "name.mc"
 
-lang ExtRecBootParser = BootParserMLang + ExtRecordAst
+lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordType
   sem matchTerm t = 
   | 117 -> 
     let n = glistlen t 0 in 
@@ -59,6 +59,12 @@ lang ExtRecBootParser = BootParserMLang + ExtRecordAst
                  e = e,
                  ty = tyunknown_, 
                  info = ginfo t 0}
+
+  sem matchType t = 
+  | 215 -> 
+    TyExtRec {info = ginfo t 0,
+              ident = gname t 0,
+              ty = gtype t 0}
 end
 
 lang MyPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint 

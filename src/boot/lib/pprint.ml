@@ -192,6 +192,9 @@ let rec ustring_of_ty = function
         us "[" ^. ustring_of_ty ty1 ^. us "]" )
   | TyTensor (_, ty) ->
       us "Tensor[" ^. ustring_of_ty ty ^. us "]"
+  | TyExtRecord (_, ident, ty) ->
+      let identStr = pprint_var_str ident in 
+      us "ExtRec[" ^. identStr ^. us " of " ^. ustring_of_ty ty ^. us "]"
   | TyRecord (_, r) when r = Record.empty ->
       us "()"
   | TyRecord (_, r) ->

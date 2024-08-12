@@ -1094,6 +1094,16 @@ lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordType
   sem getTypeStringCode indent env = 
   | TyPre _ -> (env, "pre")
   | TyAbs _ -> (env, "abs")
+  | TyExtRec t -> 
+    match pprintTypeName env t.ident with (env, name) in
+    let ty = typeToString env t.ty in 
+    (env, join [
+      "extrec {",
+      name,
+      " of ",
+      ty, 
+      "}"
+    ])
   | ExtRecordRow t -> 
     let pprintPair = lam p.
       match p with (l, pre) in 

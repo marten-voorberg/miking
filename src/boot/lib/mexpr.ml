@@ -89,6 +89,8 @@ let idTyAll = 213
 
 let idTyUse = 214
 
+let idTyExtRecord = 215
+
 (* Const literals *)
 let idCBool = 300
 
@@ -309,6 +311,8 @@ let getData = function
       let labels, tms = r |> Record.bindings |> List.split in
       (idTmRecUpdate, [fi], [List.length labels], [], e :: tms, name :: labels, [], [], [], [], [], [])
   (* Types *)
+  | PTreeTy (TyExtRecord (fi, ident, ty)) -> 
+      (idTyExtRecord, [fi], [], [ty], [], [ident], [], [], [], [], [], [])
   | PTreeTy (TyUnknown fi) ->
       (idTyUnknown, [fi], [], [], [], [], [], [], [], [], [], [])
   | PTreeTy (TyBool fi) ->

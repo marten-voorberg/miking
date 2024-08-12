@@ -1,6 +1,14 @@
 include "mexpr/symbolize.mc"
 
-lang ExtRecordSym = Sym + ExtRecordAst 
+lang ExtRecordSym = Sym + ExtRecordAst + ExtRecordType
+  sem symbolizeType env = 
+  | TyExtRec t -> 
+    let ident = getSymbol {kind = "type constructor", 
+                           info = [t.info],
+                           allowFree = env.allowFree} env.currentEnv.tyConEnv t.ident in 
+    let ty = symbolizeType env t.ty in 
+    TyExtRec {t with ident = ident, ty = ty}
+
   sem symbolizeExpr env =
   | TmRecType t ->
     match setSymbol env.currentEnv.tyConEnv t.ident with (tyConEnv, ident) in

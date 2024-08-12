@@ -424,6 +424,7 @@ and ty =
   | TyApp of info * ty * ty
   (* Type-level use *)
   | TyUse of info * ustring * ty
+  | TyExtRecord of info * ustring * ty
 
 (* Kind of identifier *)
 and ident =
@@ -625,6 +626,9 @@ let smap_accum_left_ty_ty (f : 'a -> ty -> 'a * ty) (acc : 'a) : ty -> 'a * ty
   | TyUse (fi, lang, ty) ->
       let acc, ty = f acc ty in
       (acc, TyUse (fi, lang, ty))
+  | TyExtRecord (fi, n, ty) -> 
+    let acc, ty' = f acc ty in 
+    (acc, TyExtRecord (fi, n, ty'))
   | ( TyUnknown _
     | TyBool _
     | TyInt _
@@ -788,7 +792,8 @@ let ty_info = function
   | TyCon (fi, _, _)
   | TyVar (fi, _)
   | TyUse (fi, _, _)
-  | TyApp (fi, _, _) ->
+  | TyApp (fi, _, _)
+  | TyExtRecord (fi, _, _) ->
       fi
 
 (* Checks if a constant _may_ have a side effect. It is conservative

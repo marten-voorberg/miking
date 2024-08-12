@@ -97,6 +97,7 @@
 %token <unit Ast.tokendata> TCHAR
 %token <unit Ast.tokendata> TSTRING
 %token <unit Ast.tokendata> TTENSOR
+%token <unit Ast.tokendata> TRECORD
 
 %token <unit Ast.tokendata> EQ            /* "="   */
 %token <unit Ast.tokendata> PLUSEQ        /* "+="   */
@@ -669,6 +670,8 @@ ty_ish_atom:
       TyRecord(mkinfo $1.i $3.i, r) }
   | TTENSOR LSQUARE ty RSQUARE
     { TyTensor(mkinfo $1.i $4.i, $3) }
+  | TRECORD LBRACKET con_ident OF ty RBRACKET
+    { TyExtRecord (mkinfo $1.i $6.i, $3.v, $5)}
   | TUNKNOWN
     { TyUnknown $1.i }
   | TBOOL
