@@ -9,6 +9,7 @@
  *  Copyright (C) David Broman. See file LICENSE.txt *)
 
 open Ast
+open Msg
 open Format
 open Ustring.Op
 open Intrinsics
@@ -568,6 +569,15 @@ and print_record fmt r =
   let inner = List.map print r in
   fprintf fmt "{@[<hov 0>%a@]}" concat (Comma, inner)
 
+(** Pretty print an extensible record *)
+and print_extrecord name fmt r =
+  let print (l, t) =
+    let l = string_of_ustring (pprint_label_str l) in
+    fun fmt -> fprintf fmt "%s = %a" l print_tm (App, t)
+  in
+  let inner = List.map print r in
+  fprintf fmt "{%s of @[<hov 0>%a@]}" name concat (Comma, inner)
+
 (** Print a term on the given formatter and within the given precedence. *)
 and print_tm fmt (prec, t) =
   let paren =
@@ -598,6 +608,12 @@ and print_tm fmt (prec, t) =
     | TmDive _
     | TmPreRun _
     | TmBox _
+    | TmRecType _
+    | TmRecField _
+    | TmRecCreation _ 
+    | TmRecExtend _ 
+    | TmRecUpdate _
+    | TmRecProj _ 
     | TmTensor _ ->
         Atom
   in
@@ -768,6 +784,28 @@ and print_tm' fmt t =
       let e = if e then "!" else "" in
       fprintf fmt "@[<hov 0>@[<hov %d>external %s %s : %s in@]@ %a@]"
         !ref_indent x e ty print_tm (Match, t)
+  | TmRecType (_, n, tm) ->
+      let name = string_of_ustring (pprint_type_str n) in
+      fprintf fmt "@[<hov 0>@[<hov %d>rectype %s in@]@ %a@]" !ref_indent name
+        print_tm (Match, tm)
+  | TmRecField (_, n, ty, tm) ->
+      let name = string_of_ustring n in
+      let ty = ty |> ustring_of_ty |> string_of_ustring in
+      fprintf fmt "@[<hov 0>field %s%s in@ %a@]" name (print_ty_if_known ty)
+        print_tm (Match, tm)
+  | TmRecCreation (_, n, r) -> 
+      let name = string_of_ustring n in
+      let contents = Record.fold (fun l v ack -> (l, v) :: ack) r [] in
+      print_extrecord name fmt contents
+  | TmRecProj (_, tm, n, l) ->
+      let name = string_of_ustring n in 
+      let label = string_of_ustring l in 
+      fprintf fmt "@[<hv 0>%a->%s.%s" print_tm (App, tm) name label
+  | (TmRecExtend _) as t ->
+    raise_error (tm_info t) "Pprint unsupported for TmRecExtend!"
+  | (TmRecUpdate _) as t ->
+    raise_error (tm_info t) "Pprint unsupported for TmRecUpdate!"
+    
 
 (** Print an environment on the given formatter. *)
 and print_env fmt env =

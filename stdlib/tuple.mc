@@ -65,3 +65,12 @@ utest
   utest testCmp3 eqi (1, 1, 1) (1, 1, 1) with true in
   ()
   with ()
+
+let fst : all a. all b. (a, b) -> a = lam p. p.0
+utest fst (1, 2) with 1
+utest fst ("whatever", 2) with "whatever"
+
+let snd : all a. all b. (a, b) -> b = lam p. p.1
+utest snd (1, 2) with 2
+utest snd ([1, 2, 3], "whatever") with "whatever"
+

@@ -1090,6 +1090,21 @@ lang TensorTypePrettyPrint = PrettyPrint + TensorTypeAst
     (env, join ["Tensor[", ty, "]"])
 end
 
+lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordType  
+  sem getTypeStringCode indent env = 
+  | TyPre _ -> (env, "pre")
+  | TyAbs _ -> (env, "abs")
+  | ExtRecordRow t -> 
+    let pprintPair = lam p.
+      match p with (l, pre) in 
+      join [l, "^", typeToString env pre]
+    in 
+
+    let rowStr = strJoin ", " (map pprintPair (mapToSeq t.row)) in 
+
+    (env, join [nameGetStr t.ident, " of <", rowStr, ">"])
+end
+
 lang RecordTypePrettyPrint = PrettyPrint + RecordTypeUtils
   sem getTypeStringCode (indent : Int) (env: PprintEnv) =
   | (TyRecord t) & ty ->
@@ -1316,6 +1331,11 @@ lang MonoKindPrettyPrint = PrettyPrint + MonoKindAst
   | Mono () -> (env, "Mono")
 end
 
+lang PresenceKindPrettyPrint = PrettyPrint + PresenceKindAst 
+  sem getKindStringCode (indent : Int) (env : PprintEnv) =
+  | Presence () -> (env, "Presence")
+end
+
 lang RecordKindPrettyPrint = PrettyPrint + RecordKindAst + RecordTypeAst
   sem getKindStringCode (indent : Int) (env : PprintEnv) =
   | Record r ->
@@ -1404,10 +1424,12 @@ lang MExprPrettyPrint =
 
   -- Kinds
   PolyKindPrettyPrint + MonoKindPrettyPrint + RecordKindPrettyPrint +
-  DataKindPrettyPrint +
+  DataKindPrettyPrint + PresenceKindPrettyPrint + 
 
   -- Identifiers
   MExprIdentifierPrettyPrint +
+
+  ExtRecordTypePrettyPrint + 
 
   -- Syntactic Sugar
   RecordProjectionSyntaxSugarPrettyPrint
@@ -1671,5 +1693,8 @@ utest (expr2str e) with "(x.0).1" in
 
 let e = recordproj_ "y" (tupleproj_ 0 (var_ "x")) in
 utest (expr2str e) with "x.0.y" in
+
+let e = ext_record_ "Foo" [("x", int_ 1), ("y", char_ 'c')] in 
+printLn (expr2str e);
 
 ()

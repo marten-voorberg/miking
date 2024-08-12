@@ -81,6 +81,12 @@
 %token <unit Ast.tokendata> ALL
 %token <unit Ast.tokendata> DIVE
 %token <unit Ast.tokendata> PRERUN
+/* Extensible record type keywords */
+%token <unit Ast.tokendata> EXTEND
+%token <unit Ast.tokendata> UPDATE
+%token <unit Ast.tokendata> RECTYPE
+%token <unit Ast.tokendata> FIELD
+%token <unit Ast.tokendata> OF
 
 
 /* Types */
@@ -407,6 +413,12 @@ mexpr:
   | EXTERNAL ident NOT COLON ty IN mexpr
       { let fi = mkinfo $1.i (tm_info $7) in
         TmExt(fi,$2.v,Symb.Helpers.nosym,true,$5,$7) }
+  | RECTYPE type_ident IN mexpr
+      { let fi = mkinfo $1.i $3.i in
+        TmRecType(fi, $2.v, $4) }
+  | FIELD var_ident ty_op IN mexpr
+      { let fi = mkinfo $1.i $4.i in
+        TmRecField(fi,$2.v,$3 $1.i,$5)}
 
 lets:
   | LET var_ident ty_op EQ mexpr
@@ -473,6 +485,19 @@ atom:
       { List.fold_left (fun acc (k,v) ->
           TmRecordUpdate (mkinfo $1.i $5.i, acc, k, v)
         ) $2 $4}
+  // Extensible record creation
+  | LBRACKET con_ident OF labels RBRACKET 
+      { TmRecCreation(mkinfo $1.i $5.i, $2.v, $4 |> List.fold_left
+        (fun acc (k,v) -> Record.add k v acc) Record.empty) }
+  | LBRACKET EXTEND mexpr OF con_ident WITH labels RBRACKET 
+    { let r = $7 |> List.fold_left
+        (fun acc (k,v) -> Record.add k v acc) Record.empty in 
+      TmRecExtend(mkinfo $1.i $8.i, $3, $5.v, r) }
+  | LBRACKET UPDATE mexpr OF con_ident WITH labels RBRACKET 
+    { let r = $7 |> List.fold_left
+        (fun acc (k,v) -> Record.add k v acc) Record.empty in 
+      TmRecUpdate(mkinfo $1.i $8.i, $3, $5.v, r) }
+  | LPAREN atom OF con_ident RPAREN ARROW var_ident { TmRecProj(mkinfo $1.i $7.i, $2, $4.v, $7.v) }
 
 proj_label:
   | INT

@@ -341,6 +341,13 @@ and tm =
   | TmPreRun of info * int * tm
   (* Box *)
   | TmBox of info * (tm * env option) ref
+  (* Extensible Record Types *)
+  | TmRecType of info * ustring * tm 
+  | TmRecField of info * ustring * ty * tm 
+  | TmRecCreation of info * ustring * tm Record.t
+  | TmRecProj of info * tm * ustring * ustring
+  | TmRecExtend of info * tm * ustring * tm Record.t 
+  | TmRecUpdate of info * tm * ustring * tm Record.t
 
 (* Kind of pattern name *)
 and patName =
@@ -473,6 +480,23 @@ let smap_accum_left_tm_tm (f : 'a -> tm -> 'a * tm) (acc : 'a) : tm -> 'a * tm
       f acc t |> fun (acc, t') -> (acc, TmRecordUpdate (fi, r', l, t'))
   | TmType (fi, x, params, ty, t) ->
       f acc t |> fun (acc, t') -> (acc, TmType (fi, x, params, ty, t'))
+  | TmRecType (fi, name, t) ->
+      f acc t |> fun (acc, t') -> (acc, TmRecType (fi, name, t'))
+  | TmRecField (fi, name, ty, t) ->
+      f acc t |> fun (acc, t') -> (acc, TmRecField (fi, name, ty, t'))
+  | TmRecProj (fi, tm, n1, n2) -> 
+    f acc tm |> fun (acc, t') -> (acc, TmRecProj (fi, t', n1, n2))
+  | TmRecCreation (fi, name, r) -> 
+    let acc, r' = Record.map_fold (fun _ t acc -> f acc t) r acc in
+    (acc, TmRecCreation (fi, name, r'))
+  | TmRecExtend (fi, e, name, r) -> 
+    let acc, e' = f acc e in 
+    let acc, r' = Record.map_fold (fun _ t acc -> f acc t) r acc in 
+    (acc, TmRecExtend (fi, e', name, r'))
+  | TmRecUpdate (fi, e, name, r) -> 
+    let acc, e' = f acc e in 
+    let acc, r' = Record.map_fold (fun _ t acc -> f acc t) r acc in 
+    (acc, TmRecUpdate(fi, e', name, r'))
   | TmConDef (fi, x, s, ty, t) ->
       f acc t |> fun (acc, t') -> (acc, TmConDef (fi, x, s, ty, t'))
   | TmConApp (fi, k, s, t) ->
@@ -542,6 +566,9 @@ let smap_accum_left_tm_ty (f : 'a -> ty -> 'a * ty) (acc : 'a) : tm -> 'a * tm
   | TmExt (fi, name, sym, side, ty, tm) ->
       let acc, ty = f acc ty in
       (acc, TmExt (fi, name, sym, side, ty, tm))
+  | TmRecField (fi, name, ty, inexpr) -> 
+    let acc, ty = f acc ty in 
+    (acc, TmRecField (fi, name, ty, inexpr))
   | ( TmVar _
     | TmApp _
     | TmConst _
@@ -558,6 +585,11 @@ let smap_accum_left_tm_ty (f : 'a -> ty -> 'a * ty) (acc : 'a) : tm -> 'a * tm
     | TmTensor _
     | TmDive _
     | TmPreRun _
+    | TmRecType _ 
+    | TmRecCreation _
+    | TmRecUpdate _
+    | TmRecExtend _
+    | TmRecProj _ 
     | TmBox _ ) as tm ->
       (acc, tm)
 
@@ -718,7 +750,13 @@ let tm_info = function
   | TmDive (fi, _, _)
   | TmPreRun (fi, _, _)
   | TmBox (fi, _)
-  | TmExt (fi, _, _, _, _, _) ->
+  | TmExt (fi, _, _, _, _, _)
+  | TmRecType (fi, _, _)
+  | TmRecField (fi, _, _, _) 
+  | TmRecCreation (fi, _, _)
+  | TmRecProj (fi, _, _, _)
+  | TmRecExtend (fi, _, _, _) 
+  | TmRecUpdate (fi, _, _, _) ->
       fi
 
 let pat_info = function
