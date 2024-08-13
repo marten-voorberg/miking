@@ -639,12 +639,19 @@ lang ExtRecordType = Ast
                   row : Map String Type}
 
   sem tyWithInfo info = 
-  | t & (TyAbs _ | TyPre _ | ExtRecordRow _) -> t
+  | t & (TyAbs _ | TyPre _ | ExtRecordRow _ | TyMapping _) -> t
+  | TyExtRec t -> TyExtRec {t with info = info}
 
   sem smapAccumL_Type_Type f acc =
   | ExtRecordRow t ->
     match mapMapAccum (lam acc. lam. lam e. f acc e) acc t.row with (acc, row) in
     (acc, ExtRecordRow {t with row = row})
+  | TyMapping t -> 
+    match mapMapAccum (lam acc. lam. lam t. f acc t) acc t.mapping with (acc, mapping) in 
+    (acc, TyMapping {t with mapping = mapping})
+  | TyExtRec t -> 
+    match f acc t.ty with (acc, ty) in 
+    (acc, TyExtRec {t with ty = ty})
 end
 
 -- TmType --

@@ -57,12 +57,18 @@ lang BigPipeline = BigIncludeHandler +
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
-    -- let env = collectEnv (mapEmpty nameCmp) p.expr in 
-    -- let tcEnv = {_tcEnvEmpty with extRecordType = env} in 
+    let env = collectEnv (mapEmpty nameCmp) p.expr in 
+    let tcEnv = {_tcEnvEmpty with extRecordType = env} in 
 
-    -- let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
+    let depGraph = createDependencyGraph env in 
+    printLn (dumpDependencyGraph depGraph) ;
 
-    -- printLn (strJoin "\n" (dumpTypes [] p.expr));
+    let tyDeps = computeTyDeps depGraph in 
+    printLn (dumpTyDeps tyDeps) ;
+
+    let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
+
+    printLn (strJoin "\n" (dumpTypes [] p.expr));
     printLn (expr2str p.expr);
 
     -- let p = {p with expr = monomorphiseExpr env p.expr} in 
@@ -101,7 +107,7 @@ end
 
 mexpr 
 use BigPipeline in
-let p = doIt "example.mc" in 
+let p = doIt "basic.mc" in 
 -- printLn (mlang2str p) ; 
 
 -- printLn "\n\n";

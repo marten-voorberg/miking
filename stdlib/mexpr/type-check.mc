@@ -1355,15 +1355,15 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKin
 
     let bindings = mapToSeq t.bindings in 
 
-    let typeCheckBinding = lam p : (String, Expr). 
-      match p with (l, e) in 
-      let actualTy = typeCheckExpr env e in 
-      let expectedTy = match mapLookup l labelToType with Some ty then ty
-                       else error "Illegal label!" in 
-      unify env [t.info] (tyTm actualTy) expectedTy 
-    in 
+    -- let typeCheckBinding = lam p : (String, Expr). 
+    --   match p with (l, e) in 
+    --   let actualTy = typeCheckExpr env e in 
+    --   let expectedTy = match mapLookup l labelToType with Some ty then ty
+    --                    else error "Illegal label!" in 
+    --   unify env [t.info] (tyTm actualTy) expectedTy 
+    -- in 
 
-    iter typeCheckBinding bindings ;
+    -- iter typeCheckBinding bindings ;
 
     let allLabels = map (lam p. p.0) (mapToSeq labelToType) in 
     let labelPresence = lam l. 
@@ -1373,8 +1373,13 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKin
     in 
 
     let presencePairs = map labelPresence allLabels in 
-    
-    let ty = ExtRecordRow {ident = t.ident, row = mapFromSeq cmpString presencePairs} in 
+    let row = ExtRecordRow {ident = t.ident, row = mapFromSeq cmpString presencePairs} in 
+
+    let mapping = TyMapping {mapping = mapFromSeq nameCmp [(t.ident, row)]} in 
+
+    let ty = TyExtRec {info = NoInfo () ,
+                       ident = t.ident,
+                       ty = mapping} in 
 
     TmExtRecord {t with ty = ty}
   | TmExtProject t -> 
@@ -1387,7 +1392,13 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKin
 
     let row = mapFromSeq cmpString labelPrsesencePairs in 
     let row = mapInsert t.label (TyPre ()) row in 
-    let expectedTy = ExtRecordRow {ident = t.ident, row = row} in 
+    let row = ExtRecordRow {ident = t.ident, row = row} in 
+    let mapping = TyMapping {mapping = mapFromSeq nameCmp [(t.ident, row)]} in 
+    let expectedTy = TyExtRec {info = NoInfo (),
+                               ident = t.ident,
+                               ty = mapping} in 
+
+
 
     let lhs = typeCheckExpr env t.e in 
     let actualTy = tyTm lhs in 
@@ -1398,76 +1409,78 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + PresenceKin
 
     TmExtProject {t with ty = ty, e = lhs}
   | TmExtUpdate t -> 
-    let boundLabels = setOfSeq cmpString (mapKeys t.bindings) in  
+    never
+    -- let boundLabels = setOfSeq cmpString (mapKeys t.bindings) in  
 
-    match mapLookup t.ident env.extRecordType with Some labelToType in 
-    let allLabels = map fst (mapToSeq labelToType) in 
+    -- match mapLookup t.ident env.extRecordType with Some labelToType in 
+    -- let allLabels = map fst (mapToSeq labelToType) in 
 
-    -- Ensure that the updated values have correct types
-    let typeCheckBinding = lam label. lam expr. 
-      match mapLookup label labelToType with Some expectedTy in 
-      let expr = typeCheckExpr env expr in 
-      let actualTy = tyTm expr in 
+    -- -- Ensure that the updated values have correct types
+    -- let typeCheckBinding = lam label. lam expr. 
+    --   match mapLookup label labelToType with Some expectedTy in 
+    --   let expr = typeCheckExpr env expr in 
+    --   let actualTy = tyTm expr in 
 
-      unify env [infoTm expr] expectedTy actualTy ; 
+    --   unify env [infoTm expr] expectedTy actualTy ; 
 
-      expr
-    in 
-    let bindings = mapMapWithKey typeCheckBinding t.bindings in 
+    --   expr
+    -- in 
+    -- let bindings = mapMapWithKey typeCheckBinding t.bindings in 
 
 
-    -- Ensure that the correct labels are present
-    let expectedRow = mapFromSeq cmpString (map (lam label. 
-      if setMem label boundLabels then 
-        (label, TyPre ())
-      else 
-        (label, newnmetavar (concat "theta_" label) (Presence ()) env.currentLvl (NoInfo ())))
-      allLabels) in 
-    let expectedTy = ExtRecordRow {ident = t.ident, row = expectedRow} in 
+    -- -- Ensure that the correct labels are present
+    -- let expectedRow = mapFromSeq cmpString (map (lam label. 
+    --   if setMem label boundLabels then 
+    --     (label, TyPre ())
+    --   else 
+    --     (label, newnmetavar (concat "theta_" label) (Presence ()) env.currentLvl (NoInfo ())))
+    --   allLabels) in 
+    -- let expectedTy = ExtRecordRow {ident = t.ident, row = expectedRow} in 
 
-    let e = typeCheckExpr env t.e in 
-    let actualTy = tyTm e in 
+    -- let e = typeCheckExpr env t.e in 
+    -- let actualTy = tyTm e in 
 
-    unify env [t.info] expectedTy actualTy ;
+    -- unify env [t.info] expectedTy actualTy ;
 
-    TmExtUpdate {t with ty = actualTy, e = e, bindings = bindings}
+    -- TmExtUpdate {t with ty = actualTy, e = e, bindings = bindings}
   | TmExtExtend t -> 
-    let boundLabels = setOfSeq cmpString (mapKeys t.bindings) in  
+    never
+    -- let boundLabels = setOfSeq cmpString (mapKeys t.bindings) in  
 
-    match mapLookup t.ident env.extRecordType with Some labelToType in 
-    let allLabels = map fst (mapToSeq labelToType) in 
+    -- match mapLookup t.ident env.extRecordType with Some labelToType in 
+    -- let allLabels = map fst (mapToSeq labelToType) in 
 
-    -- Ensure that the updated values have correct types
-    let typeCheckBinding = lam label. lam expr. 
-      match mapLookup label labelToType with Some expectedTy in 
-      let expr = typeCheckExpr env expr in 
-      let actualTy = tyTm expr in 
+    -- -- Ensure that the updated values have correct types
+    -- let typeCheckBinding = lam label. lam expr. 
+    --   match mapLookup label labelToType with Some expectedTy in 
+    --   let expr = typeCheckExpr env expr in 
+    --   let actualTy = tyTm expr in 
 
-      unify env [infoTm expr] expectedTy actualTy ; 
+    --   unify env [infoTm expr] expectedTy actualTy ; 
 
-      expr
-    in 
-    let bindings = mapMapWithKey typeCheckBinding t.bindings in 
+    --   expr
+    -- in 
+    -- let bindings = mapMapWithKey typeCheckBinding t.bindings in 
 
 
-    -- Ensure that the correct labels are present
-    let expectedRow = mapFromSeq cmpString (map (lam label. 
-      if setMem label boundLabels then 
-        (label, TyAbs ())
-      else 
-        (label, newnmetavar (concat "theta_" label) (Presence ()) env.currentLvl (NoInfo ())))
-      allLabels) in 
-    let expectedTy = ExtRecordRow {ident = t.ident, row = expectedRow} in 
+    -- -- Ensure that the correct labels are present
+    -- let expectedRow = mapFromSeq cmpString (map (lam label. 
+    --   if setMem label boundLabels then 
+    --     (label, TyAbs ())
+    --   else 
+    --     (label, newnmetavar (concat "theta_" label) (Presence ()) env.currentLvl (NoInfo ())))
+    --   allLabels) in 
+    -- let expectedTy = ExtRecordRow {ident = t.ident, row = expectedRow} in 
 
-    let e = typeCheckExpr env t.e in 
-    let actualTy = tyTm e in 
+    -- let e = typeCheckExpr env t.e in 
+    -- let actualTy = tyTm e in 
 
-    unify env [t.info] expectedTy actualTy ;
+    -- unify env [t.info] expectedTy actualTy ;
 
-    let resultRow = mapMapWithKey (lam label. lam pre. if setMem label boundLabels then TyPre () else pre) expectedRow in 
-    let resultTy = ExtRecordRow {ident = t.ident, row = resultRow} in 
+    -- let resultRow = mapMapWithKey (lam label. lam pre. if setMem label boundLabels then TyPre () else pre) expectedRow in 
+    -- let resultTy = ExtRecordRow {ident = t.ident, row = resultRow} in 
 
-    TmExtExtend {t with ty = resultTy, e = e, bindings = bindings}
+    -- TmExtExtend {t with ty = resultTy, e = e, bindings = bindings}
 end
 
 lang RecordTypeCheck = TypeCheck + RecordAst + RecordTypeAst

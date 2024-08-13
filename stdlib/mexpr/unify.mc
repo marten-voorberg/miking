@@ -2,6 +2,8 @@
 -- the type checker.
 
 include "result.mc"
+include "set.mc"
+include "map.mc"
 
 include "mexpr/ast.mc"
 include "mexpr/ast-builder.mc"
@@ -135,38 +137,13 @@ lang AppTypeUnify = Unify + AppTypeAst
       (unifyTypes u env (t1.rhs, t2.rhs))
 end
 
+-- todo: Should we not be map-accuming to keep the information in the 
+-- unifier? Probably, right?
 lang ExtRowUnify = Unify + ExtRecordType 
-  -- sem unifyPresence : all u. Unifier u -> UnifyEnv -> (Presence, Presence) -> u
-  -- sem unifyPresence u env =
-  -- | (TmPre _, TmPre _) | (TmAbs _, TmAbs _) -> 
-  --   printLn "Case 1";
-  --   u.empty
-  -- | (TmPre _, TmAbs _) | (TmAbs _, TmPre _) -> 
-  --   printLn "Case 2";
-  --   u.err (Types (tyunit_, tyunit_))
-  -- | (TmAbs _, TmPreVar {ident = ident}) | (TmPreVar {ident = ident}, TmAbs _) -> 
-  --   printLn "Case 3";
-  --   u.err (Types (tyunit_, tyunit_))
-  --   -- unifyTypes u env (tyunit_, tyunit_)
-  -- | (TmPre _, TmPreVar {ident = ident}) | (TmPreVar {ident = ident}, TmPre _) -> 
-  --   printLn "Case 4";
-  --   u.err (Types (tyunit_, tyunit_))
-  -- | (p1, p2) ->
-  --   printLn "Case 5";
-  --   let pprint = lam p. 
-  --     match p with TmPreVar {ident = ident} then (concat "theta_" (nameGetStr ident))
-  --     else match p with TmAbs _ then "abs"
-  --     else "pre"
-  --   in 
-  --   error (join [pprint p1, " ", pprint p2])
-  --   unifyTypes u env (tyunit_, tyunit_)
-
   sem unifyBase u env = 
   | (TyPre _, TyPre _) | (TyAbs _, TyAbs _) -> 
-    -- printLn "Unifying the same presence!" ;
     u.empty
   | (ty1, ty2) & ((TyPre _, TyAbs _) | (TyAbs _, TyPre _)) -> 
-    -- printLn "This should be an error!" ;
     u.err (Types (ty1, ty2))
   | (ExtRecordRow t1 & ty1, ExtRecordRow t2 & ty2) ->
     if nameEq t1.ident t2.ident then  
@@ -178,14 +155,33 @@ lang ExtRowUnify = Unify + ExtRecordType
       ) labels in 
 
       let up = lam p. unifyTypes u env p in 
-      -- let up = lam p. unifyBase u env p in 
-      map up pairs;
-
-      -- iter (unifyPresence u env) pairs ;
-      unifyTypes u env (tyunit_, tyunit_)
+      map up pairs ;
+      u.empty
     else
       -- The names of the extensible records must match!
-      printLn "we are here!";
+      u.err (Types (ty1, ty2))
+  | (TyExtRec t1, TyExtRec t2) & (ty1, ty2) ->
+    if nameEq t1.ident t2.ident then 
+      unifyTypes u env (t1.ty, t2.ty) ;
+      u.empty
+    else
+      u.err (Types (ty1, ty2))
+  | (TyMapping t1, TyMapping t2) & (ty1, ty2) ->
+    let dom1 = setOfKeys t1.mapping in 
+    let dom2 = setOfKeys t2.mapping in 
+    if setEq dom1 dom2 then
+      let work = lam acc. lam label. 
+        match mapLookup label t1.mapping with Some lhs in 
+        match mapLookup label t2.mapping with Some rhs in 
+        unifyTypes acc env (lhs, rhs)
+        ;
+        ()
+      in 
+      -- setFold work u dom1
+      let domainSeq = setToSeq dom1 in 
+      iter (work u) domainSeq ;
+      u.empty
+    else 
       u.err (Types (ty1, ty2))
 end
 
@@ -282,6 +278,24 @@ lang PresenceKindAstUnify = Unify + PresenceKindAst
 
   sem addKinds u env = 
   | (Presence _, Presence _) -> (u.empty, Presence ())
+end
+
+lang MappingKindUnify = Unify + MappingKindAst 
+  sem unifyKinds u env = 
+  | (KiMapping {domain = d1}, KiMapping {domain = d2}) & (k1, k2) ->
+    if setEq d1 d2 then 
+      u.empty
+    else 
+      u.err (Kinds (k1, k2))
+
+  sem addKinds u env = 
+  | (KiMapping {domain = d1}, KiMapping {domain = d2}) & (k1, k2) ->
+    if setEq d1 d2 then 
+      (u.empty, k1)
+    else 
+      -- todo figure out what to do in this case
+      never
+      -- u.err (Kinds (k1, k2))
 end
 
 lang RecordKindUnify = UnifyRecords + RecordKindAst
@@ -978,7 +992,8 @@ lang MExprUnify =
 
   ExtRowUnify + 
 
-  BaseKindUnify + RecordKindUnify + DataKindUnify + PresenceKindAstUnify
+  BaseKindUnify + RecordKindUnify + DataKindUnify + PresenceKindAstUnify + 
+  MappingKindUnify 
 end
 
 lang RepTypesUnify = TyWildUnify + ReprTypeUnify
