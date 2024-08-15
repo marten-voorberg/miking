@@ -11,7 +11,7 @@ type DependencyGraph = Digraph Name ()
 type TyDeps = Map Name (Set Name)
 
 lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
-  sem collectEnv : ExtRecEnvType -> Expr -> ExtRecEnvType
+  sem collectEnv : ExtRecDefs -> Expr -> ExtRecDefs
   sem collectEnv env = 
   | TmRecType t -> 
     match mapLookup t.ident env with Some _ then
@@ -58,7 +58,7 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
     in
     setFold addEdge graph includedTypes
 
-  sem createDependencyGraph : ExtRecEnvType -> DependencyGraph 
+  sem createDependencyGraph : ExtRecDefs -> DependencyGraph 
   sem createDependencyGraph =
   | env ->
     let graph = digraphEmpty nameCmp (lam. lam. true) in 

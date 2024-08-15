@@ -57,14 +57,17 @@ lang BigPipeline = BigIncludeHandler +
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
-    let env = collectEnv (mapEmpty nameCmp) p.expr in 
-    let tcEnv = {_tcEnvEmpty with extRecordType = env} in 
+    let defs = collectEnv (mapEmpty nameCmp) p.expr in 
 
-    let depGraph = createDependencyGraph env in 
+    let depGraph = createDependencyGraph defs in 
     printLn (dumpDependencyGraph depGraph) ;
+
 
     let tyDeps = computeTyDeps depGraph in 
     printLn (dumpTyDeps tyDeps) ;
+
+    let tcEnv = {_tcEnvEmpty with extRecordType = {defs = defs, 
+                                                   tyDeps = tyDeps}} in 
 
     let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
 
