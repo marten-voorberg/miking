@@ -593,7 +593,7 @@ let typre_ =
 
 let tyabs_ = 
   use ExtRecordType in 
-  TyAbs ()
+  TyAbsent ()
 
 let nty_record_row_ = lam n : Name. lam row: [(String, use Ast in Type)]. 
   use ExtRecordType in 

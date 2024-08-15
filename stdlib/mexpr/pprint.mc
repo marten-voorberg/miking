@@ -1093,7 +1093,7 @@ end
 lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordType  
   sem getTypeStringCode indent env = 
   | TyPre _ -> (env, "pre")
-  | TyAbs _ -> (env, "abs")
+  | TyAbsent _ -> (env, "abs")
   | TyExtRec t -> 
     match pprintTypeName env t.ident with (env, name) in
     let ty = typeToString env t.ty in 
@@ -1123,6 +1123,22 @@ lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordType
     match mapMapAccum work env t.mapping with (env, m) in 
     (env, join ["{{", strJoin ", " (mapValues m), "}}"])
 
+end
+
+lang TypeAbsPrettyPrint = PrettyPrint + TypeAbsAst
+  sem getTypeStringCode indent env =
+  | TyAbs t -> 
+    match pprintVarName env t.ident with (env, ident) in
+    match getTypeStringCode indent env t.body with (env, body) in 
+    (env, join ["Lam ", ident, ". ", body])
+end
+
+lang TypeAbsAppAst = PrettyPrint + TypeAbsAppAst
+  sem getTypeStringCode indent env = 
+  | TyAbsApp t -> 
+    match getTypeStringCode indent env t.lhs with (env, lhs) in 
+    match getTypeStringCode indent env t.rhs with (env, rhs) in 
+    (env, join [lhs, " @ ", rhs])
 end
 
 lang RecordTypePrettyPrint = PrettyPrint + RecordTypeUtils
@@ -1456,7 +1472,7 @@ lang MExprPrettyPrint =
   SeqTypePrettyPrint + RecordTypePrettyPrint + VariantTypePrettyPrint +
   ConTypePrettyPrint + DataTypePrettyPrint + VarTypePrettyPrint +
   AppTypePrettyPrint + TensorTypePrettyPrint + AllTypePrettyPrint +
-  AliasTypePrettyPrint +
+  AliasTypePrettyPrint + TypeAbsPrettyPrint + TypeAbsAppAst +
 
   -- Kinds
   PolyKindPrettyPrint + MonoKindPrettyPrint + RecordKindPrettyPrint +

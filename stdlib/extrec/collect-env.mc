@@ -9,6 +9,7 @@ include "set.mc"
 
 type DependencyGraph = Digraph Name ()
 type TyDeps = Map Name (Set Name)
+type LabelTyDeps = Map Name (Map String (Set Name))
 
 lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
   sem collectEnv : ExtRecDefs -> Expr -> ExtRecDefs
@@ -22,24 +23,32 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
       let env = mapInsert t.ident (mapEmpty cmpString) env in 
       collectEnv env t.inexpr
   | TmRecField t -> 
-    match t.tyIdent with TyArrow {from = lhs, to = rhs} then
-      match lhs with TyCon {ident = ident} then 
-        match mapLookup ident env with Some labelTypeMap then
-          let labelTypeMap = mapInsert t.label rhs labelTypeMap in 
-          let env = mapInsert ident labelTypeMap env in 
-          collectEnv env t.inexpr
-        else 
+    match t.tyIdent with TyAll tyAll then 
+      -- TODO: check tyAll.kind
+      match tyAll.ty with TyArrow {from = lhs, to = rhs} then
+        match lhs with TyCon {ident = ident} then 
+          match mapLookup ident env with Some labelTypeMap then
+            let ty = TyAbs {ident = tyAll.ident,
+                            kind = Mono (),
+                            body = rhs} in 
+
+            let labelTypeMap = mapInsert t.label ty labelTypeMap in 
+            let env = mapInsert ident labelTypeMap env in 
+            collectEnv env t.inexpr
+          else 
+            errorMulti 
+              [(t.info, "")]
+              "The tyCon on lhs must be an extensible record type!"
+        else
           errorMulti 
             [(t.info, "")]
-            "The yyCon on rhs must be an extensible record type!"
-      else
+            "The type of a record field must have TyCon on lhs!"
+      else  
         errorMulti 
           [(t.info, "")]
-          "The type of a record field must have TyCon on rhs!"
-    else  
-      errorMulti 
-        [(t.info, "")]
-        "The type of a record field must be an arrow type!"
+          "The type of a record field must be an arrow type!"
+    else 
+      errorSingle [t.info] "The type of a record field must be quantified over a mapping!"
   | expr -> 
     sfold_Expr_Expr collectEnv env expr
 
@@ -79,6 +88,15 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
   | graph -> 
     let vertices = digraphVertices graph in 
     foldl (updateTyDeps graph) (mapEmpty nameCmp) vertices
+
+  sem computeLabelTyDeps : TyDeps -> ExtRecDefs -> LabelTyDeps
+  sem computeLabelTyDeps tydeps = 
+  | defs -> 
+    let work = lam n. lam innerMap. mapMapWithKey (lam label. lam ty.
+      let includedNames = includedRowTypes (setEmpty nameCmp) ty in 
+      setFold (lam acc. lam n. setUnion acc (match mapLookup n tydeps with Some s in s)) (setEmpty nameCmp) includedNames
+    ) innerMap in 
+    mapMapWithKey work defs
 
   sem dumpTyDeps : TyDeps -> String
   sem dumpTyDeps =

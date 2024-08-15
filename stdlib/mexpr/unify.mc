@@ -141,9 +141,9 @@ end
 -- unifier? Probably, right?
 lang ExtRowUnify = Unify + ExtRecordType 
   sem unifyBase u env = 
-  | (TyPre _, TyPre _) | (TyAbs _, TyAbs _) -> 
+  | (TyPre _, TyPre _) | (TyAbsent _, TyAbsent _) -> 
     u.empty
-  | (ty1, ty2) & ((TyPre _, TyAbs _) | (TyAbs _, TyPre _)) -> 
+  | (ty1, ty2) & ((TyPre _, TyAbsent _) | (TyAbsent _, TyPre _)) -> 
     u.err (Types (ty1, ty2))
   | (ExtRecordRow t1 & ty1, ExtRecordRow t2 & ty2) ->
     if nameEq t1.ident t2.ident then  

@@ -629,7 +629,7 @@ end
 
 lang ExtRecordType = Ast 
   syn Type = 
-  | TyAbs ()
+  | TyAbsent ()
   | TyPre ()
   | TyExtRec {info : Info, 
               ident : Name,
@@ -639,7 +639,7 @@ lang ExtRecordType = Ast
                   row : Map String Type}
 
   sem tyWithInfo info = 
-  | t & (TyAbs _ | TyPre _ | ExtRecordRow _ | TyMapping _) -> t
+  | t & (TyAbsent _ | TyPre _ | ExtRecordRow _ | TyMapping _) -> t
   | TyExtRec t -> TyExtRec {t with info = info}
 
   sem smapAccumL_Type_Type f acc =
@@ -1671,6 +1671,37 @@ lang AliasTypeAst = AllTypeAst
     end
 end
 
+lang TypeAbsAst = Ast 
+  syn Type = 
+  | TyAbs {ident : Name,
+           kind : Kind,
+           body : Type}
+
+  sem tyWithInfo info = 
+  | TyAbs _ & t -> t
+
+  sem smapAccumL_Type_Type f acc = 
+  | TyAbs t ->
+    match f acc t.body with (acc, body) in 
+    (acc, TyAbs {t with body = body})
+end
+
+lang TypeAbsAppAst = Ast
+  syn Type =
+  | TyAbsApp {lhs : Type,
+              rhs : Type}
+
+  sem tyWithInfo info = 
+  | TyAbsApp _ & t -> t
+
+  sem smapAccumL_Type_Type f acc = 
+  | TyAbsApp t ->
+    match f acc t.lhs with (acc, lhs) in 
+    match f acc t.rhs with (acc, rhs) in 
+    (acc, TyAbsApp {t with lhs = lhs, rhs = rhs})
+
+end
+
 lang PresenceKindAst = Ast
   syn Kind = 
   | Presence ()
@@ -1732,7 +1763,8 @@ lang MExprAst =
   -- Types
   UnknownTypeAst + BoolTypeAst + IntTypeAst + FloatTypeAst + CharTypeAst +
   FunTypeAst + SeqTypeAst + RecordTypeAst + VariantTypeAst + ConTypeAst +
-  DataTypeAst + VarTypeAst + AppTypeAst + TensorTypeAst + AllTypeAst + AliasTypeAst +
+  DataTypeAst + VarTypeAst + AppTypeAst + TensorTypeAst + AllTypeAst + 
+  AliasTypeAst + TypeAbsAst + TypeAbsAppAst + 
 
   -- Kinds
   PolyKindAst + MonoKindAst + RecordKindAst + DataKindAst + PresenceKindAst +

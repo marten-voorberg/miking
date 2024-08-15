@@ -62,12 +62,14 @@ lang BigPipeline = BigIncludeHandler +
     let depGraph = createDependencyGraph defs in 
     printLn (dumpDependencyGraph depGraph) ;
 
-
     let tyDeps = computeTyDeps depGraph in 
     printLn (dumpTyDeps tyDeps) ;
 
+    let labelTyDeps = computeLabelTyDeps tyDeps defs in 
+
     let tcEnv = {_tcEnvEmpty with extRecordType = {defs = defs, 
-                                                   tyDeps = tyDeps}} in 
+                                                   tyDeps = tyDeps,
+                                                   labelTyDeps = labelTyDeps}} in 
 
     let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
 
@@ -110,7 +112,8 @@ end
 
 mexpr 
 use BigPipeline in
-let p = doIt "basic.mc" in 
+-- let p = doIt "basic.mc" in 
+let p = doIt "example.mc" in 
 -- printLn (mlang2str p) ; 
 
 -- printLn "\n\n";
