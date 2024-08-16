@@ -74,7 +74,7 @@ lang BigPipeline = BigIncludeHandler +
     let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
 
     printLn (strJoin "\n" (dumpTypes [] p.expr));
-    printLn (expr2str p.expr);
+    -- printLn (expr2str p.expr);
 
     -- let p = {p with expr = monomorphiseExpr env p.expr} in 
 
@@ -113,7 +113,9 @@ end
 mexpr 
 use BigPipeline in
 -- let p = doIt "basic.mc" in 
-let p = doIt "example.mc" in 
+-- let p = doIt "example.mc" in 
+let p = doIt "example2.mc" in 
+
 -- printLn (mlang2str p) ; 
 
 -- printLn "\n\n";

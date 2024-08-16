@@ -588,7 +588,8 @@ end
 -- TYPE CHECKING UTILS --
 -------------------------
 
-lang RowHelpers = ExtRecordType + PresenceKindAst
+lang RowHelpers = ExtRecordType + PresenceKindAst + MetaVarTypeAst +
+                  MExprPrettyPrint
   sem _deplookup : ExtRecEnvType -> Name -> Set Name
   sem _deplookup env = 
   | name ->
@@ -1576,43 +1577,78 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst +
                         e = e,
                         bindings = bindings}
   | TmExtExtend t -> 
-    never
-    -- let boundLabels = setOfSeq cmpString (mapKeys t.bindings) in  
 
-    -- match mapLookup t.ident env.extRecordType with Some labelToType in 
-    -- let allLabels = map fst (mapToSeq labelToType) in 
+    match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
+    let allLabels = map fst (mapToSeq labelToType) in 
+    let boundLabels = mapKeys t.bindings in  
+    let unboundLabels = setSubtract (setOfKeys labelToType) (setOfKeys t.bindings) in 
 
-    -- -- Ensure that the updated values have correct types
-    -- let typeCheckBinding = lam label. lam expr. 
-    --   match mapLookup label labelToType with Some expectedTy in 
-    --   let expr = typeCheckExpr env expr in 
-    --   let actualTy = tyTm expr in 
+    -- Ensure that the type of t.e is {extrec t.ident of oldMapping}
+    let oldMapping = completePolyMapping env t.ident in 
+    let ty = TyExtRec {info = NoInfo (),
+                       ident = t.ident,
+                       ty = oldMapping} in 
 
-    --   unify env [infoTm expr] expectedTy actualTy ; 
+    let e = typeCheckExpr env t.e in 
+    unify env [infoTm e] ty (tyTm e) ;
+    
+    -- Create a new "fresh" mapping.
+    let newMapping = completePolyMapping env t.ident in 
 
-    --   expr
-    -- in 
-    -- let bindings = mapMapWithKey typeCheckBinding t.bindings in 
+    -- Copy over the row belonging to this identifier
+    let newMapping = _update_mapping t.ident (_get_row t.ident oldMapping) newMapping in  
+
+    -- Mark the extended fields as present
+    let newMapping = foldl 
+      (lam m. lam l. _update_row_mapping t.ident l (TyPre ()) m)
+      newMapping
+      boundLabels in 
+
+    -- Type check the binding expressions with newMapping
+    let typeCheckBinding = lam label. lam expr. 
+      match mapLookup label labelToType with Some tyAbs in 
+      let expr = typeCheckExpr env expr in 
+      let actualTy = tyTm expr in 
+
+      let restrictedMapping = 
+        _restrict_mapping (_labeldep_lookup env.extRecordType t.ident label) newMapping in 
+      let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = restrictedMapping}) in 
+
+      unify env [infoTm expr] expectedTy actualTy ;
+
+      expr
+    in 
+    let bindings = mapMapWithKey typeCheckBinding t.bindings in 
+
+    let unchangedDeps = setFold
+      (lam acc. lam label. 
+        setUnion acc (_labeldep_lookup env.extRecordType t.ident label))
+      (setEmpty nameCmp)
+      unboundLabels in 
+    
+    -- Unify to ensure that the tydeps that are unchanged by this extension,
+    -- are unchanged by this extension. 
+    let unifyRow = lam name.
+      let oldRow = _get_row name oldMapping in
+      let newRow = _get_row name newMapping in
+      unify env [infoTm t.e] oldRow newRow
+    in 
+    iter unifyRow (setToSeq unchangedDeps);
+    -- unifyRow t.ident;
 
 
-    -- -- Ensure that the correct labels are present
-    -- let expectedRow = mapFromSeq cmpString (map (lam label. 
-    --   if setMem label boundLabels then 
-    --     (label, TyAbsent ())
-    --   else 
-    --     (label, newnmetavar (concat "theta_" label) (Presence ()) env.currentLvl (NoInfo ())))
-    --   allLabels) in 
-    -- let expectedTy = ExtRecordRow {ident = t.ident, row = expectedRow} in 
+    let resultTy = TyExtRec {ident = t.ident,
+                             info = NoInfo (),
+                             ty = newMapping} in 
 
-    -- let e = typeCheckExpr env t.e in 
-    -- let actualTy = tyTm e in 
+    -- printLn "===";
+    -- print "\t";
+    -- printLn (type2str resultTy);
+    -- printLn "===";
 
-    -- unify env [t.info] expectedTy actualTy ;
-
-    -- let resultRow = mapMapWithKey (lam label. lam pre. if setMem label boundLabels then TyPre () else pre) expectedRow in 
-    -- let resultTy = ExtRecordRow {ident = t.ident, row = resultRow} in 
-
-    -- TmExtExtend {t with ty = resultTy, e = e, bindings = bindings}
+    TmExtExtend {t with e = e, 
+                        bindings = bindings,
+                        ty = resultTy}
 end
 
 lang RecordTypeCheck = TypeCheck + RecordAst + RecordTypeAst
