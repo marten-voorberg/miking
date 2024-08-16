@@ -1,4 +1,5 @@
 include "pprint.mc"
+include "ast.mc"
 
 include "mexpr/ast.mc"
 include "mexpr/boot-parser.mc"
@@ -65,6 +66,21 @@ lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordType
     TyExtRec {info = ginfo t 0,
               ident = gname t 0,
               ty = gtype t 0}
+end
+
+lang RecDeclBootParser = BootParserMLang + ExtRecordType + RecTypeDeclAst + 
+                         RecFieldDeclAst
+  sem matchTop d = 
+  | 711 ->
+    let n = glistlen d 0 in 
+    let params = map (lam i. gname d (addi i 1)) (range 0 n 1) in 
+    RecTypeDecl {info = ginfo d 0,
+                 ident = gname d 0,
+                 params = params}
+  | 712 ->
+    RecFieldDecl {info = ginfo d 0,
+                  label = gstr d 0,
+                  tyLabel = gtype d 0}
 end
 
 lang MyPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint 

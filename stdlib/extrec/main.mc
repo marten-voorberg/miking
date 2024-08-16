@@ -9,6 +9,7 @@ include "boot-parser.mc"
 include "symbolize.mc"
 include "collect-env.mc"
 include "pprint.mc"
+include "compile.mc"
 include "monomorphise.mc"
 
 include "mlang/include-handler.mc"
@@ -26,10 +27,10 @@ include "mexpr/eval.mc"
 lang BigPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint 
 end
 
-lang BigSym = MLangSym + ExtRecordSym 
+lang BigSym = MLangSym + ExtRecordSym + RecFieldDeclSym + RecTypeDeclSym
 end
 
-lang BigIncludeHandler = MLangIncludeHandler + BootParserMLang + ExtRecBootParser
+lang BigIncludeHandler = MLangIncludeHandler + BootParserMLang + ExtRecBootParser + RecDeclBootParser
 end
 
 lang BigPipeline = BigIncludeHandler + 
@@ -43,7 +44,8 @@ lang BigPipeline = BigIncludeHandler +
                    MExprEval + 
                    LanguageComposer +
                    MLangCompositionCheck +
-                   MLangCompiler
+                   MLangCompiler + 
+                   RecFieldDeclCompiler + RecTypeDeclCompiler
 
   -- For some reason, this is missing some function definitions, but
   -- I can not figure out why. 
@@ -59,11 +61,16 @@ lang BigPipeline = BigIncludeHandler +
   sem doIt =| filepath ->
     let p = parseAndHandleIncludes filepath in 
 
+
     let p = constTransformProgram builtin p in
 
+    
     let p = composeProgram p in 
 
+    
     match symbolizeMLang symEnvDefault p with (_, p) in 
+
+    printLn (int2string (length p.decls));
 
     match result.consume (checkCompositionWithOptions defaultCompositionCheckOptions p) 
     with (_, Right compositionCheckEnv) in 
@@ -72,6 +79,8 @@ lang BigPipeline = BigIncludeHandler +
     let res = result.consume (compile compilationCtx p) in 
 
     match res with (_, Right expr) in 
+
+    printLn (expr2str expr);
     
     let defs = collectEnv (mapEmpty nameCmp) expr in 
 
@@ -89,8 +98,8 @@ lang BigPipeline = BigIncludeHandler +
 
     let expr = typeCheckExpr tcEnv expr in 
 
-    printLn (strJoin "\n" (dumpTypes [] expr));
-    printLn (expr2str expr);
+    -- printLn (strJoin "\n" (dumpTypes [] expr));
+    -- printLn (expr2str expr);
 
     expr
 
@@ -128,7 +137,7 @@ mexpr
 use BigPipeline in
 -- let p = doIt "basic.mc" in 
 -- let p = doIt "example.mc" in 
-let p = doIt "example2.mc" in 
+let p = doIt "example3.mc" in 
 
 -- printLn (mlang2str p) ; 
 

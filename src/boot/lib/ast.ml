@@ -277,6 +277,10 @@ and utest_top = Utest of info * tm * tm * tm option * tm option
 
 and ext_decl = Ext of info * ustring * bool * ty
 
+and rectype_decl = RecTypeDecl of info * ustring * ustring list
+
+and recfield_decl = RecFieldDecl of info * ustring * ty
+
 and top =
   | TopLang of mlang
   | TopLet of let_decl
@@ -285,6 +289,8 @@ and top =
   | TopCon of con_decl
   | TopUtest of utest_top
   | TopExt of ext_decl
+  | TopRecType of rectype_decl
+  | TopRecField of recfield_decl
 
 and include_ = Include of info * ustring
 
