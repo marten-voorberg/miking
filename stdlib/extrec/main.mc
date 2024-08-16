@@ -16,6 +16,9 @@ include "mlang/pprint.mc"
 include "mlang/type-check.mc"
 include "mlang/symbolize.mc"
 include "mlang/const-transformer.mc"
+include "mlang/language-composer.mc"
+include "mlang/composition-check.mc"
+include "mlang/compile.mc"
 
 include "mexpr/type-check.mc"
 include "mexpr/eval.mc"
@@ -37,7 +40,10 @@ lang BigPipeline = BigIncludeHandler +
                    ExtRecordTypeCheck+ 
                    MLangConstTransformer + 
                    ExtRecMonomorphise + 
-                   MExprEval
+                   MExprEval + 
+                   LanguageComposer +
+                   MLangCompositionCheck +
+                   MLangCompiler
 
   -- For some reason, this is missing some function definitions, but
   -- I can not figure out why. 
@@ -55,9 +61,19 @@ lang BigPipeline = BigIncludeHandler +
 
     let p = constTransformProgram builtin p in
 
+    let p = composeProgram p in 
+
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
-    let defs = collectEnv (mapEmpty nameCmp) p.expr in 
+    match result.consume (checkCompositionWithOptions defaultCompositionCheckOptions p) 
+    with (_, Right compositionCheckEnv) in 
+
+    let compilationCtx = _emptyCompilationContext compositionCheckEnv in 
+    let res = result.consume (compile compilationCtx p) in 
+
+    match res with (_, Right expr) in 
+    
+    let defs = collectEnv (mapEmpty nameCmp) expr in 
 
     let depGraph = createDependencyGraph defs in 
     printLn (dumpDependencyGraph depGraph) ;
@@ -71,14 +87,12 @@ lang BigPipeline = BigIncludeHandler +
                                                    tyDeps = tyDeps,
                                                    labelTyDeps = labelTyDeps}} in 
 
-    let p = {p with expr = typeCheckExpr tcEnv p.expr} in 
+    let expr = typeCheckExpr tcEnv expr in 
 
-    printLn (strJoin "\n" (dumpTypes [] p.expr));
-    -- printLn (expr2str p.expr);
+    printLn (strJoin "\n" (dumpTypes [] expr));
+    printLn (expr2str expr);
 
-    -- let p = {p with expr = monomorphiseExpr env p.expr} in 
-
-    p
+    expr
 
   sem runIt =| filepath ->
     let p = doIt filepath in 
