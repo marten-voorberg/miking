@@ -1457,7 +1457,7 @@ end
 -- TODO: Figure out how to get rid of PresenceKindAst
 lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst + 
                           PresenceKindAst + RowHelpers + TypeAbsAppAst +
-                          TypeAbsAppResolver
+                          TypeAbsAppResolver + ResolveType
   sem typeCheckExpr env =
   | TmRecField t -> 
     TmRecField {t with inexpr = typeCheckExpr env t.inexpr}
@@ -1487,6 +1487,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst +
       let restrictedMapping = 
         _restrict_mapping (_labeldep_lookup env.extRecordType t.ident label) mapping in 
       let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = restrictedMapping}) in
+      let expectedTy = resolveType t.info env false expectedTy in 
 
       unify env [t.info] (tyTm expr) expectedTy ;
 
@@ -1534,6 +1535,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst +
     let restrictedMapping = 
       _restrict_mapping (_labeldep_lookup env.extRecordType t.ident t.label) mapping in 
     let ty = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = restrictedMapping}) in 
+    let ty = resolveType t.info env false ty in
 
     TmExtProject {t with ty = ty, e = lhs}
   | TmExtUpdate t -> 
@@ -1566,6 +1568,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst +
       let restrictedMapping = 
         _restrict_mapping (_labeldep_lookup env.extRecordType t.ident label) mapping in 
       let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = restrictedMapping}) in 
+      let expectedTy = resolveType t.info env false expectedTy in 
 
       unify env [infoTm expr] expectedTy actualTy ; 
 
@@ -1613,6 +1616,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordType + ExtRecordAst +
       let restrictedMapping = 
         _restrict_mapping (_labeldep_lookup env.extRecordType t.ident label) newMapping in 
       let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = restrictedMapping}) in 
+      let expectedTy = resolveType t.info env false expectedTy in 
 
       unify env [infoTm expr] expectedTy actualTy ;
 

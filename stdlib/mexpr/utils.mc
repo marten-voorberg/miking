@@ -6,7 +6,7 @@ include "mexpr/ast.mc"
 include "mexpr/boot-parser.mc"
 include "mexpr/symbolize.mc"
 
-lang MExprSubstitute = MExprAst
+lang MExprSubstitute = MExprAst + ExtRecordAst
   -- Applies the substitutions of the provided map to the identifiers of the
   -- given AST.
   sem substituteIdentifiers : Map Name Name -> Expr -> Expr
@@ -62,6 +62,10 @@ lang MExprSubstitute = MExprAst
     TmRecLets {t with bindings = map subBinding t.bindings,
                       inexpr = substituteIdentifiersExpr replacements t.inexpr,
                       ty = substituteIdentifiersType replacements t.ty}
+  | TmExtProject t -> 
+    TmExtProject {t with e = substituteIdentifiersExpr replacements t.e,
+                         ident = subIdent replacements t.ident,
+                         ty = substituteIdentifiersType replacements t.ty}
   | ast ->
     let ast = smap_Expr_Expr (substituteIdentifiersExpr replacements) ast in
     let ast = smap_Expr_Type (substituteIdentifiersType replacements) ast in

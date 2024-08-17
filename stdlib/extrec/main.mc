@@ -55,6 +55,12 @@ lang BigPipeline = BigIncludeHandler +
     let acc = snoc acc (join [nameGetStr t.ident, " : ", type2str t.tyBody]) in 
     let acc = sfold_Expr_Expr dumpTypes acc t.body in 
     sfold_Expr_Expr dumpTypes acc t.inexpr
+  | TmRecLets t -> 
+    let acc = foldl 
+      (lam acc. lam b. snoc acc (join [nameGetStr b.ident, " : ", type2str b.tyBody]))
+      acc 
+      t.bindings in 
+    sfold_Expr_Expr dumpTypes acc t.inexpr
   | expr ->
     sfold_Expr_Expr dumpTypes acc expr
 
@@ -98,7 +104,7 @@ lang BigPipeline = BigIncludeHandler +
 
     let expr = typeCheckExpr tcEnv expr in 
 
-    -- printLn (strJoin "\n" (dumpTypes [] expr));
+    printLn (strJoin "\n" (dumpTypes [] expr));
     -- printLn (expr2str expr);
 
     expr
@@ -137,7 +143,9 @@ mexpr
 use BigPipeline in
 -- let p = doIt "basic.mc" in 
 -- let p = doIt "example.mc" in 
-let p = doIt "example3.mc" in 
+let p = doIt "symbolize-example/simple-sym.mc" in 
+let p = doIt "symbolize-example/extended-sym.mc" in 
+
 
 -- printLn (mlang2str p) ; 
 
