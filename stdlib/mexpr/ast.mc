@@ -625,6 +625,28 @@ lang ExtRecordAst = Ast
     match mapMapAccum (lam acc. lam. lam e. f acc e) acc t.bindings 
     with (acc, bindings) in
     (acc, TmExtUpdate {t with e = e, bindings = bindings})
+
+  sem smapAccumL_Expr_Type f acc = 
+  | TmRecType t ->
+    match f acc t.ty with (acc, ty) in
+    (acc, TmRecType {t with ty = ty})
+  | TmRecField t -> 
+    match f acc t.tyIdent with (acc, tyIdent) in 
+    match f acc t.ty with (acc, ty) in 
+    (acc, TmRecField {t with tyIdent = tyIdent,
+                             ty = ty})
+  | TmExtRecord t ->
+    match f acc t.ty with (acc, ty) in 
+    (acc, TmExtRecord {t with ty = ty}) 
+  | TmExtProject t ->
+    match f acc t.ty with (acc, ty) in 
+    (acc, TmExtProject {t with ty = ty}) 
+  | TmExtUpdate t ->
+    match f acc t.ty with (acc, ty) in 
+    (acc, TmExtUpdate {t with ty = ty}) 
+  | TmExtExtend t ->
+    match f acc t.ty with (acc, ty) in 
+    (acc, TmExtExtend {t with ty = ty}) 
 end
 
 lang ExtRecordType = Ast 

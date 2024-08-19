@@ -98,7 +98,7 @@ lang BigPipeline = BigIncludeHandler +
 
     let labelTyDeps = computeLabelTyDeps tyDeps defs in 
 
-    let tcEnv = {_tcEnvEmpty with extRecordType = {defs = defs, 
+    let tcEnv = {typcheckEnvDefault with extRecordType = {defs = defs, 
                                                    tyDeps = tyDeps,
                                                    labelTyDeps = labelTyDeps}} in 
 
@@ -143,8 +143,10 @@ mexpr
 use BigPipeline in
 -- let p = doIt "basic.mc" in 
 -- let p = doIt "example.mc" in 
-let p = doIt "symbolize-example/simple-sym.mc" in 
+-- let p = doIt "symbolize-example/simple-sym.mc" in 
 let p = doIt "symbolize-example/extended-sym.mc" in 
+
+-- let p = doIt "stdlib/name.mc" in
 
 
 -- printLn (mlang2str p) ; 

@@ -7,7 +7,6 @@ include "mexpr/ast.mc"
 lang RecTypeDeclCompiler = RecTypeDeclAst + DeclCompiler + ExtRecordAst
   sem compileDecl ctx = 
   | RecTypeDecl d ->
-    printLn "here!";
     result.ok (withExpr ctx (TmRecType {ident = d.ident,
                                   params = d.params,
                                   ty = tyunknown_,
