@@ -104,11 +104,11 @@ end
 lang SynProdExtDeclAst = DeclAst 
   syn Decl = 
   | SynDeclProdExt {ident : Name,
-                 params : [Name],
-                 globalExt : Type, 
-                 individualExts : [{ident : Name, tyIdent : Type}],
-                 includes : [(String, String)],
-                 info : Info}
+                    params : [Name],
+                    globalExt : Option Type, 
+                    individualExts : [{ident : Name, tyIdent : Type}],
+                    includes : [(String, String)],
+                    info : Info}
 end
 -- DeclSem --
 lang SemDeclAst = DeclAst
@@ -129,7 +129,6 @@ lang SemDeclAst = DeclAst
   sem infoDecl = 
   | DeclSem d -> d.info
 end
-
 
 -- DeclLet --
 lang LetDeclAst = DeclAst

@@ -253,6 +253,7 @@ and decl_type = Base | SumExt
 and decl =
   (* TODO(?,?): Local? *)
   | Data of info * ustring * int * cdecl list * decl_type
+  (* If no global extension is given, the last ty fields will be a unit type. *)
   | DataProdExt of info * ustring * int * cdecl list * ty
   | Inter of
       info * ustring * ty * param list option * (pat * tm) list * decl_type

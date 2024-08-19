@@ -103,7 +103,7 @@ let decl_syn_ = use MLangAst in
   decl_nsyn_ (nameNoSym s) defs
 
 let decl_syn_prodext_ = use MLangAst in 
-  lam s. lam globExt : Type. lam indivExts : [(String, Type)]. 
+  lam s. lam globExt : Option Type. lam indivExts : [(String, Type)]. 
   let parseExt = lam indivExt. 
     {ident = nameNoSym indivExt.0, tyIdent = indivExt.1} in 
   SynDeclProdExt {ident = nameNoSym s, 

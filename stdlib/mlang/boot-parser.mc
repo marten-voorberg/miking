@@ -159,10 +159,25 @@ lang BootParserMLang = BootParser + MLangAst
       {ident = ident, tyIdent = ty}
     in 
 
+    -- When no global extension is given, boot will parse this as a unit type
+    -- which is represented as an empty record. 
+    -- We check if we receive a unit type, then there is no global extension
+    -- Otherwise we wrap the provided type in a Some. 
+    let globalTy = gtype d 0 in 
+    let globalTyOpt = 
+      match globalTy with TyRecord r then
+        if mapIsEmpty r.fields then
+          None ()
+        else 
+          Some globalTy
+      else
+        Some globalTy
+    in 
+
     SynDeclProdExt {ident = gname d 0,
                     includes = [],
                     individualExts = map parseCon (range 0 nCons 1),
-                    globalExt = gtype d 0,
+                    globalExt = globalTyOpt,
                     params = map (lam i. gname d (addi (addi 1 nCons) i)) (range 0 nParams 1),
                     info = ginfo d 0}
 

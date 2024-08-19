@@ -164,6 +164,8 @@ let idDeclRecType = 711
 
 let idDeclRecField = 712
 
+let idDeclSynProd = 713 
+
 let sym = Symb.gensym ()
 
 let patNameToStr = function NameStr (x, _) -> x | NameWildcard -> us ""

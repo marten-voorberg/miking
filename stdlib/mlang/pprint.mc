@@ -179,8 +179,13 @@ lang SynProdExtDeclPrettyPrint = DeclPrettyPrint + SynProdExtDeclAst
       ) env t.individualExts
     with (env, indivExtStr) in
 
-    match getTypeStringCode (pprintIncr indent) env t.globalExt 
-    with (env, globExtStr) in
+    match
+      match t.globalExt with Some ext then 
+        match getTypeStringCode (pprintIncr indent) env ext 
+        with (env, str) in (env, str)
+      else 
+        (env, "")
+    with (env, globExtStr) in 
 
     (env, strJoin (pprintNewline indent)
                   (cons (join ["syn ", typeNameStr, params, " *= ", globExtStr]) indivExtStr))
@@ -350,7 +355,7 @@ let prog2: MLangProgram = {
         ("Apple", tyint_),
         ("Pear", tyseq_ tyfloat_)
       ],
-      decl_syn_prodext_ "Foo" (tyint_) [("Bar", tychar_), ("Baz", tystr_)],
+      decl_syn_prodext_ "Foo" (Some tyint_) [("Bar", tychar_), ("Baz", tystr_)],
       decl_usem_ "getFruit" ["x"] [
         (pcon_ "Apple" (pvar_ "i"), appf1_ (var_ "int2string") (var_ "i")),
         (pcon_ "Pear" (pvar_ "fs"),
@@ -386,6 +391,13 @@ let prog2: MLangProgram = {
                 (appf2_ (var_ "foo") (int_ 10) (float_ 0.5))
 } in
 
-print (mlang2str prog2); print "\n";
+print (mlang2str prog2); print "\n\n";
+
+let l = decl_lang_ 
+  "MyLang" 
+  [decl_syn_prodext_ "Expr" (None ()) [("Foo", tyint_), ("Bar", tychar_)]]
+in 
+let p = {decls = [l], expr = uunit_} in 
+printLn (mlang2str p); print "\n";
 
 ()
