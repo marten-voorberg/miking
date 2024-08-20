@@ -6,36 +6,68 @@ include "error.mc"
 include "map.mc"
 include "name.mc"
 include "set.mc"
+include "tuple.mc"
 include "ast.mc"
 
 type DependencyGraph = Digraph Name ()
 type TyDeps = Map Name (Set Name)
 type LabelTyDeps = Map Name (Map String (Set Name))
 
+type AccEnv = {defs : ExtRecDefs,
+               tyToExts : Map Name (Set Name),
+               tyLabelToExt : Map (Name, String) Name,
+               tyExtToLabel : Map (Name, Name) (Set String)}
+
+let _emptyAccEnv : AccEnv = {
+  defs = mapEmpty nameCmp,
+  tyToExts = mapEmpty nameCmp,
+  tyLabelToExt = mapEmpty (tupleCmp2 nameCmp cmpString),
+  tyExtToLabel = mapEmpty (tupleCmp2 nameCmp nameCmp)
+}
+
 lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordTypeAst + 
                         TypeAbsAst
-  sem collectEnv : ExtRecDefs -> Expr -> ExtRecDefs
+  sem collectEnv : AccEnv -> Expr -> AccEnv
   sem collectEnv env = 
   | TmRecType t -> 
-    match mapLookup t.ident env with Some _ then
+    match mapLookup t.ident env.defs with Some _ then
       errorMulti 
         [(t.info, nameGetStr t.ident)]
         "An extensible record type with this Name already exists!"
     else 
-      let env = mapInsert t.ident (mapEmpty cmpString) env in 
-      collectEnv env t.inexpr
+      let defs = mapInsert t.ident (mapEmpty cmpString) env.defs in 
+      collectEnv {env with defs = defs} t.inexpr
   | TmRecField t -> 
     match t.tyIdent with TyAll tyAll then 
       -- TODO: check tyAll.kind
       match tyAll.ty with TyArrow {from = lhs, to = rhs} then
         match lhs with TyCon {ident = ident} then 
-          match mapLookup ident env with Some labelTypeMap then
+          match mapLookup ident env.defs with Some labelTypeMap then
+            -- Update defs
             let ty = TyAbs {ident = tyAll.ident,
                             kind = Mono (),
                             body = rhs} in 
-
             let labelTypeMap = mapInsert t.label (t.extIdent, ty) labelTypeMap in 
-            let env = mapInsert ident labelTypeMap env in 
+
+            let work = lam optSet.
+              let s = match optSet with Some s then s else setEmpty nameCmp in 
+              Some (setInsert t.extIdent s)
+            in 
+            let tyToExts = mapUpdate ident work env.tyToExts in 
+            
+            let tyLabelToExt = mapInsert (ident, t.label) t.extIdent env.tyLabelToExt in 
+            
+            let work = lam optSet.
+              let s = match optSet with Some s then s else setEmpty cmpString in 
+              Some (setInsert t.label s) 
+            in
+            let tyExtToLabel = mapUpdate (ident, t.extIdent) work env.tyExtToLabel in 
+
+
+            let env = {env with defs = mapInsert ident labelTypeMap env.defs,
+                                tyToExts = tyToExts,
+                                tyLabelToExt = tyLabelToExt,
+                                tyExtToLabel = tyExtToLabel} in 
             collectEnv env t.inexpr
           else 
             errorMulti 

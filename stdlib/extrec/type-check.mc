@@ -33,81 +33,92 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
   | TmRecType t ->
     TmRecType {t with inexpr = typeCheckExpr env t.inexpr}
   | TmExtRecord t ->
-    never
-    -- match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
+    match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
+    match mapLookup t.ident env.extRecordType.tyDeps with Some tydeps in 
+    let boundLabels = setOfKeys t.bindings in 
 
-    -- let allLabels = map (lam p. p.0) (mapToSeq labelToType) in 
-    -- let labelPresence = lam l. 
-    --   match mapLookup l t.bindings with Some _ 
-    --   then (l, TyPre ())
-    --   else (l, TyAbsent ())
-    -- in 
+    let f = lam extSet. lam tyIdent.
+      match mapLookup tyIdent env.extRecordType.tyToExts with Some newExts in 
+      setUnion extSet newExts
+    in
+    let relevantExtensions = setFold f (setEmpty nameCmp) tydeps in 
+    iter (lam n. printLn (nameGetStr n)) (setToSeq relevantExtensions) ;
 
-    -- let presencePairs = map labelPresence allLabels in 
-    -- let row = ExtRecordRow {ident = t.ident, row = mapFromSeq cmpString presencePairs} in 
+    let ext2presence = lam ext : Name. 
+      match mapLookup (t.ident, ext) env.extRecordType.tyExtToLabel with Some s in 
+      let intersection = setIntersect boundLabels s in 
+      if setIsEmpty intersection then
+        TyAbsent ()
+      else if setEq s intersection then
+        TyPre () 
+      else 
+        error (concat "Some labels are missing for: " (nameGetStr ext))
+    in 
 
-    -- match completePolyMapping env t.ident with TyMapping {mapping = m} in
-    -- let mapping = TyMapping {mapping = mapInsert t.ident row m} in 
+    let extPresencePair = map (lam e. (e, ext2presence e)) (setToSeq relevantExtensions) in 
+    let row = TyExtensionRow {row = mapFromSeq nameCmp extPresencePair} in 
 
-    -- let typeCheckBinding = lam label. lam expr.
-    --   let expr = typeCheckExpr env expr in 
+    let typeCheckBinding = lam label. lam expr.
+      let expr = typeCheckExpr env expr in 
 
-    --   let tyAbs = match mapLookup label labelToType with Some ty then ty.1
-    --               else error "Illegal label!" in 
-    --   let restrictedMapping = 
-    --     _restrict_mapping (_labeldep_lookup env.extRecordType t.ident label) mapping in 
-    --   let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = restrictedMapping}) in
-    --   let expectedTy = resolveType t.info env false expectedTy in 
+      let tyAbs = match mapLookup label labelToType with Some ty then ty.1
+                  else error "Illegal label!" in 
+      let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = row}) in
+      let expectedTy = resolveType t.info env false expectedTy in 
 
-    --   unify env [t.info] (tyTm expr) expectedTy ;
+      unify env [t.info] (tyTm expr) expectedTy ;
 
-    --   expr
-    -- in 
+      expr
+    in 
 
-    -- let bindings = mapMapWithKey typeCheckBinding t.bindings in 
+    let bindings = mapMapWithKey typeCheckBinding t.bindings in 
 
-    -- let ty = TyExtRec {info = NoInfo () ,
-    --                    ident = t.ident,
-    --                    ty = mapping} in 
+    let ty = TyExtRec {info = NoInfo () ,
+                       ident = t.ident,
+                       ty = row} in 
 
-    -- TmExtRecord {t with ty = ty,
-    --                     bindings = bindings}
-  | TmExtProject t -> never
-    -- match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
+    TmExtRecord {t with ty = ty,
+                        bindings = bindings}
+  | TmExtProject t -> 
+    match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
+    match mapLookup (t.ident, t.label) env.extRecordType.tyLabelToExt with Some ext in 
+    match mapLookup t.ident env.extRecordType.tyDeps with Some tydeps in 
 
-    -- let lhs = typeCheckExpr env t.e in 
-    -- let actualTy = tyTm lhs in 
 
-    -- -- todo: check that the label being projected actually exists
-    -- (match mapLookup t.label labelToType with Some _ then 
-    --    () 
-    --  else 
-    --    errorSingle [t.info] (join [
-    --     "The label '",
-    --     t.label,
-    --     "' is not a defined field of the type '",
-    --     nameGetStr t.ident,
-    --     "'!"])) ;
+    let lhs = typeCheckExpr env t.e in 
+    let actualTy = tyTm lhs in 
 
-    -- let mapping = completePolyMapping env t.ident in 
-    -- let row = _update_row t.label (TyPre ()) (_get_row t.ident mapping) in 
-    -- let mapping = _update_mapping t.ident row mapping in 
-    -- let expectedTy = TyExtRec {info = NoInfo (), 
-    --                            ident = t.ident,
-    --                            ty = mapping} in 
+    -- todo: check that the label being projected actually exists
+    (match mapLookup t.label labelToType with Some _ then 
+       () 
+     else 
+       errorSingle [t.info] (join [
+        "The label '",
+        t.label,
+        "' is not a defined field of the type '",
+        nameGetStr t.ident,
+        "'!"])) ;
 
-    -- unify env [t.info] expectedTy actualTy ;
+    let f = lam extSet. lam tyIdent.
+      match mapLookup tyIdent env.extRecordType.tyToExts with Some newExts in 
+      setUnion extSet newExts
+    in
+    let relevantExtensions = setFold f (setEmpty nameCmp) tydeps in 
+    iter (lam n. printLn (nameGetStr n)) (setToSeq relevantExtensions) ;
 
-    -- match mapLookup t.label labelToType with Some (_, tyAbs) in 
+    let extPresencePair = map (lam e. (e, newnmetavar "" (Presence ()) env.currentLvl t.info)) (setToSeq relevantExtensions) in 
+    let rowMap = mapFromSeq nameCmp extPresencePair in 
+    let rowMap = mapInsert ext (TyPre ()) rowMap in 
+    let expectedTy = TyExtRec {ident = t.ident, info = NoInfo (), ty = TyExtensionRow {row = rowMap}} in 
 
-    -- -- Restrict the mapping to only contain values for the keys which are
-    -- -- both in the keyset of mapping and tydeps (label)
-    -- let restrictedMapping = 
-    --   _restrict_mapping (_labeldep_lookup env.extRecordType t.ident t.label) mapping in 
-    -- let ty = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = restrictedMapping}) in 
-    -- let ty = resolveType t.info env false ty in
+    unify env [t.info] expectedTy actualTy ;
 
-    -- TmExtProject {t with ty = ty, e = lhs}
+    match mapLookup t.label labelToType with Some (_, tyAbs) in 
+
+    let ty = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = tyAbs}) in 
+    let ty = resolveType t.info env false ty in
+
+    TmExtProject {t with ty = ty, e = lhs}
   | TmExtUpdate t -> never
     -- let boundLabels = mapKeys t.bindings in  
 

@@ -92,7 +92,8 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    let defs = collectEnv (mapEmpty nameCmp) expr in 
+    let accEnv = collectEnv _emptyAccEnv expr in 
+    let defs = accEnv.defs in 
 
     let depGraph = createDependencyGraph defs in 
     printLn (dumpDependencyGraph depGraph) ;
@@ -102,14 +103,26 @@ lang BigPipeline = BigIncludeHandler +
 
     let labelTyDeps = computeLabelTyDeps tyDeps defs in 
 
+    let dump = lam pair.
+      match pair with (ty, exts) in 
+      print (nameGetStr ty) ;
+      print " => " ;
+      iter (lam e. print (nameGetStr e); print ", ") (setToSeq exts);
+      printLn ""
+    in
+    iter dump (mapToSeq accEnv.tyToExts); 
+
     let tcEnv = {typcheckEnvDefault with 
       extRecordType = {defs = defs, 
                        tyDeps = tyDeps,
-                       labelTyDeps = labelTyDeps}} in 
+                       labelTyDeps = labelTyDeps,
+                       tyToExts = accEnv.tyToExts,
+                       tyLabelToExt = accEnv.tyLabelToExt,
+                       tyExtToLabel = accEnv.tyExtToLabel}} in 
 
     let expr = typeCheckExpr tcEnv expr in 
 
-    -- printLn (strJoin "\n" (dumpTypes [] expr));
+    printLn (strJoin "\n" (dumpTypes [] expr));
     printLn (expr2str expr);
 
     expr

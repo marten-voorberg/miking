@@ -37,6 +37,9 @@ type ReprSubst = use Ast in {vars : [Name], pat : Type, repr : Type}
 type ExtRecDefs = use Ast in Map Name (Map String (Name, Type))
 type ExtRecEnvType = {
   defs : ExtRecDefs,
+  tyToExts : Map Name (Set Name),
+  tyLabelToExt : Map (Name, String) Name,
+  tyExtToLabel : Map (Name, Name) (Set String),
   tyDeps : Map Name (Set Name),
   labelTyDeps : Map Name (Map String (Set Name))
 }
@@ -86,7 +89,10 @@ let typcheckEnvEmpty : TCEnv = {
   extRecordType = {
     defs = mapEmpty nameCmp,
     tyDeps = mapEmpty nameCmp,
-    labelTyDeps = mapEmpty nameCmp
+    labelTyDeps = mapEmpty nameCmp,
+    tyToExts = mapEmpty nameCmp,
+    tyLabelToExt = mapEmpty (tupleCmp2 nameCmp cmpString),
+    tyExtToLabel = mapEmpty (tupleCmp2 nameCmp nameCmp)
   },
   matchLvl = 0,
   currentLvl = 0,
