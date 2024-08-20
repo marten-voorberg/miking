@@ -22,6 +22,7 @@ lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordType
                info = ginfo t 0}
   | 118 -> 
     TmRecField {label = gstr t 0,
+                extIdent = gname t 1,
                 tyIdent = gtype t 0,
                 inexpr = gterm t 0,
                 ty = tyunknown_,
@@ -80,6 +81,7 @@ lang RecDeclBootParser = BootParserMLang + ExtRecordType + RecTypeDeclAst +
   | 712 ->
     RecFieldDecl {info = ginfo d 0,
                   label = gstr d 0,
+                  extIdent = gname d 1, 
                   tyLabel = gtype d 0}
 end
 
@@ -97,7 +99,7 @@ in
 let str = strJoin "\n" [
   "mexpr",
   "rectype Foo in",
-  "recfield x : Foo -> Int in",
+  "recfield x of MyExt: Foo -> Int in",
   "let r = {Foo of x = 1} in ",
   "(r of Foo)->x"
 ] in

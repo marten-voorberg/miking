@@ -21,9 +21,12 @@ lang ExtRecPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
   | TmRecField t -> 
     let ty =  typeToString env t.tyIdent in 
     match pprintCode indent env t.inexpr with (env, inexpr) in
+    match pprintTypeName env t.extIdent with (env, ext) in
     (env, join [
       "recfield ",
       t.label, 
+      " of ",
+      ext,
       " : ",
       ty,
       " in ",

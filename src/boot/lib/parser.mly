@@ -220,8 +220,8 @@ toprectype:
    { RecTypeDecl ($1.i, $2.v, $3) }
 
 toprecfield: 
-  | FIELD var_ident ty_op 
-    { RecFieldDecl ($1.i, $2.v, $3 $1.i) }
+  | FIELD var_ident OF con_ident ty_op 
+    { RecFieldDecl ($1.i, $2.v, $4.v, $5 $1.i) }
 
 topcon:
   | CON con_ident ty_op
@@ -429,9 +429,9 @@ mexpr:
   | RECTYPE type_ident type_params IN mexpr
       { let fi = mkinfo $1.i $4.i in
         TmRecType(fi, $2.v, $3, $5) }
-  | FIELD var_ident ty_op IN mexpr
-      { let fi = mkinfo $1.i $4.i in
-        TmRecField(fi, $2.v, $3 $1.i, $5)}
+  | FIELD var_ident OF con_ident ty_op IN mexpr
+      { let fi = mkinfo $1.i $6.i in
+        TmRecField(fi, $2.v, $4.v, $5 $1.i, $7)}
 
 lets:
   | LET var_ident ty_op EQ mexpr

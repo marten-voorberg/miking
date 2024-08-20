@@ -280,7 +280,7 @@ and ext_decl = Ext of info * ustring * bool * ty
 
 and rectype_decl = RecTypeDecl of info * ustring * ustring list
 
-and recfield_decl = RecFieldDecl of info * ustring * ty
+and recfield_decl = RecFieldDecl of info * ustring * ustring * ty
 
 and top =
   | TopLang of mlang
@@ -350,7 +350,7 @@ and tm =
   | TmBox of info * (tm * env option) ref
   (* Extensible Record Types *)
   | TmRecType of info * ustring * ustring list * tm 
-  | TmRecField of info * ustring * ty * tm 
+  | TmRecField of info * ustring * ustring * ty * tm 
   | TmRecCreation of info * ustring * tm Record.t
   | TmRecProj of info * tm * ustring * ustring
   | TmRecExtend of info * tm * ustring * tm Record.t 
@@ -490,8 +490,8 @@ let smap_accum_left_tm_tm (f : 'a -> tm -> 'a * tm) (acc : 'a) : tm -> 'a * tm
       f acc t |> fun (acc, t') -> (acc, TmType (fi, x, params, ty, t'))
   | TmRecType (fi, name, params, t) ->
       f acc t |> fun (acc, t') -> (acc, TmRecType (fi, name, params, t'))
-  | TmRecField (fi, name, ty, t) ->
-      f acc t |> fun (acc, t') -> (acc, TmRecField (fi, name, ty, t'))
+  | TmRecField (fi, name, ext, ty, t) ->
+      f acc t |> fun (acc, t') -> (acc, TmRecField (fi, name, ext, ty, t'))
   | TmRecProj (fi, tm, n1, n2) -> 
     f acc tm |> fun (acc, t') -> (acc, TmRecProj (fi, t', n1, n2))
   | TmRecCreation (fi, name, r) -> 
@@ -574,9 +574,9 @@ let smap_accum_left_tm_ty (f : 'a -> ty -> 'a * ty) (acc : 'a) : tm -> 'a * tm
   | TmExt (fi, name, sym, side, ty, tm) ->
       let acc, ty = f acc ty in
       (acc, TmExt (fi, name, sym, side, ty, tm))
-  | TmRecField (fi, name, ty, inexpr) -> 
+  | TmRecField (fi, name, ext, ty, inexpr) -> 
     let acc, ty = f acc ty in 
-    (acc, TmRecField (fi, name, ty, inexpr))
+    (acc, TmRecField (fi, name, ext, ty, inexpr))
   | ( TmVar _
     | TmApp _
     | TmConst _
@@ -763,7 +763,7 @@ let tm_info = function
   | TmBox (fi, _)
   | TmExt (fi, _, _, _, _, _)
   | TmRecType (fi, _, _, _)
-  | TmRecField (fi, _, _, _) 
+  | TmRecField (fi, _, _, _, _) 
   | TmRecCreation (fi, _, _)
   | TmRecProj (fi, _, _, _)
   | TmRecExtend (fi, _, _, _) 

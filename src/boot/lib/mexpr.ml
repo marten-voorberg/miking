@@ -303,8 +303,8 @@ let getData = function
       , [] )
   | PTreeTm (TmRecType (fi, n, params, tm)) -> 
       (idTmRecType, [fi], [List.length params], [], [tm], n :: params, [], [], [], [], [], [])
-  | PTreeTm (TmRecField (fi, n, ty, tm)) -> 
-      (idTmRecField, [fi], [], [ty], [tm], [n], [], [], [], [], [], [])
+  | PTreeTm (TmRecField (fi, n, ext, ty, tm)) -> 
+      (idTmRecField, [fi], [], [ty], [tm], [n ; ext], [], [], [], [], [], [])
   | PTreeTm (TmRecCreation (fi, name, r)) -> 
       let labels, tms = r |> Record.bindings |> List.split in
       (idTmRecCreation, [fi], [List.length labels], [], tms, name :: labels, [], [], [], [], [], [])
@@ -607,13 +607,13 @@ let getData = function
       , []
       , []
       , [] )
-  | PTreeTop (TopRecField (RecFieldDecl (fi, ident, ty))) ->
+  | PTreeTop (TopRecField (RecFieldDecl (fi, ident, ext, ty))) ->
       ( idDeclRecField
       , [fi]
       , []
       , [ty]
       , []
-      , [ident]
+      , [ident ; ext]
       , []
       , []
       , []

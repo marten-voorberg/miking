@@ -15,5 +15,6 @@ lang RecFieldDeclAst = DeclAst + Ast
   syn Decl = 
   | RecFieldDecl {info : Info,
                   label : String,
+                  extIdent : Name,
                   tyLabel : Type}
 end
