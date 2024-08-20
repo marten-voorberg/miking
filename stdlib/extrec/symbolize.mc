@@ -4,7 +4,7 @@ include "mlang/symbolize.mc"
 
 include "ast.mc"
 
-lang ExtRecordSym = Sym + ExtRecordAst + ExtRecordType
+lang ExtRecordSym = Sym + ExtRecordAst + ExtRecordTypeAst
   sem symbolizeType env = 
   | TyExtRec t -> 
     let ident = getSymbol {kind = "type constructor", 

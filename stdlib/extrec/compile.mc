@@ -18,8 +18,9 @@ lang RecFieldDeclCompiler = RecFieldDeclAst + DeclCompiler + ExtRecordAst
   sem compileDecl ctx = 
   | RecFieldDecl d ->
     result.ok (withExpr ctx (TmRecField {label = d.label,
-                                   tyIdent = d.tyLabel,
-                                   ty = tyunknown_,
-                                   inexpr = uunit_, 
-                                   info = d.info}))
+                                         tyIdent = d.tyLabel,
+                                         extIdent = d.extIdent,
+                                         ty = tyunknown_,
+                                         inexpr = uunit_, 
+                                         info = d.info}))
 end

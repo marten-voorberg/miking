@@ -4,17 +4,25 @@
 include "mexpr/ast-builder.mc"
 include "ast.mc"
 
+include "extrec/ast.mc"
+
 
 -- Extending the bind function for mlang expressions
 
 let base_kind_ = BaseKind () 
 let sumext_kind_ = SumExtKind () 
 
-recursive let mlang_bindF_ = use MLangAst in
+recursive let mlang_bindF_ = 
+  use MLangAst in
+  use ExtRecordAst in
   lam f : Expr -> Expr -> Expr. lam letexpr. lam expr.
   bindF_ (lam letexpr. lam expr.
     match letexpr with TmUse t then
       TmUse {t with inexpr = mlang_bindF_ f t.inexpr expr}
+    else match letexpr with TmRecField t then
+      TmRecField {t with inexpr = mlang_bindF_ f t.inexpr expr} 
+    else match letexpr with TmRecType t then
+      TmRecType {t with inexpr = mlang_bindF_ f t.inexpr expr} 
     else
       f letexpr expr -- Insert at the end of the chain
   ) letexpr expr

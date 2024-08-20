@@ -137,54 +137,6 @@ lang AppTypeUnify = Unify + AppTypeAst
       (unifyTypes u env (t1.rhs, t2.rhs))
 end
 
--- todo: Should we not be map-accuming to keep the information in the 
--- unifier? Probably, right?
-lang ExtRowUnify = Unify + ExtRecordType 
-  sem unifyBase u env = 
-  | (TyPre _, TyPre _) | (TyAbsent _, TyAbsent _) -> 
-    u.empty
-  | (ty1, ty2) & ((TyPre _, TyAbsent _) | (TyAbsent _, TyPre _)) -> 
-    u.err (Types (ty1, ty2))
-  | (ExtRecordRow t1 & ty1, ExtRecordRow t2 & ty2) ->
-    if nameEq t1.ident t2.ident then  
-      let labels = mapKeys t1.row in 
-
-      let pairs = map (lam l. (
-        match mapLookup l t1.row with Some p in p, 
-        match mapLookup l t2.row with Some p in p)
-      ) labels in 
-
-      let up = lam p. unifyTypes u env p in 
-      map up pairs ;
-      u.empty
-    else
-      -- The names of the extensible records must match!
-      u.err (Types (ty1, ty2))
-  | (TyExtRec t1, TyExtRec t2) & (ty1, ty2) ->
-    if nameEq t1.ident t2.ident then 
-      unifyTypes u env (t1.ty, t2.ty) ;
-      u.empty
-    else
-      u.err (Types (ty1, ty2))
-  | (TyMapping t1, TyMapping t2) & (ty1, ty2) ->
-    let dom1 = setOfKeys t1.mapping in 
-    let dom2 = setOfKeys t2.mapping in 
-    if setEq dom1 dom2 then
-      let work = lam acc. lam label. 
-        match mapLookup label t1.mapping with Some lhs in 
-        match mapLookup label t2.mapping with Some rhs in 
-        unifyTypes acc env (lhs, rhs)
-        ;
-        ()
-      in 
-      -- setFold work u dom1
-      let domainSeq = setToSeq dom1 in 
-      iter (work u) domainSeq ;
-      u.empty
-    else 
-      u.err (Types (ty1, ty2))
-end
-
 lang AllTypeUnify = Unify + AllTypeAst
   sem unifyBase u env =
   | (TyAll t1, TyAll t2) ->
@@ -272,31 +224,6 @@ lang BaseKindUnify = Unify + PolyKindAst + MonoKindAst
     (u.empty, Mono ())
 end
 
-lang PresenceKindAstUnify = Unify + PresenceKindAst
-  sem unifyKinds u env = 
-  | (Presence _, Presence _) -> u.empty
-
-  sem addKinds u env = 
-  | (Presence _, Presence _) -> (u.empty, Presence ())
-end
-
-lang MappingKindUnify = Unify + MappingKindAst 
-  sem unifyKinds u env = 
-  | (KiMapping {domain = d1}, KiMapping {domain = d2}) & (k1, k2) ->
-    if setEq d1 d2 then 
-      u.empty
-    else 
-      u.err (Kinds (k1, k2))
-
-  sem addKinds u env = 
-  | (KiMapping {domain = d1}, KiMapping {domain = d2}) & (k1, k2) ->
-    if setEq d1 d2 then 
-      (u.empty, k1)
-    else 
-      -- todo figure out what to do in this case
-      never
-      -- u.err (Kinds (k1, k2))
-end
 
 lang RecordKindUnify = UnifyRecords + RecordKindAst
   sem unifyKinds u env =
@@ -990,10 +917,7 @@ lang MExprUnify =
   ConTypeUnify + DataTypeUnify + UnknownTypeUnify + BoolTypeUnify + IntTypeUnify +
   FloatTypeUnify + CharTypeUnify + SeqTypeUnify + TensorTypeUnify + RecordTypeUnify +
 
-  ExtRowUnify + 
-
-  BaseKindUnify + RecordKindUnify + DataKindUnify + PresenceKindAstUnify + 
-  MappingKindUnify 
+  BaseKindUnify + RecordKindUnify + DataKindUnify
 end
 
 lang RepTypesUnify = TyWildUnify + ReprTypeUnify

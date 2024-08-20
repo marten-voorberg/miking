@@ -331,7 +331,6 @@ let pnot_ = use MExprAst in
 
 recursive let bindF_ = 
   use MExprAst in
-  use ExtRecordAst in 
   lam f : Expr -> Expr -> Expr. lam letexpr. lam expr.
   match letexpr with TmLet t then
     TmLet {t with inexpr = bindF_ f t.inexpr expr}
@@ -345,10 +344,6 @@ recursive let bindF_ =
     TmExt {t with inexpr = bindF_ f t.inexpr expr}
   else match letexpr with TmUtest t then
     TmUtest {t with next = bindF_ f t.next expr}
-  else match letexpr with TmRecType t then 
-    TmRecType {t with inexpr = bindF_ f t.inexpr expr}
-  else match letexpr with TmRecField t then
-    TmRecField {t with inexpr = bindF_ f t.inexpr expr}
   else
     f letexpr expr -- Insert at the end of the chain
 end
@@ -577,46 +572,6 @@ let tmRecord = use MExprAst in
     ty = ty,
     info = NoInfo ()
   }
-
-let ext_record_ = lam s. lam b.
-  use ExtRecordAst in 
-  TmExtRecord {bindings = mapFromSeq cmpString b,
-               ident = nameNoSym s,
-               ty = tyunknown_,
-               info = NoInfo ()}
-
-let ext_proj_ = lam s. lam lhs. lam l. 
-  use ExtRecordAst in 
-  TmExtProject {e = lhs, 
-                label = l,
-                ident = nameNoSym s,
-                ty = tyunknown_,
-                info = NoInfo ()}
-
-let typre_ = 
-  use ExtRecordType in 
-  TyPre ()
-
-let tyabs_ = 
-  use ExtRecordType in 
-  TyAbsent ()
-
-let nty_record_row_ = lam n : Name. lam row: [(String, use Ast in Type)]. 
-  use ExtRecordType in 
-  ExtRecordRow {ident = n,
-                row = mapFromSeq cmpString row}
-
-let ty_record_row_ = lam s. lam row. 
-  nty_record_row_ (nameNoSym s) row
-
-let nty_mapping_ = lam row : [(Name, use Ast in Type)]. 
-  use ExtRecordType in 
-  TyMapping {mapping = mapFromSeq nameCmp row}
-
-let ty_mapping_ = lam row : [(String, use Ast in Type)].
-  use ExtRecordType in 
-  let row = map (lam p. (nameNoSym p.0, p.1)) row in 
-  nty_mapping_ row
 
 let record_ = tmRecord (NoInfo ())
 

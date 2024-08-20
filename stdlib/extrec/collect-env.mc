@@ -6,12 +6,14 @@ include "error.mc"
 include "map.mc"
 include "name.mc"
 include "set.mc"
+include "ast.mc"
 
 type DependencyGraph = Digraph Name ()
 type TyDeps = Map Name (Set Name)
 type LabelTyDeps = Map Name (Map String (Set Name))
 
-lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
+lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordTypeAst + 
+                        TypeAbsAst
   sem collectEnv : ExtRecDefs -> Expr -> ExtRecDefs
   sem collectEnv env = 
   | TmRecType t -> 
@@ -32,7 +34,7 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
                             kind = Mono (),
                             body = rhs} in 
 
-            let labelTypeMap = mapInsert t.label ty labelTypeMap in 
+            let labelTypeMap = mapInsert t.label (t.extIdent, ty) labelTypeMap in 
             let env = mapInsert ident labelTypeMap env in 
             collectEnv env t.inexpr
           else 
@@ -73,7 +75,7 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
     let graph = digraphEmpty nameCmp (lam. lam. true) in 
 
     let work = lam graph. lam name. lam labelTyMap. 
-      updateDependencyGraph graph name (mapValues labelTyMap) in 
+      updateDependencyGraph graph name (map snd (mapValues labelTyMap)) in 
     
     mapFoldWithKey work graph env
 
@@ -92,7 +94,8 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordType
   sem computeLabelTyDeps : TyDeps -> ExtRecDefs -> LabelTyDeps
   sem computeLabelTyDeps tydeps = 
   | defs -> 
-    let work = lam n. lam innerMap. mapMapWithKey (lam label. lam ty.
+    let work = lam n. lam innerMap. mapMapWithKey (lam label. lam pair.
+      match pair with (ext, ty) in 
       let includedNames = includedRowTypes (setEmpty nameCmp) ty in 
       setFold (lam acc. lam n. setUnion acc (match mapLookup n tydeps with Some s in s)) (setEmpty nameCmp) includedNames
     ) innerMap in 

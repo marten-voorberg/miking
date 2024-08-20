@@ -8,8 +8,10 @@ include "mlang/boot-parser.mc"
 include "mlang/pprint.mc"
 
 include "name.mc"
+include "ast.mc"
+include "ast-builder.mc"
 
-lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordType
+lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordTypeAst
   sem matchTerm t = 
   | 117 -> 
     let n = glistlen t 0 in 
@@ -69,7 +71,7 @@ lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordType
               ty = gtype t 0}
 end
 
-lang RecDeclBootParser = BootParserMLang + ExtRecordType + RecTypeDeclAst + 
+lang RecDeclBootParser = BootParserMLang + ExtRecordTypeAst + RecTypeDeclAst + 
                          RecFieldDeclAst
   sem matchTop d = 
   | 711 ->

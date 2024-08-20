@@ -10,6 +10,8 @@ include "symbolize.mc"
 include "collect-env.mc"
 include "pprint.mc"
 include "compile.mc"
+include "type-check.mc"
+include "unify.mc"
 include "monomorphise.mc"
 
 include "mlang/include-handler.mc"
@@ -30,6 +32,10 @@ end
 lang BigSym = MLangSym + ExtRecordSym + RecFieldDeclSym + RecTypeDeclSym
 end
 
+lang BigTypeCheck = MExprTypeCheck + GetPresenceKind + 
+                    ExtRecordTypeCheck + ExtRowUnify + PresenceKindAstUnify
+end
+
 lang BigIncludeHandler = MLangIncludeHandler + BootParserMLang + ExtRecBootParser + RecDeclBootParser
 end
 
@@ -37,7 +43,7 @@ lang BigPipeline = BigIncludeHandler +
                    BigSym + 
                    BigPrettyPrint + 
                    ExtRecCollectEnv + 
-                   MLangTypeCheck +
+                   BigTypeCheck +
                    ExtRecordTypeCheck+ 
                    MLangConstTransformer + 
                    ExtRecMonomorphise + 
@@ -86,8 +92,6 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    printLn (expr2str expr);
-    
     let defs = collectEnv (mapEmpty nameCmp) expr in 
 
     let depGraph = createDependencyGraph defs in 
@@ -98,14 +102,15 @@ lang BigPipeline = BigIncludeHandler +
 
     let labelTyDeps = computeLabelTyDeps tyDeps defs in 
 
-    let tcEnv = {typcheckEnvDefault with extRecordType = {defs = defs, 
-                                                   tyDeps = tyDeps,
-                                                   labelTyDeps = labelTyDeps}} in 
+    let tcEnv = {typcheckEnvDefault with 
+      extRecordType = {defs = defs, 
+                       tyDeps = tyDeps,
+                       labelTyDeps = labelTyDeps}} in 
 
     let expr = typeCheckExpr tcEnv expr in 
 
-    printLn (strJoin "\n" (dumpTypes [] expr));
-    -- printLn (expr2str expr);
+    -- printLn (strJoin "\n" (dumpTypes [] expr));
+    printLn (expr2str expr);
 
     expr
 
@@ -144,7 +149,7 @@ use BigPipeline in
 -- let p = doIt "basic.mc" in 
 -- let p = doIt "example.mc" in 
 -- let p = doIt "symbolize-example/simple-sym.mc" in 
-let p = doIt "symbolize-example/extended-sym.mc" in 
+let p = doIt "temp/nominal.mc" in 
 
 -- let p = doIt "stdlib/name.mc" in
 

@@ -1,7 +1,10 @@
 include "mexpr/pprint.mc"
 include "mexpr/ast.mc"
 
-lang ExtRecPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst 
+include "ast.mc"
+include "ast-builder.mc"
+
+lang ExtRecTermPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst 
   sem isAtomic =
   | TmRecField _ | TmRecType _ -> false
   | TmExtRecord _ | TmExtProject _ -> true
@@ -106,4 +109,56 @@ lang ExtRecPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
       ")->",
       label
     ])
+end
+
+lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordTypeAst
+  sem getTypeStringCode indent env = 
+  | TyPre _ -> (env, "pre")
+  | TyAbsent _ -> (env, "abs")
+  | TyExtRec t -> 
+    match pprintTypeName env t.ident with (env, name) in
+    let ty = typeToString env t.ty in 
+    (env, join [
+      "extrec {",
+      name,
+      " of ",
+      ty, 
+      "}"
+    ])
+  | TyExtensionRow t -> 
+    let pprintPair = lam p.
+      match p with (ext, pre) in 
+      join [nameGetStr ext, "^", typeToString env pre]
+    in 
+
+    let rowStr = strJoin ", " (map pprintPair (mapToSeq t.row)) in 
+
+    -- (env, join [nameGetStr t.ident, " of <", rowStr, ">"])
+    (env, join ["<", rowStr, ">"])
+end
+
+lang TypeAbsPrettyPrint = PrettyPrint + TypeAbsAst
+  sem getTypeStringCode indent env =
+  | TyAbs t -> 
+    match pprintVarName env t.ident with (env, ident) in
+    match getTypeStringCode indent env t.body with (env, body) in 
+    (env, join ["Lam ", ident, ". ", body])
+end
+
+lang TypeAbsAppAst = PrettyPrint + TypeAbsAppAst
+  sem getTypeStringCode indent env = 
+  | TyAbsApp t -> 
+    match getTypeStringCode indent env t.lhs with (env, lhs) in 
+    match getTypeStringCode indent env t.rhs with (env, rhs) in 
+    (env, join [lhs, " @ ", rhs])
+end
+
+lang PresenceKindPrettyPrint = PrettyPrint + PresenceKindAst 
+  sem getKindStringCode (indent : Int) (env : PprintEnv) =
+  | Presence () -> (env, "Presence")
+end
+
+lang ExtRecPrettyPrint = ExtRecTermPrettyPrint + ExtRecordTypePrettyPrint +
+                         TypeAbsPrettyPrint + TypeAbsAppAst + 
+                         PresenceKindPrettyPrint
 end
