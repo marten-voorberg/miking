@@ -103,6 +103,7 @@ lang BigPipeline = BigIncludeHandler +
 
     let labelTyDeps = computeLabelTyDeps tyDeps defs in 
 
+    printLn "=== tyToExts";
     let dump = lam pair.
       match pair with (ty, exts) in 
       print (nameGetStr ty) ;
@@ -111,6 +112,18 @@ lang BigPipeline = BigIncludeHandler +
       printLn ""
     in
     iter dump (mapToSeq accEnv.tyToExts); 
+
+    printLn "=== tyExtToLabel ===";
+    let dump = lam pair.
+      match pair with ((ty, ext), labels) in 
+      print (nameGetStr ty) ;
+      print ",";
+      print (nameGetStr ext);
+      print " => " ;
+      iter (lam l. print l; print ", ") (setToSeq labels);
+      printLn ""
+    in
+    iter dump (mapToSeq accEnv.tyExtToLabel); 
 
     let tcEnv = {typcheckEnvDefault with 
       extRecordType = {defs = defs, 
@@ -162,7 +175,7 @@ use BigPipeline in
 -- let p = doIt "basic.mc" in 
 -- let p = doIt "example.mc" in 
 -- let p = doIt "symbolize-example/simple-sym.mc" in 
-let p = doIt "temp/nominal.mc" in 
+let p = doIt "temp/family.mc" in 
 
 -- let p = doIt "stdlib/name.mc" in
 

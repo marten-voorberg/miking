@@ -36,6 +36,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
     match mapLookup t.ident env.extRecordType.tyDeps with Some tydeps in 
     let boundLabels = setOfKeys t.bindings in 
+    let allLabels = setOfKeys labelToType in 
 
     let f = lam extSet. lam tyIdent.
       match mapLookup tyIdent env.extRecordType.tyToExts with Some newExts in 
@@ -45,11 +46,17 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     iter (lam n. printLn (nameGetStr n)) (setToSeq relevantExtensions) ;
 
     let ext2presence = lam ext : Name. 
-      match mapLookup (t.ident, ext) env.extRecordType.tyExtToLabel with Some s in 
-      let intersection = setIntersect boundLabels s in 
-      if setIsEmpty intersection then
+      let labels = mapLookupOrElse (lam. setEmpty cmpString) (t.ident, ext) env.extRecordType.tyExtToLabel in 
+      let intersection = setIntersect boundLabels labels in
+
+      -- The set of labels for this type/extension being empty, means
+      -- that the presence var is unaffected by the tlabels at the top level
+      -- thus, we can safely inroduce a metavar.
+      if setIsEmpty labels then 
+        newnmetavar "theta" (Presence ()) env.currentLvl t.info
+      else if setIsEmpty intersection then
         TyAbsent ()
-      else if setEq s intersection then
+      else if setEq labels intersection then
         TyPre () 
       else 
         error (concat "Some labels are missing for: " (nameGetStr ext))
@@ -88,7 +95,6 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     let lhs = typeCheckExpr env t.e in 
     let actualTy = tyTm lhs in 
 
-    -- todo: check that the label being projected actually exists
     (match mapLookup t.label labelToType with Some _ then 
        () 
      else 
@@ -106,16 +112,17 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     let relevantExtensions = setFold f (setEmpty nameCmp) tydeps in 
     iter (lam n. printLn (nameGetStr n)) (setToSeq relevantExtensions) ;
 
-    let extPresencePair = map (lam e. (e, newnmetavar "" (Presence ()) env.currentLvl t.info)) (setToSeq relevantExtensions) in 
+    let extPresencePair = map (lam e. (e, newnmetavar "theta" (Presence ()) env.currentLvl t.info)) (setToSeq relevantExtensions) in 
     let rowMap = mapFromSeq nameCmp extPresencePair in 
     let rowMap = mapInsert ext (TyPre ()) rowMap in 
-    let expectedTy = TyExtRec {ident = t.ident, info = NoInfo (), ty = TyExtensionRow {row = rowMap}} in 
+    let row = TyExtensionRow {row = rowMap} in 
+    let expectedTy = TyExtRec {ident = t.ident, info = NoInfo (), ty = row} in 
 
     unify env [t.info] expectedTy actualTy ;
 
     match mapLookup t.label labelToType with Some (_, tyAbs) in 
 
-    let ty = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = tyAbs}) in 
+    let ty = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = row}) in 
     let ty = resolveType t.info env false ty in
 
     TmExtProject {t with ty = ty, e = lhs}
