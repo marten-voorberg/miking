@@ -104,6 +104,7 @@ end
 lang SynProdExtDeclAst = DeclAst 
   syn Decl = 
   | SynDeclProdExt {ident : Name,
+                    extIdent : Name,
                     params : [Name],
                     globalExt : Option Type, 
                     individualExts : [{ident : Name, tyIdent : Type}],

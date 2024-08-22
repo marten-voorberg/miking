@@ -305,9 +305,9 @@ decl:
     { let fi = mkinfo $1.i $4.i in
       Data (fi, $2.v, List.length $3, List.map (set_con_params $3) $5, SumExt ) }
   // Syn product extension
-  | SYN type_ident type_params TIMESEQ constr_params constrs
-    { let fi = mkinfo $1.i $4.i in
-      DataProdExt (fi, $2.v, List.length $3, List.map (set_con_params $3) $6, ($5 fi)) }
+  | SYN type_ident type_params OF type_ident TIMESEQ constr_params constrs
+    { let fi = mkinfo $1.i $6.i in
+      DataProdExt (fi, $2.v, $5.v, List.length $3, List.map (set_con_params $3) $8, ($7 fi)) }
   // Sem base definition 
   | SEM var_ident params EQ cases
     { let fi = mkinfo $1.i $4.i in

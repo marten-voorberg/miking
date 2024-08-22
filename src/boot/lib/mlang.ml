@@ -769,7 +769,7 @@ let rec translate_tm (env : mlang_env) : tm -> tm = function
 let add_decl_to_lang (lang_fi : info) (lang_name : ustring) (data : lang_data)
     : decl -> lang_data = function
   (* | DataProdExt (fi, name, param_count, constructors, ty) ->  *)
-  | DataProdExt (fi, _, _, _, _) ->
+  | DataProdExt (fi, _, _, _, _, _) ->
       raise_error fi
         ( "Product extension is not supported by this version of "
         ^ "Miking. You can use the experimental--mlang-pipeline"

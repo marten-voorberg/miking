@@ -567,7 +567,7 @@ let getData = function
       , []
       , []
       , [] )
-  | PTreeDecl (DataProdExt (fi, ident, nParams, decls, globExt)) ->
+  | PTreeDecl (DataProdExt (fi, ident, extIdent, nParams, decls, globExt)) ->
       let lst =
         List.map
           (fun x ->
@@ -587,7 +587,7 @@ let getData = function
       , [List.length decls; nParams]
       , globExt :: tys
       , []
-      , ident :: List.concat [allStr; tyParams]
+      , ident :: extIdent :: List.concat [allStr; tyParams]
       , []
       , []
       , []
