@@ -154,7 +154,7 @@ lang DeclExtSym = DeclSym + ExtDeclAst
 end
 
 lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst + 
-                   SynDeclAst + LetSym
+                   SynDeclAst + LetSym + SynProdExtDeclAst
   sem symbolizeDecl env = 
   | DeclLang t -> 
     -- Symbolize the name of the language
@@ -177,6 +177,9 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
 
     let isSynDecl = lam d. match d with DeclSyn _ then true else false in 
     let synDecls = filter isSynDecl t.decls in 
+
+    let isProdDecl = lam d. match d with SynDeclProdExt _ then true else false in 
+    let prodDecls = filter isProdDecl t.decls in 
 
     let isSemDecl = lam d. match d with DeclSem _ then true else false in 
     let semDecls = filter isSemDecl t.decls in 
@@ -261,6 +264,35 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     in 
     match mapAccumL symbSynConstructors langEnv synDecls with (langEnv, synDecls) in 
 
+    -- 3.5 Symbolize product extension
+    let symbDef = lam params : [Name]. lam langEnv : NameEnv. lam def : {ident : Name, tyIdent : Type}. 
+      let ident = getSymbol 
+        {kind = "Syn Type", info = [NoInfo ()], allowFree = false}
+        langEnv.conEnv
+        def.ident in 
+
+      -- Add syn params and syn idents to tyVarEnv
+      let paramPairs = map (lam p. (nameGetStr p, p)) params in 
+      let paramMap = mapFromSeq cmpString paramPairs in 
+
+      let env = updateEnv env langEnv in 
+      let m = mapUnion env.currentEnv.tyVarEnv paramMap in 
+      let env = symbolizeUpdateTyVarEnv env m in 
+
+      let tyIdent = symbolizeType env def.tyIdent in
+
+      (langEnv, {ident = ident, tyIdent = tyIdent})
+    in
+    let symbSynConstructors = lam langEnv. lam synDecl. 
+      match synDecl with SynDeclProdExt s in 
+      match mapAccumL (symbDef s.params) langEnv s.individualExts with (langEnv, exts) in 
+      let decl = SynDeclProdExt {s with individualExts = exts,
+                                        ident = nameSym (nameGetStr s.ident)} in
+      (langEnv, decl)
+    in 
+    match mapAccumL symbSynConstructors langEnv prodDecls with (langEnv, prodDecls) in 
+
+
     -- 4. Assign names to semantic functions
     let symbSem = lam langEnv : NameEnv. lam declSem. 
       match declSem with DeclSem s in 
@@ -313,7 +345,7 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     let semDecls = map (symbSem2 langEnv) semDecls in
 
     let env = {env with langEnv = mapInsert (nameGetStr t.ident) langEnv env.langEnv} in 
-    let t = {t with decls = join [typeDecls, synDecls, semDecls],
+    let t = {t with decls = join [typeDecls, synDecls, semDecls, prodDecls],
                     includes = includes,
                     ident = ident} in
 

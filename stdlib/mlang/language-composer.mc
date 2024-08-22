@@ -193,7 +193,8 @@ lang LanguageComposer = MLangAst
     else
       let info = decl2info langStr decl in 
       (ctxWithDeclInfo ctx (langStr, nameGetStr d.ident) info, decl)
-  | _ -> error "Only Type, Syn, and Sem declarations can be contained inside of a langauge!"
+  | decl -> (ctx, decl) 
+    -- error "Only Type, Syn, and Sem declarations can be contained inside of a langauge!"
 
   sem addImplicitIncludes langStr includes definedSynsSems =
   | ctx ->

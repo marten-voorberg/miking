@@ -79,10 +79,10 @@ lang BigPipeline = BigIncludeHandler +
     
     let p = composeProgram p in 
 
-    
+
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
-    printLn (int2string (length p.decls));
+    printLn (mlang2str p);
 
     match result.consume (checkCompositionWithOptions defaultCompositionCheckOptions p) 
     with (_, Right compositionCheckEnv) in 
@@ -91,6 +91,8 @@ lang BigPipeline = BigIncludeHandler +
     let res = result.consume (compile compilationCtx p) in 
 
     match res with (_, Right expr) in 
+
+    printLn (expr2str expr);
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 
@@ -175,7 +177,9 @@ use BigPipeline in
 -- let p = doIt "basic.mc" in 
 -- let p = doIt "example.mc" in 
 -- let p = doIt "symbolize-example/simple-sym.mc" in 
-let p = doIt "temp/family.mc" in 
+-- let p = doIt "temp/family.mc" in 
+let p = doIt "temp/prodext.mc" in 
+
 
 -- let p = doIt "stdlib/name.mc" in
 

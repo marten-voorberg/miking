@@ -50,14 +50,21 @@ type CompilationContext = use MLangAst in {
 
   -- A map from identifier strings of semantic functions to the 
   -- symbolized names that the function has in different fragments.
-  semSymbols : Map String [Name]
+  semSymbols : Map String [Name],
+
+  conToExtType : Map Name Name
 }
 
 let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam env : CompositionCheckEnv. {
   exprs = [],
   compositionCheckEnv = env,
-  semSymbols = mapEmpty cmpString
+  semSymbols = mapEmpty cmpString,
+  conToExtType = mapEmpty nameCmp
 }
+
+let mapParamIdent = nameSym "m"
+let baseExtIdent = nameSym "BaseExt"
+
 
 let withExpr = lam ctx. lam expr. {ctx with exprs = snoc ctx.exprs expr}
 
@@ -94,6 +101,8 @@ let isSynDecl = use MLangAst in
   lam d. match d with DeclSyn _ then true else false
 let isSemDecl = use MLangAst in 
   lam d. match d with DeclSem _ then true else false
+let isProdDecl = use MLangAst in 
+  lam d. match d with SynDeclProdExt _ then true else false
 
 lang DeclCompiler = DeclAst + Ast + MExprSubstitute
   sem compileDecl : CompilationContext -> Decl -> CompilationResult
@@ -166,7 +175,8 @@ lang ExtDeclCompiler = DeclCompiler + ExtDeclAst + ExtAst
 end
 
 lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst + 
-                        SynDeclAst + TypeDeclAst 
+                        SynDeclAst + TypeDeclAst + SynProdExtDeclAst + 
+                        ExtRecordAst + ExtRecordTypeAst
   sem compileDecl ctx = 
   | DeclLang l -> 
     let langStr = nameGetStr l.ident in
@@ -174,6 +184,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let typeDecls = filter isTypeDecl l.decls in 
     let synDecls = filter isSynDecl l.decls in 
     let semDecls = filter isSemDecl l.decls in 
+    let prodDecls = filter isProdDecl l.decls in 
 
     let nameSeq =  (map (lam s. match s with DeclSem s in (nameGetStr s.ident, s.ident)) semDecls) in 
     let semNames = mapFromSeq cmpString nameSeq in 
@@ -183,6 +194,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let res = result.foldlM compileDecl ctx typeDecls in 
     let res = result.map (lam ctx. foldl compileSynTypes ctx synDecls) res in 
     let res = result.map (lam ctx. foldl (compileSynConstructors langStr) ctx synDecls) res in 
+    let res = result.map (lam ctx. foldl (compileSynProd langStr) ctx prodDecls) res in 
 
     let compileSemToResult : CompilationContext -> [Decl] -> CompilationContext
       = lam ctx. lam sems.
@@ -206,7 +218,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     -- we check that it does not include any other definitions.
     if null s.includes then
       withExpr ctx (TmType {ident = s.ident,
-                            params = s.params,
+                            params = cons mapParamIdent s.params,
                             tyIdent = tyvariant_ [],
                             inexpr = uunit_,
                             ty = tyunknown_,
@@ -219,22 +231,73 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
   | DeclSyn s ->
     let baseIdent = (match mapLookup (langStr, nameGetStr s.ident) ctx.compositionCheckEnv.baseMap with Some ident in ident) in
 
+    let params = cons mapParamIdent s.params in 
+
     recursive let makeForallWrapper = lam params. lam ty. 
       match params with [h] ++ t then
         ntyall_ h (makeForallWrapper t ty)
       else
         ty
     in 
-    let forallWrapper = makeForallWrapper s.params in 
-    let tyconApp = foldl (lam acc. lam n. tyapp_ acc (ntyvar_ n)) (ntycon_ baseIdent) s.params in 
+    let forallWrapper = makeForallWrapper params in 
+    let tyconApp = foldl (lam acc. lam n. tyapp_ acc (ntyvar_ n)) (ntycon_ baseIdent) params in 
     let compileDef = lam ctx. lam def : {ident : Name, tyIdent : Type}.
-      withExpr ctx (TmConDef {ident = def.ident,
-                              tyIdent = forallWrapper (tyarrow_ def.tyIdent tyconApp),
-                              inexpr = uunit_,
-                              ty = tyunknown_,
-                              info = s.info}) in 
+      match def.tyIdent with TyRecord rec then
+        let recIdent = nameSym (concat (nameGetStr def.ident) "Type") in 
+        let ctx = {ctx with conToExtType = mapInsert def.ident recIdent ctx.conToExtType} in 
+        let ctx = withExpr ctx (TmRecType {ident = recIdent,
+                                           params = [],
+                                           ty = tyunknown_,
+                                           inexpr = uunit_,
+                                           info = infoTy def.tyIdent}) in 
+        let work = lam acc. lam sid. lam ty. 
+          let label = sidToString sid in 
+          let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
+          withExpr acc (TmRecField {label = label,
+                                    tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
+                                    extIdent = baseExtIdent, 
+                                    inexpr = uunit_,
+                                    ty = tyunknown_,
+                                    info = infoTy ty}) in
+        let ctx = mapFoldWithKey work ctx rec.fields in 
+        let lhs = TyExtRec {info = infoTy def.tyIdent,
+                                   ident = recIdent,
+                                   ty = ntyvar_ mapParamIdent} in 
+        withExpr ctx (TmConDef {ident = def.ident,
+                                tyIdent = forallWrapper (tyarrow_ lhs tyconApp),
+                                inexpr = uunit_,
+                                ty = tyunknown_,
+                                info = s.info})
+      else 
+        withExpr ctx (TmConDef {ident = def.ident,
+                                tyIdent = forallWrapper (tyarrow_ def.tyIdent tyconApp),
+                                inexpr = uunit_,
+                                ty = tyunknown_,
+                                info = s.info})
+    in 
     let ctx = foldl compileDef ctx s.defs in 
     ctx
+
+  sem compileSynProd : String -> CompilationContext -> Decl -> CompilationContext
+  sem compileSynProd langStr ctx =
+  | SynDeclProdExt s ->
+    let compileExt = lam ctx. lam ext. 
+      match ext with {ident = ident, tyIdent = tyIdent} in 
+      match mapLookup ident ctx.conToExtType with Some recIdent in 
+      match tyIdent with TyRecord rec in 
+      let work = lam acc. lam sid. lam ty. 
+          let label = sidToString sid in 
+          let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
+          withExpr acc (TmRecField {label = label,
+                                    tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
+                                    extIdent = baseExtIdent, 
+                                    inexpr = uunit_,
+                                    ty = tyunknown_,
+                                    info = infoTy ty}) 
+      in
+      mapFoldWithKey work ctx rec.fields 
+    in 
+    foldl compileExt ctx s.individualExts
   -- sem compileSem : CompilationContext -> Map String Name -> Map String Name -> Decl -> RecLetBinding 
   sem compileSem langStr ctx semNames = 
   | DeclSem d -> 
