@@ -62,7 +62,7 @@ let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam e
   conToExtType = mapEmpty nameCmp
 }
 
-let mapParamIdent = nameSym "m"
+let mapParamIdent = nameNoSym "m"
 let baseExtIdent = nameSym "BaseExt"
 
 
@@ -243,7 +243,8 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let tyconApp = foldl (lam acc. lam n. tyapp_ acc (ntyvar_ n)) (ntycon_ baseIdent) params in 
     let compileDef = lam ctx. lam def : {ident : Name, tyIdent : Type}.
       match def.tyIdent with TyRecord rec then
-        let recIdent = nameSym (concat (nameGetStr def.ident) "Type") in 
+        let recIdent = nameNoSym (concat (nameGetStr def.ident) "Type") in
+        -- let recIdent = nameSym (concat (nameGetStr def.ident) "Type") in 
         let ctx = {ctx with conToExtType = mapInsert def.ident recIdent ctx.conToExtType} in 
         let ctx = withExpr ctx (TmRecType {ident = recIdent,
                                            params = [],
@@ -255,7 +256,8 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
           let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
           withExpr acc (TmRecField {label = label,
                                     tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
-                                    extIdent = baseExtIdent, 
+                                    -- extIdent = baseExtIdent, 
+                                    extIdent = nameNoSym (join [langStr, "_", nameGetStr s.ident]),
                                     inexpr = uunit_,
                                     ty = tyunknown_,
                                     info = infoTy ty}) in
@@ -290,7 +292,8 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
           let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
           withExpr acc (TmRecField {label = label,
                                     tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
-                                    extIdent = s.extIdent, 
+                                    -- extIdent = s.extIdent, 
+                                    extIdent = nameNoSym (join [langStr, "_", nameGetStr s.ident]),
                                     inexpr = uunit_,
                                     ty = tyunknown_,
                                     info = infoTy ty}) 

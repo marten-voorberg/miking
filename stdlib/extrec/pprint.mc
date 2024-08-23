@@ -8,6 +8,8 @@ lang ExtRecTermPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
   sem isAtomic =
   | TmRecField _ | TmRecType _ -> false
   | TmExtRecord _ | TmExtProject _ -> true
+  | TmExtExtend _ | TmExtExtend _ -> false
+
 
   sem pprintCode (indent : Int) (env: PprintEnv) =
   | TmRecType t ->

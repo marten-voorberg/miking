@@ -80,7 +80,7 @@ lang BigPipeline = BigIncludeHandler +
     let p = composeProgram p in 
 
 
-    match symbolizeMLang symEnvDefault p with (_, p) in 
+    -- match symbolizeMLang symEnvDefault p with (_, p) in 
 
     -- printLn (mlang2str p);
 
@@ -98,34 +98,34 @@ lang BigPipeline = BigIncludeHandler +
     let defs = accEnv.defs in 
 
     let depGraph = createDependencyGraph defs in 
-    printLn (dumpDependencyGraph depGraph) ;
+    -- printLn (dumpDependencyGraph depGraph) ;
 
     let tyDeps = computeTyDeps depGraph in 
-    printLn (dumpTyDeps tyDeps) ;
+    -- printLn (dumpTyDeps tyDeps) ;
 
     let labelTyDeps = computeLabelTyDeps tyDeps defs in 
 
-    printLn "=== tyToExts";
-    let dump = lam pair.
-      match pair with (ty, exts) in 
-      print (nameGetStr ty) ;
-      print " => " ;
-      iter (lam e. print (nameGetStr e); print ", ") (setToSeq exts);
-      printLn ""
-    in
-    iter dump (mapToSeq accEnv.tyToExts); 
+    -- printLn "=== tyToExts";
+    -- let dump = lam pair.
+    --   match pair with (ty, exts) in 
+    --   print (nameGetStr ty) ;
+    --   print " => " ;
+    --   iter (lam e. print (nameGetStr e); print ", ") (setToSeq exts);
+    --   printLn ""
+    -- in
+    -- iter dump (mapToSeq accEnv.tyToExts); 
 
-    printLn "=== tyExtToLabel ===";
-    let dump = lam pair.
-      match pair with ((ty, ext), labels) in 
-      print (nameGetStr ty) ;
-      print ",";
-      print (nameGetStr ext);
-      print " => " ;
-      iter (lam l. print l; print ", ") (setToSeq labels);
-      printLn ""
-    in
-    iter dump (mapToSeq accEnv.tyExtToLabel); 
+    -- printLn "=== tyExtToLabel ===";
+    -- let dump = lam pair.
+    --   match pair with ((ty, ext), labels) in 
+    --   print (nameGetStr ty) ;
+    --   print ",";
+    --   print (nameGetStr ext);
+    --   print " => " ;
+    --   iter (lam l. print l; print ", ") (setToSeq labels);
+    --   printLn ""
+    -- in
+    -- iter dump (mapToSeq accEnv.tyExtToLabel); 
 
     let tcEnv = {typcheckEnvDefault with 
       extRecordType = {defs = defs, 
@@ -178,8 +178,8 @@ use BigPipeline in
 -- let p = doIt "example.mc" in 
 -- let p = doIt "symbolize-example/simple-sym.mc" in 
 -- let p = doIt "temp/family.mc" in 
--- let p = doIt "temp/prodext.mc" in 
-let p = doIt "temp/extend.mc" in 
+let p = doIt "temp/prodext.mc" in 
+-- let p = doIt "temp/extend.mc" in 
 
 
 

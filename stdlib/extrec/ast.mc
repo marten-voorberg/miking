@@ -140,6 +140,10 @@ lang ExtRecordTypeAst = Ast
               ty : Type}
   | TyExtensionRow {row : Map Name Type}
 
+  sem infoTy =
+  | TyAbsent _ | TyPre _ | TyExtensionRow _ -> NoInfo ()
+  | TyExtRec t -> t.info
+
   sem tyWithInfo info = 
   | t & (TyAbsent _ | TyPre _ | TyExtensionRow _) -> t
   | TyExtRec t -> TyExtRec {t with info = info}
