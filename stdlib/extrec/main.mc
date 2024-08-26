@@ -80,7 +80,7 @@ lang BigPipeline = BigIncludeHandler +
     let p = composeProgram p in 
 
 
-    -- match symbolizeMLang symEnvDefault p with (_, p) in 
+    match symbolizeMLang symEnvDefault p with (_, p) in 
 
     -- printLn (mlang2str p);
 
@@ -127,7 +127,8 @@ lang BigPipeline = BigIncludeHandler +
     -- in
     -- iter dump (mapToSeq accEnv.tyExtToLabel); 
 
-    let tcEnv = {typcheckEnvDefault with 
+    let tcEnv = {typcheckEnvDefault with
+      disableConstructorTypes = false, 
       extRecordType = {defs = defs, 
                        tyDeps = tyDeps,
                        labelTyDeps = labelTyDeps,
@@ -174,7 +175,9 @@ end
 
 mexpr 
 use BigPipeline in
-let p = doIt "temp/basic.mc" in 
+-- let p = doIt "temp/basic.mc" in 
+let p = doIt "temp/point.mc" in 
+
 -- let p = doIt "example.mc" in 
 -- let p = doIt "symbolize-example/simple-sym.mc" in 
 -- let p = doIt "temp/family.mc" in 
