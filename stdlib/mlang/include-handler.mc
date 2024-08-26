@@ -48,8 +48,8 @@ lang MLangIncludeHandler = MLangAst + BootParserMLang
     else 
       match result.consume (parseMLangFile path) with (_, errOrProg) in
       switch errOrProg
-        case Left err then error (join [
-          "File '",
+        case Left err then errorMulti err (join [
+          " * File '",
           path,
           "' could not be parsed!"
         ])
