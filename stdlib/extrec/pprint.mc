@@ -115,8 +115,8 @@ end
 
 lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordTypeAst
   sem getTypeStringCode indent env = 
-  | TyPre _ -> (env, "pre")
-  | TyAbsent _ -> (env, "abs")
+  -- | TyPre _ -> (env, "pre")
+  -- | TyAbsent _ -> (env, "abs")
   | TyExtRec t -> 
     match pprintTypeName env t.ident with (env, name) in
     let ty = typeToString env t.ty in 
@@ -127,16 +127,16 @@ lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordTypeAst
       ty, 
       "}"
     ])
-  | TyExtensionRow t -> 
-    let pprintPair = lam p.
-      match p with (ext, pre) in 
-      join [nameGetStr ext, "^", typeToString env pre]
-    in 
+  -- | TyExtensionRow t -> 
+  --   let pprintPair = lam p.
+  --     match p with (ext, pre) in 
+  --     join [nameGetStr ext, "^", typeToString env pre]
+  --   in 
 
-    let rowStr = strJoin ", " (map pprintPair (mapToSeq t.row)) in 
+  --   let rowStr = strJoin ", " (map pprintPair (mapToSeq t.row)) in 
 
-    -- (env, join [nameGetStr t.ident, " of <", rowStr, ">"])
-    (env, join ["<", rowStr, ">"])
+  --   -- (env, join [nameGetStr t.ident, " of <", rowStr, ">"])
+  --   (env, join ["<", rowStr, ">"])
 end
 
 lang TypeAbsPrettyPrint = PrettyPrint + TypeAbsAst

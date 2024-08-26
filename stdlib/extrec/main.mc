@@ -174,11 +174,11 @@ end
 
 mexpr 
 use BigPipeline in
--- let p = doIt "basic.mc" in 
+let p = doIt "temp/basic.mc" in 
 -- let p = doIt "example.mc" in 
 -- let p = doIt "symbolize-example/simple-sym.mc" in 
 -- let p = doIt "temp/family.mc" in 
-let p = doIt "temp/prodext.mc" in 
+-- let p = doIt "temp/prodext.mc" in 
 -- let p = doIt "temp/extend.mc" in 
 
 

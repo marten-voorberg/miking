@@ -133,28 +133,25 @@ end
 
 lang ExtRecordTypeAst = Ast 
   syn Type = 
-  | TyAbsent ()
-  | TyPre ()
   | TyExtRec {info : Info, 
               ident : Name,
               ty : Type}
-  | TyExtensionRow {row : Map Name Type}
+  -- | TyRecData {info : Info,
+              --  fields : Map Name (Set Name)}
 
   sem infoTy =
-  | TyAbsent _ | TyPre _ | TyExtensionRow _ -> NoInfo ()
   | TyExtRec t -> t.info
+  -- | TyRecData t -> t.info
 
   sem tyWithInfo info = 
-  | t & (TyAbsent _ | TyPre _ | TyExtensionRow _) -> t
   | TyExtRec t -> TyExtRec {t with info = info}
+  -- | TyRecData t -> TyRecData {t with info = info}
 
   sem smapAccumL_Type_Type f acc =
-  | TyExtensionRow t ->
-    match mapMapAccum (lam acc. lam. lam e. f acc e) acc t.row with (acc, row) in
-    (acc, TyExtensionRow {t with row = row})
   | TyExtRec t -> 
     match f acc t.ty with (acc, ty) in 
     (acc, TyExtRec {t with ty = ty})
+  -- | TyRecData t & ty -> (acc, ty)
 end
 
 lang PresenceKindAst = Ast
