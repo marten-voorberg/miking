@@ -163,47 +163,45 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     printLn (type2str ty) ;
 
     TmExtProject {t with ty = ty, e = lhs}
-  | TmExtUpdate t -> never
-    -- let boundLabels = mapKeys t.bindings in  
+  | TmExtUpdate t -> 
+    match mapLookup t.ident env.extRecordType.tyDeps with Some tydeps in 
+    let boundLabels = setOfKeys t.bindings in  
 
-    -- match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
-    -- let allLabels = _labelseq env.extRecordType t.ident in 
+    match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
 
-    -- let mapping = completePolyMapping env t.ident in
-    -- let mapping = foldl 
-    --   (lam mapping. lam label. _update_row_mapping t.ident label (TyPre ()) mapping)
-    --   mapping
-    --   boundLabels in 
+    let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
+    let kindMap = mapUpdate t.ident (lam. Some {lower = setMap nameCmp nameNoSym boundLabels, upper = None ()}) kindMap in 
 
-    -- let expectedTy = TyExtRec {info = NoInfo (), 
-    --                            ident = t.ident,
-    --                            ty = mapping} in 
+    let kind = Data {types = kindMap} in 
+    let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
 
-    -- let e = typeCheckExpr env t.e in 
-    -- let actualTy = tyTm e in 
+    let expectedTy = TyExtRec {ident = t.ident,
+                               info = NoInfo (),
+                               ty = r} in 
 
-    -- unify env [t.info] expectedTy actualTy ;
+    let e = typeCheckExpr env t.e in 
+    let actualTy = tyTm e in 
 
-    -- -- Ensure that the updated values have correct types
-    -- let typeCheckBinding = lam label. lam expr. 
-    --   match mapLookup label labelToType with Some (_, tyAbs) in 
-    --   let expr = typeCheckExpr env expr in 
-    --   let actualTy = tyTm expr in 
+    unify env [infoTm e] expectedTy actualTy ;
 
-    --   let restrictedMapping = 
-    --     _restrict_mapping (_labeldep_lookup env.extRecordType t.ident label) mapping in 
-    --   let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = restrictedMapping}) in 
-    --   let expectedTy = resolveType t.info env false expectedTy in 
+    -- Ensure that the updated values have correct types
+    let typeCheckBinding = lam label. lam expr. 
+      match mapLookup label labelToType with Some (_, tyAbs) in 
+      let expr = typeCheckExpr env expr in 
+      let actualTy = tyTm expr in 
 
-    --   unify env [infoTm expr] expectedTy actualTy ; 
+      let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = r}) in 
+      let expectedTy = resolveType t.info env false expectedTy in 
 
-    --   expr
-    -- in 
-    -- let bindings = mapMapWithKey typeCheckBinding t.bindings in 
+      unify env [infoTm expr] expectedTy actualTy ; 
 
-    -- TmExtUpdate {t with ty = actualTy, 
-    --                     e = e,
-    --                     bindings = bindings}
+      expr
+    in 
+    let bindings = mapMapWithKey typeCheckBinding t.bindings in 
+
+    TmExtUpdate {t with ty = actualTy, 
+                        e = e,
+                        bindings = bindings}
   | TmExtExtend t ->
     never
     -- match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
