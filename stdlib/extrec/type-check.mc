@@ -25,7 +25,7 @@ lang TypeAbsAppResolver = TypeAbsAppAst + TypeAbsAst + VarTypeAst
 end
 
 lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst + 
-                          PresenceKindAst + TypeAbsAppAst +
+                          PresenceKindAst + TypeAbsAppAst + GetKind + 
                           TypeAbsAppResolver + ResolveType
   sem _lookupTydeps : TCEnv -> Name -> Set Name
   sem _lookupTydeps env =
@@ -44,25 +44,48 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     in
     setFold f (setEmpty nameCmp) tydeps
 
-  -- sem _polymorhpicRow : TCEnv -> Name -> Type
-  -- sem _polymorhpicRow env =
-  -- | ident -> 
-  --   let relevantExtensions = _relevantExtensions env ident in 
-  --   let extPresencePairs = map 
-  --     (lam e. (e, newnmetavar "theta" (Presence ()) env.currentLvl (NoInfo ())))
-  --     (setToSeq relevantExtensions) in 
-  --   let row = mapFromSeq nameCmp extPresencePairs in 
-  --   TyExtensionRow {row = row}
+  sem _get_bounds : Name -> Kind -> {lower : Set Name, upper : Option (Set Name)}
+  sem _get_bounds name = 
+  | Data {types = types} ->
+    match mapLookup name types with Some bounds in bounds
 
-  -- -- sem _updateRow : Name -> Type -> Type -> Type
-  -- sem _updateRow ext pre =
-  -- | TyExtensionRow r ->
-  --   TyExtensionRow {r with row = mapInsert ext pre r.row}
+  sem _update_bounds name bound =
+  | Data k ->
+    Data {k with types = mapInsert name bound k.types}
 
-  -- sem _getPre ext = 
-  -- | TyExtensionRow r -> 
-  --   match mapLookup ext r.row with Some pre in 
-  --   pre
+  sem _dump_datakind =
+  | Data k ->
+    let str = strJoin "\n" (map _dump_bounds (mapValues k.types)) in 
+    printLn str
+
+  sem _dump_bounds =
+  | t ->
+    let lowerStr = strJoin ", " (map nameGetStr (setToSeq t.lower)) in 
+    let upperStr = match t.upper with Some s
+                   then strJoin ", " (map nameGetStr (setToSeq s)) 
+                   else "∅" in 
+    join ["lower = ", lowerStr, "; upper = ", upperStr]
+
+  sem _extend_upper_bound tyName fieldName =
+  | Data k ->
+    match mapLookup tyName k.types with Some {lower = lower, upper = upper} in 
+    let newUpper = match upper with Some s 
+                   then setInsert fieldName s 
+                   else setSingleton nameCmp fieldName in 
+    Data {k with types = mapInsert tyName {lower = lower, upper = Some newUpper} k.types}
+
+  sem _extend_lower_bound tyName fieldName =
+  | Data k ->
+    match mapLookup tyName k.types with Some {lower = lower, upper = upper} in 
+    let lower = setInsert fieldName lower in
+    Data {k with types = mapInsert tyName {lower = lower, upper = upper} k.types}
+
+  sem _clear_lower_bounds = 
+  | Data k ->
+    Data {k with 
+      types = mapValues 
+        (lam bounds. {bounds with lower = setEmpty nameCmp}) 
+        k.types}
 
   sem typeCheckExpr env =
   | TmRecField t -> 
@@ -199,93 +222,95 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     in 
     let bindings = mapMapWithKey typeCheckBinding t.bindings in 
 
+    -- printLn (type2str actualTy) ;
+
     TmExtUpdate {t with ty = actualTy, 
                         e = e,
                         bindings = bindings}
   | TmExtExtend t ->
-    never
-    -- match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
-    -- let allLabels = map fst (mapToSeq labelToType) in 
-    -- let boundLabels = setOfKeys t.bindings in  
-    -- let relevantExtensions : Set Name = setOfKeys (_relevantExtensions env t.ident) in 
+    match mapLookup t.ident env.extRecordType.tyDeps with Some tydeps in 
+    match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
+    let allLabels = map fst (mapToSeq labelToType) in 
+    let boundLabels = mapKeys t.bindings in  
+    let unboundLabels = setSubtract (setOfKeys labelToType) (setOfKeys t.bindings) in 
 
-    -- -- Ensure that the type of t.e is {extrec t.ident of M}
-    -- let oldRow = _polymorhpicRow env t.ident in
-    -- let ty = TyExtRec {ident = t.ident,
-    --                    info = NoInfo (),
-    --                    ty = oldRow} in 
+    -- Ensure that the type of t.e is {extrec t.ident of oldMapping}
+    let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
+    let oldKind = Data {types = kindMap} in 
+    let oldR = newnmetavar "r" oldKind env.currentLvl (NoInfo ()) in
 
-    -- let e = typeCheckExpr env t.e in 
-    -- unify env [infoTm e] ty (tyTm e) ;
+    let ty = TyExtRec {info = NoInfo (),
+                       ident = t.ident,
+                       ty = oldR} in 
 
-    -- let newRow = _polymorhpicRow env t.ident in 
-
-    -- let ext2presence = lam ext : Name. 
-    --   let labels = mapLookupOrElse (lam. setEmpty cmpString) (t.ident, ext) env.extRecordType.tyExtToLabel in 
-    --   let intersection = setIntersect boundLabels labels in
-
-    --   -- The set of labels for this type/extension being empty, means
-    --   -- that the presence var is unaffected by the tlabels at the top level
-    --   -- thus, we can safely inroduce a metavar.
-    --   if setIsEmpty labels then 
-    --     let newTy = newnmetavar "theta" (Presence ()) env.currentLvl t.info in 
-    --     let oldTy = _getPre ext oldRow in 
-    --     unify env [infoTm e] newTy oldTy ;
-    --     newTy
-    --   else if setIsEmpty intersection then
-    --     let newTy = newnmetavar "theta" (Presence ()) env.currentLvl t.info in 
-    --     let oldTy = _getPre ext oldRow in 
-    --     unify env [infoTm e] newTy oldTy ;
-    --     newTy
-    --   else if setEq labels intersection then
-    --     TyPre () 
-    --   else 
-    --     -- TODO: allow this in some cases
-    --     error (concat "Some labels are missing for: " (nameGetStr ext))
-    -- in 
-    -- let newRow = setFold 
-    --   (lam r. lam e : Name. _updateRow e (ext2presence e) r) 
-    --   newRow
-    --   relevantExtensions in 
-
-    -- -- Type check the binding expressions with newMapping
-    -- let typeCheckBinding = lam label. lam expr. 
-    --   match mapLookup label labelToType with Some (_, tyAbs) in 
-    --   let expr = typeCheckExpr env expr in 
-    --   let actualTy = tyTm expr in 
-
-    --   let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = newRow}) in 
-    --   let expectedTy = resolveType t.info env false expectedTy in 
-
-    --   unify env [infoTm expr] expectedTy actualTy ;
-
-    --   expr
-    -- in 
-    -- let bindings = mapMapWithKey typeCheckBinding t.bindings in 
-
-    -- -- TODO: re-add sanity check!
-    -- -- let unchangedDeps = setFold
-    -- --   (lam acc. lam label. 
-    -- --     setUnion acc (_labeldep_lookup env.extRecordType t.ident label))
-    -- --   (setEmpty nameCmp)
-    -- --   unboundLabels in 
+    let e = typeCheckExpr env t.e in 
+    unify env [infoTm e] ty (tyTm e) ;
     
-    -- -- -- Unify to ensure that the tydeps that are unchanged by this extension,
-    -- -- -- are unchanged by this extension. 
-    -- -- let unifyRow = lam name.
-    -- --   let oldRow = _get_row name oldMapping in
-    -- --   let newRow = _get_row name newMapping in
-    -- --   unify env [infoTm t.e] oldRow newRow
-    -- -- in 
-    -- -- iter unifyRow (setToSeq unchangedDeps);
-    -- -- -- unifyRow t.ident;
+    -- match tyTm e with TyExtRec {ty = foundTy} in 
+
+    let oldKind = getKind env oldR in  
+
+    _dump_datakind oldKind ;
+
+    -- Create a new "fresh" mapping.
+    let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
+    let newKind = Data {types = kindMap} in 
+
+    -- Copy over the bounds belonging to this identifier
+    let newKind = _update_bounds t.ident (_get_bounds t.ident oldKind) newKind in 
+
+    -- Mark the extended fields as present
+    let newKind = foldl 
+      (lam k. lam l. _extend_upper_bound t.ident l k)
+      newKind
+      (map nameNoSym boundLabels) in 
+
+    _dump_datakind newKind ;
+
+    let newR = newnmetavar "r" newKind env.currentLvl (NoInfo ()) in
+
+    -- Type check the binding expressions with newMapping
+    let typeCheckBinding = lam label. lam expr. 
+      match mapLookup label labelToType with Some (_, tyAbs) in 
+      let expr = typeCheckExpr env expr in 
+      let actualTy = tyTm expr in 
+
+      let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = newR}) in 
+      let expectedTy = resolveType t.info env false expectedTy in 
+
+      unify env [infoTm expr] expectedTy actualTy ;
+
+      expr
+    in 
+    let bindings = mapMapWithKey typeCheckBinding t.bindings in 
+
+    -- let unchangedDeps = setFold
+    --   (lam acc. lam label. 
+    --     setUnion acc (_labeldep_lookup env.extRecordType t.ident label))
+    --   (setEmpty nameCmp)
+    --   unboundLabels in 
+    
+    -- -- Unify to ensure that the tydeps that are unchanged by this extension,
+    -- -- are unchanged by this extension. 
+    -- let unifyRow = lam name.
+    --   let oldRow = _get_row name oldMapping in
+    --   let newRow = _get_row name newMapping in
+    --   unify env [infoTm t.e] oldRow newRow
+    -- in 
+    -- iter unifyRow (setToSeq unchangedDeps);
+    -- unifyRow t.ident;
 
 
-    -- let resultTy = TyExtRec {ident = t.ident,
-    --                          info = NoInfo (),
-    --                          ty = newRow} in 
+    let resultTy = TyExtRec {ident = t.ident,
+                             info = NoInfo (),
+                             ty = newR} in 
 
-    -- TmExtExtend {t with e = e, 
-    --                     bindings = bindings,
-    --                     ty = resultTy}
+    printLn "===";
+    print "\t";
+    printLn (type2str resultTy);
+    printLn "===";
+
+    TmExtExtend {t with e = e, 
+                        bindings = bindings,
+                        ty = resultTy}
 end

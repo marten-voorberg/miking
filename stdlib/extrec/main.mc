@@ -139,7 +139,7 @@ lang BigPipeline = BigIncludeHandler +
     let expr = typeCheckExpr tcEnv expr in 
 
     printLn (strJoin "\n" (dumpTypes [] expr));
-    printLn (expr2str expr);
+    -- printLn (expr2str expr);
 
     expr
 

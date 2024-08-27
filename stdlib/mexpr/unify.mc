@@ -266,7 +266,6 @@ lang DataKindUnify = Unify + DataKindAst + PolyKindAst + MonoKindAst
 
   sem addKinds u env =
   | (Data r1, Data r2) ->
-    printLn "Do we make it 2?";
     let checkSubset = lam lower1. lam lower2. lam upper.
       optionMapOr true
         (lam m. setSubset (setSubtract lower1 lower2) m) upper
