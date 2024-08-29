@@ -1,4 +1,3 @@
-
 /*
    Miking is licensed under the MIT license.
    Copyright (C) David Broman. See file LICENSE.txt
@@ -103,6 +102,7 @@
 %token <unit Ast.tokendata> PLUSEQ        /* "+="   */
 %token <unit Ast.tokendata> TIMESEQ       /* "*="   */
 %token <unit Ast.tokendata> ARROW         /* "->"  */
+%token <unit Ast.tokendata> DARROW        /* "=>"  */
 %token <unit Ast.tokendata> ADD           /* "+"   */
 
 
@@ -702,6 +702,9 @@ ty_ish_atom:
     { TyVar($1.i,$1.v) }
   | UNDERSCORE
     { TyVar($1.i, us"_") }
+  | ident DARROW ident
+    { TyQualifiedName(mkinfo $1.i $3.i, $1.v, $3.v) }
+    
 
 %inline ty_data:
   | LBRACKET var_ident RBRACKET

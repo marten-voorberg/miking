@@ -427,6 +427,8 @@ and ty =
   | TyCon of info * ustring * tycon_data option
   (* Type variables *)
   | TyVar of info * ustring
+  (* Qualified names in type annotations *)
+  | TyQualifiedName of info * ustring * ustring
   (* Type application *)
   | TyApp of info * ty * ty
   (* Type-level use *)
@@ -643,6 +645,7 @@ let smap_accum_left_ty_ty (f : 'a -> ty -> 'a * ty) (acc : 'a) : ty -> 'a * ty
     | TyChar _
     | TyVariant _
     | TyCon _
+    | TyQualifiedName _
     | TyVar _ ) as ty ->
       (acc, ty)
 
@@ -800,7 +803,8 @@ let ty_info = function
   | TyVar (fi, _)
   | TyUse (fi, _, _)
   | TyApp (fi, _, _)
-  | TyExtRecord (fi, _, _) ->
+  | TyExtRecord (fi, _, _)
+  | TyQualifiedName (fi, _, _) ->
       fi
 
 (* Checks if a constant _may_ have a side effect. It is conservative

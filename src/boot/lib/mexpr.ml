@@ -91,6 +91,9 @@ let idTyUse = 214
 
 let idTyExtRecord = 215
 
+let idTyQualifiedName = 216
+
+
 (* Const literals *)
 let idCBool = 300
 
@@ -319,6 +322,8 @@ let getData = function
   (* Types *)
   | PTreeTy (TyExtRecord (fi, ident, ty)) -> 
       (idTyExtRecord, [fi], [], [ty], [], [ident], [], [], [], [], [], [])
+  | PTreeTy (TyQualifiedName (fi, lhs, rhs)) -> 
+      (idTyQualifiedName, [fi], [], [], [], [lhs ; rhs], [], [], [], [], [], [])
   | PTreeTy (TyUnknown fi) ->
       (idTyUnknown, [fi], [], [], [], [], [], [], [], [], [], [])
   | PTreeTy (TyBool fi) ->

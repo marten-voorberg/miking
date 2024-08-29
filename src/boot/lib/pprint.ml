@@ -212,10 +212,13 @@ let rec ustring_of_ty = function
       pprint_type_str x
   | TyVar (_, x) ->
       pprint_var_str x
+  | TyQualifiedName (_, n1, n2) ->
+    us "" ^. (pprint_type_str n1) ^. us "=>" ^. (pprint_type_str n2)
   | TyUse (_, lang, ty) ->
       us "use " ^. lang ^. us " in " ^. ustring_of_ty ty
   | TyApp (_, ty1, ty2) ->
       us "(" ^. ustring_of_ty ty1 ^. us " " ^. ustring_of_ty ty2 ^. us ")"
+
 
 (** Simple enum used in the concat function in ustring_of_tm *)
 type sep = Space | Comma

@@ -66,6 +66,26 @@ lang TyUseSym = Sym + TyUseAst
           t.ident
 end
 
+-- TODO: confirm that this is how it is supposed to work...
+lang QualifiedNameSym = Sym + QualifiedTypeAst + DataTypeAst
+  sem symbolizeType env = 
+  | TyQualifiedName t ->
+      match mapLookup (nameGetStr t.lhs) env.langEnv with Some langEnv then 
+        match mapLookup t.rhs langEnv.extensionEnv with Some constructors then
+          TyData {info = t.info, 
+                  universe = mapEmpty nameCmp,
+                  positive = true,
+                  cons = constructors} 
+        else 
+          symLookupError 
+            {kind = "constructor", info = [t.info], allowFree = false}
+            t.rhs
+      else 
+        symLookupError 
+          {kind = "language", info = [t.info], allowFree = false}
+          t.lhs
+end
+
 lang DeclSym = DeclAst + Sym
   sem symbolizeDecl : SymEnv -> Decl -> (SymEnv, Decl)
 end
@@ -361,17 +381,6 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
                     includes = includes,
                     ident = ident} in
 
-    printLn (nameGetStr t.ident);
-    let pairs = mapToSeq langEnv.extensionEnv in 
-    let pprintPair = lam pair. 
-      match pair with (ident, idents) in 
-      print (nameGetStr ident) ;
-      print " => {" ;
-      print (strJoin ", " (map nameGetStr (setToSeq idents))) ;
-      printLn "}"
-    in 
-    iter pprintPair pairs;
-
     (env, DeclLang t)
 end
 
@@ -390,7 +399,7 @@ lang MLangSym = MLangAst + MExprSym +
                 TmUseSym + TyUseSym + 
                 DeclLetSym + DeclTypeSym + DeclRecLetsSym +
                 DeclConDefSym + DeclUtestSym + DeclExtSym +
-                DeclLangSym + MLangProgramSym
+                DeclLangSym + MLangProgramSym + QualifiedNameSym
 end
 
 lang TestLang = MLangSym + SymCheck + MLangPrettyPrint
@@ -441,6 +450,7 @@ lang TestLang = MLangSym + SymCheck + MLangPrettyPrint
 
   sem isFullySymbolizedType =
   | TyUse _ -> error "Symbolization should get rid of TyUse!"
+  | TyQualifiedName _ -> error "Symbolization should get rid of TyQualifiedName!"
 
   sem isFullySymbolizedProgram : MLangProgram -> () -> Bool
   sem isFullySymbolizedProgram =
@@ -720,6 +730,25 @@ let p : MLangProgram = {
 let p = composeProgram p in 
 match symbolizeMLang symEnvDefault p with (_, p) in 
 utest isFullySymbolizedProgram p () with true in
+
+-- Test desugaring of TyQualifiedName
+let qn = TyQualifiedName {info = NoInfo (),
+                          lhs = nameNoSym "SugaredIntArith",
+                          rhs = nameNoSym "Expr"} in 
+let p : MLangProgram = {
+  decls = [
+    decl_lang_ "MyIntArith" [baseSyn, baseSem],
+    decl_langi_ "SugaredIntArith" ["MyIntArith"] [sugarSyn, sugarEval]
+  ],
+  -- expr = uunit_ 
+  expr = bind_ (let_ "x" qn never_) uunit_ 
+} in 
+let p = composeProgram p in 
+match symbolizeMLang symEnvDefault p with (_, p) in 
+utest isFullySymbolizedProgram p () with true in
+match p.expr with TmLet t in 
+match t.tyAnnot with TyData tyData in
+utest setSize tyData.cons with 3 in
 
 -- Test type variable, 'all', and let type annotations
 let p : MLangProgram = {

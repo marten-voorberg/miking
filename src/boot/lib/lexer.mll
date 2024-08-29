@@ -85,6 +85,7 @@ let reserved_strings = [
   ("!",             fun(i) -> Parser.NOT{i=i;v=()});
   ("_",             fun(i) -> Parser.UNDERSCORE{i=i;v=()});
   ("->",            fun(i) -> Parser.ARROW{i=i;v=()});
+  ("=>",            fun(i) -> Parser.DARROW{i=i;v=()});
   (">",             fun(i) -> Parser.GREATER{i=i;v=()});
   ("<",             fun(i) -> Parser.LESS{i=i;v=()});
 ]
