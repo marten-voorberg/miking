@@ -239,10 +239,22 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     match mapAccumL symbDeclType langEnv typeDecls with (langEnv, typeDecls) in 
 
     -- 3. Symbolize syntax constructors (add defs to conEnv)
-    let symbDef = lam params : [Name]. lam langEnv : NameEnv. lam def : {ident : Name, tyIdent : Type}. 
+    let symbDef = lam synIdent : Name.
+                  lam params : [Name]. 
+                  lam langEnv : NameEnv. 
+                  lam def : {ident : Name, tyIdent : Type}. 
       match setSymbol langEnv.conEnv def.ident with (conEnv, ident) in 
-      let langEnv = {langEnv with conEnv = conEnv} in 
 
+      let updater = lam prev. 
+        match prev with Some s then
+          Some (setInsert ident s)
+        else
+          Some (setSingleton nameCmp ident)
+      in 
+      let extensionEnv = mapUpdate (nameRemoveSym synIdent) updater langEnv.extensionEnv in 
+      
+      let langEnv = {langEnv with conEnv = conEnv,
+                                  extensionEnv = extensionEnv} in 
       let env = updateEnv env langEnv in 
 
       -- Add syn params and syn idents to tyVarEnv
@@ -258,7 +270,7 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     in
     let symbSynConstructors = lam langEnv. lam synDecl. 
       match synDecl with DeclSyn s in 
-      match mapAccumL (symbDef s.params) langEnv s.defs with (langEnv, defs) in 
+      match mapAccumL (symbDef s.ident s.params) langEnv s.defs with (langEnv, defs) in 
       let decl = DeclSyn {s with defs = defs} in
       (langEnv, decl)
     in 
@@ -348,6 +360,17 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     let t = {t with decls = join [typeDecls, synDecls, semDecls, prodDecls],
                     includes = includes,
                     ident = ident} in
+
+    printLn (nameGetStr t.ident);
+    let pairs = mapToSeq langEnv.extensionEnv in 
+    let pprintPair = lam pair. 
+      match pair with (ident, idents) in 
+      print (nameGetStr ident) ;
+      print " => {" ;
+      print (strJoin ", " (map nameGetStr (setToSeq idents))) ;
+      printLn "}"
+    in 
+    iter pprintPair pairs;
 
     (env, DeclLang t)
 end

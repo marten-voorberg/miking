@@ -28,7 +28,8 @@ type NameEnv = {
   conEnv : Map String Name,   
   tyVarEnv : Map String Name, 
   tyConEnv : Map String Name, 
-  reprEnv : Map String Name
+  reprEnv : Map String Name,
+  extensionEnv : Map Name (Set Name)
 }
 
 let _nameEnvEmpty : NameEnv = {
@@ -36,7 +37,8 @@ let _nameEnvEmpty : NameEnv = {
   conEnv = mapEmpty cmpString,
   tyVarEnv = mapEmpty cmpString,
   tyConEnv = mapEmpty cmpString,
-  reprEnv = mapEmpty cmpString
+  reprEnv = mapEmpty cmpString,
+  extensionEnv = mapEmpty nameCmp
 }
 
 let mergeNameEnv = lam l. lam r. {
@@ -44,7 +46,15 @@ let mergeNameEnv = lam l. lam r. {
   conEnv = mapUnion l.conEnv r.conEnv,
   tyVarEnv = mapUnion l.tyVarEnv r.tyVarEnv,
   tyConEnv = mapUnion l.tyConEnv r.tyConEnv,
-  reprEnv = mapUnion l.reprEnv r.reprEnv
+  reprEnv = mapUnion l.reprEnv r.reprEnv,
+  extensionEnv = (mapMerge 
+    (lam lhs. lam rhs.
+      match lhs with None _ then rhs
+      else match rhs with None _ then lhs
+      else match (lhs, rhs) with (Some lhs, Some rhs)
+      in Some (setUnion lhs rhs)) 
+    l.extensionEnv
+    r.extensionEnv)
 }
 
 type SymEnv = {
