@@ -87,6 +87,13 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
         (lam bounds. {bounds with lower = setEmpty nameCmp}) 
         k.types}
 
+  sem _labeldep_lookup : ExtRecEnvType -> Name -> String -> Set Name
+  sem _labeldep_lookup env n =
+  | label ->
+    match mapLookup n env.labelTyDeps with Some innerMap in 
+    match mapLookup label innerMap with Some deps in 
+    deps
+
   sem typeCheckExpr env =
   | TmRecField t -> 
     let newLvl = addi 1 env.currentLvl in 
@@ -112,6 +119,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
     match mapLookup t.ident env.extRecordType.tyDeps with Some tydeps in 
     let boundLabels = setOfKeys t.bindings in 
+    let boundLabelNameSet = setMap nameCmp nameNoSym boundLabels in 
     let allLabels = setOfKeys labelToType in 
 
     let universe = mapMap 
@@ -120,7 +128,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
 
     let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
     -- let kindMap = mapUpdate t.ident (lam. Some {lower = setMap nameCmp nameNoSym boundLabels, upper = None ()}) kindMap in 
-    let kindMap = mapUpdate t.ident (lam. Some {upper = Some (setMap nameCmp nameNoSym boundLabels), lower = setEmpty nameCmp}) kindMap in 
+    let kindMap = mapUpdate t.ident (lam. Some {upper = Some boundLabelNameSet, lower = boundLabelNameSet}) kindMap in 
 
 
     let kind = Data {types = kindMap} in 
@@ -250,8 +258,6 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
 
     let oldKind = getKind env oldR in  
 
-    _dump_datakind oldKind ;
-
     -- Create a new "fresh" mapping.
     let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
     let newKind = Data {types = kindMap} in 
@@ -264,8 +270,6 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
       (lam k. lam l. _extend_upper_bound t.ident l k)
       newKind
       (map nameNoSym boundLabels) in 
-
-    _dump_datakind newKind ;
 
     let newR = newnmetavar "r" newKind env.currentLvl (NoInfo ()) in
 
@@ -284,31 +288,50 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     in 
     let bindings = mapMapWithKey typeCheckBinding t.bindings in 
 
-    -- let unchangedDeps = setFold
-    --   (lam acc. lam label. 
-    --     setUnion acc (_labeldep_lookup env.extRecordType t.ident label))
-    --   (setEmpty nameCmp)
-    --   unboundLabels in 
-    
-    -- -- Unify to ensure that the tydeps that are unchanged by this extension,
-    -- -- are unchanged by this extension. 
-    -- let unifyRow = lam name.
-    --   let oldRow = _get_row name oldMapping in
-    --   let newRow = _get_row name newMapping in
-    --   unify env [infoTm t.e] oldRow newRow
-    -- in 
-    -- iter unifyRow (setToSeq unchangedDeps);
-    -- unifyRow t.ident;
+    let oldKind = getKind env oldR in 
+    let newKind = getKind env newR in 
 
+    let unchangedDeps = setFold
+      (lam acc. lam label. 
+        setUnion acc (_labeldep_lookup env.extRecordType t.ident label))
+      (setEmpty nameCmp)
+      unboundLabels in 
+    
+    let ensureCompatibleBounds = lam tyIdent. lam b1. lam b2.
+      match b1.upper with None _ then
+        () 
+      else if (optionEq setEq) b1.upper b2.upper then 
+        ()
+      else
+        errorSingle [infoTm e] (join [
+          " * Encountered incompatible upper bounds during type checking.\n",
+          " * Specifically, you are attempting to extend the type '",
+          nameGetStr tyIdent,
+          "',\n",
+          " * but are not updating/extending all fields of this type."
+        ])
+    in 
+
+    match (oldKind, newKind) with (Data {types = oldTypes}, 
+                                   Data {types = newTypes}) in 
+
+    let work = lam ty.
+      match mapLookup ty oldTypes with Some b1 in 
+      match mapLookup ty newTypes with Some b2 in 
+      ensureCompatibleBounds ty b1 b2
+    in 
+
+    iter work (setToSeq unchangedDeps);
 
     let resultTy = TyExtRec {ident = t.ident,
                              info = NoInfo (),
                              ty = newR} in 
 
-    printLn "===";
-    print "\t";
-    printLn (type2str resultTy);
-    printLn "===";
+    -- printLn "===";
+    -- print "\t";
+    -- printLn (type2str resultTy);
+    -- _dump_datakind (getKind env newR);
+    -- printLn "===";
 
     TmExtExtend {t with e = e, 
                         bindings = bindings,
