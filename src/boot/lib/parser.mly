@@ -82,7 +82,6 @@
 %token <unit Ast.tokendata> PRERUN
 /* Extensible record type keywords */
 %token <unit Ast.tokendata> EXTEND
-%token <unit Ast.tokendata> UPDATE
 %token <unit Ast.tokendata> RECTYPE
 %token <unit Ast.tokendata> FIELD
 %token <unit Ast.tokendata> OF
@@ -506,10 +505,6 @@ atom:
     { let r = $5 |> List.fold_left
         (fun acc (k,v) -> Record.add k v acc) Record.empty in 
       TmRecExtend(mkinfo $1.i $6.i, $3, r) }
-  | LBRACKET UPDATE mexpr OF con_ident WITH labels RBRACKET 
-    { let r = $7 |> List.fold_left
-        (fun acc (k,v) -> Record.add k v acc) Record.empty in 
-      TmRecUpdate(mkinfo $1.i $8.i, $3, $5.v, r) }
   | LPAREN atom OF con_ident RPAREN ARROW var_ident { TmRecProj(mkinfo $1.i $7.i, $2, $4.v, $7.v) }
 
 proj_label:

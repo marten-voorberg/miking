@@ -36,14 +36,6 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst
              els = never_,
              ty = t.ty,
              info = t.info}
-  | TmExtUpdate t -> 
-    let work = lam acc. lam label. lam expr. 
-      TmRecordUpdate {rec = acc, 
-                      key = stringToSid label, 
-                      value = ulam_ "" expr, 
-                      ty = tyunknown_,
-                      info = t.info} in 
-    mapFoldWithKey work t.e t.bindings
   | TmExtExtend t -> 
     let work = lam acc. lam label. lam expr. 
       TmRecordUpdate {rec = acc, 

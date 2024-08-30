@@ -316,9 +316,6 @@ let getData = function
   | PTreeTm (TmRecExtend (fi, e, r)) -> 
       let labels, tms = r |> Record.bindings |> List.split in
       (idTmRecExtend, [fi], [List.length labels], [], e :: tms, labels, [], [], [], [], [], [])
-  | PTreeTm (TmRecUpdate (fi, e, name, r)) -> 
-      let labels, tms = r |> Record.bindings |> List.split in
-      (idTmRecUpdate, [fi], [List.length labels], [], e :: tms, name :: labels, [], [], [], [], [], [])
   (* Types *)
   | PTreeTy (TyExtRecord (fi, ident, ty)) -> 
       (idTyExtRecord, [fi], [], [ty], [], [ident], [], [], [], [], [], [])
@@ -2893,7 +2890,7 @@ and eval (env : (Symb.t * tm) list) (pe : peval) (t : tm) =
   (* Only at runtime *)
   | TmClos _ | TmRef _ | TmTensor _ ->
       t
-  | (TmRecType _ | TmRecField _ | TmRecCreation _ | TmRecProj _ | TmRecExtend _ | TmRecUpdate _) as t ->
+  | (TmRecType _ | TmRecField _ | TmRecCreation _ | TmRecProj _ | TmRecExtend _) as t ->
     raise_error (tm_info t) ("Extensible record type evaluation is unsupported by boot!")
 
 (* Same as eval, but records all toplevel definitions and returns them along
@@ -2937,5 +2934,5 @@ let rec eval_toplevel (env : (Symb.t * tm) list) (pe : peval) = function
     | TmBox _
     | TmExt _ ) as t ->
       (env, eval env pe t)
-  | (TmRecType _ | TmRecField _ | TmRecCreation _ | TmRecProj _ | TmRecExtend _ | TmRecUpdate _) as t ->
+  | (TmRecType _ | TmRecField _ | TmRecCreation _ | TmRecProj _ | TmRecExtend _) as t ->
     raise_error (tm_info t) ("Extensible record type symbolization is unsupported by boot!")

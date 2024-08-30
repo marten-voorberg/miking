@@ -43,16 +43,6 @@ lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordTypeAst
                   label = gstr t 1, 
                   ty = tyunknown_,
                   info = ginfo t 0}
-  | 121 ->
-    let n = glistlen t 0 in 
-    let ident = gname t 0 in 
-    let e = gterm t 0 in 
-    let bindingPairs = map (lam i. (gstr t (addi 1 i), gterm t (addi 1 i))) (range 0 n 1) in 
-    TmExtUpdate {bindings = mapFromSeq cmpString bindingPairs, 
-                 ident = ident,
-                 e = e,
-                 ty = tyunknown_, 
-                 info = ginfo t 0}
   | 122 ->
     let n = glistlen t 0 in 
     let ident = gname t 0 in 

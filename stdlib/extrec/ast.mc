@@ -41,11 +41,6 @@ lang ExtRecordAst = Ast
                   label : String,
                   ty : Type,
                   info : Info}
-  | TmExtUpdate {e : Expr, 
-                 ident : Name, 
-                 bindings : Map String Expr,
-                 ty : Type,
-                 info : Info}
   | TmExtExtend {e : Expr, 
                  bindings : Map String Expr,
                  ty : Type,
@@ -56,7 +51,6 @@ lang ExtRecordAst = Ast
   | TmRecType t -> t.info
   | TmExtRecord t -> t.info
   | TmExtProject t -> t.info
-  | TmExtUpdate t -> t.info
   | TmExtExtend t -> t.info
 
   sem tyTm =
@@ -64,7 +58,6 @@ lang ExtRecordAst = Ast
   | TmRecType t -> t.ty
   | TmExtRecord t -> t.ty
   | TmExtProject t -> t.ty
-  | TmExtUpdate t -> t.ty 
   | TmExtExtend t -> t.ty 
 
   sem withInfo info =
@@ -73,7 +66,6 @@ lang ExtRecordAst = Ast
   | TmExtRecord t -> TmExtRecord {t with info = info}
   | TmExtProject t -> TmExtProject {t with info = info}
   | TmExtExtend t -> TmExtExtend {t with info = info}
-  | TmExtUpdate t -> TmExtUpdate {t with info = info}
 
   sem withType  ty =
   | TmRecField t -> TmRecField {t with ty = ty}
@@ -81,7 +73,6 @@ lang ExtRecordAst = Ast
   | TmExtRecord t -> TmExtRecord {t with ty = ty}
   | TmExtProject t -> TmExtProject {t with ty = ty}
   | TmExtExtend t -> TmExtExtend {t with ty = ty}
-  | TmExtUpdate t -> TmExtUpdate {t with ty = ty}
 
   sem smapAccumL_Expr_Expr f acc =
   | TmRecType t ->
@@ -101,11 +92,6 @@ lang ExtRecordAst = Ast
     match mapMapAccum (lam acc. lam. lam e. f acc e) acc t.bindings 
     with (acc, bindings) in
     (acc, TmExtExtend {t with e = e, bindings = bindings})
-  | TmExtUpdate t -> 
-    match f acc t.e with (acc, e) in 
-    match mapMapAccum (lam acc. lam. lam e. f acc e) acc t.bindings 
-    with (acc, bindings) in
-    (acc, TmExtUpdate {t with e = e, bindings = bindings})
 
   sem smapAccumL_Expr_Type f acc = 
   | TmRecType t ->
@@ -122,9 +108,6 @@ lang ExtRecordAst = Ast
   | TmExtProject t ->
     match f acc t.ty with (acc, ty) in 
     (acc, TmExtProject {t with ty = ty}) 
-  | TmExtUpdate t ->
-    match f acc t.ty with (acc, ty) in 
-    (acc, TmExtUpdate {t with ty = ty}) 
   | TmExtExtend t ->
     match f acc t.ty with (acc, ty) in 
     (acc, TmExtExtend {t with ty = ty}) 

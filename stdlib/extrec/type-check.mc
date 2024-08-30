@@ -197,47 +197,6 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     printLn (type2str ty) ;
 
     TmExtProject {t with ty = ty, e = lhs}
-  | TmExtUpdate t -> 
-    match mapLookup t.ident env.extRecordType.tyDeps with Some tydeps in 
-    let boundLabels = setOfKeys t.bindings in  
-
-    match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
-
-    let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
-    let kindMap = mapUpdate t.ident (lam. Some {lower = setMap nameCmp nameNoSym boundLabels, upper = None ()}) kindMap in 
-
-    let kind = Data {types = kindMap} in 
-    let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
-
-    let expectedTy = TyExtRec {ident = t.ident,
-                               info = NoInfo (),
-                               ty = r} in 
-
-    let e = typeCheckExpr env t.e in 
-    let actualTy = tyTm e in 
-
-    unify env [infoTm e] expectedTy actualTy ;
-
-    -- Ensure that the updated values have correct types
-    let typeCheckBinding = lam label. lam expr. 
-      match mapLookup label labelToType with Some (_, tyAbs) in 
-      let expr = typeCheckExpr env expr in 
-      let actualTy = tyTm expr in 
-
-      let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = r}) in 
-      let expectedTy = resolveType t.info env false expectedTy in 
-
-      unify env [infoTm expr] expectedTy actualTy ; 
-
-      expr
-    in 
-    let bindings = mapMapWithKey typeCheckBinding t.bindings in 
-
-    -- printLn (type2str actualTy) ;
-
-    TmExtUpdate {t with ty = actualTy, 
-                        e = e,
-                        bindings = bindings}
   | TmExtExtend t ->
     let e = typeCheckExpr env t.e in 
 
