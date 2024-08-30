@@ -273,8 +273,14 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
       in 
       let extensionEnv = mapUpdate (nameRemoveSym synIdent) updater langEnv.extensionEnv in 
       
+      -- Todo: ensure that the type is symbolized and that this symbol is stored
+      -- such that it can be used during compilation.
+      let tyIdentStr = concat (nameGetStr def.ident) "Type" in 
+      let tyConEnv = mapInsert tyIdentStr (nameNoSym tyIdentStr) langEnv.tyConEnv in 
+
       let langEnv = {langEnv with conEnv = conEnv,
-                                  extensionEnv = extensionEnv} in 
+                                  extensionEnv = extensionEnv,
+                                  tyConEnv = tyConEnv} in 
       let env = updateEnv env langEnv in 
 
       -- Add syn params and syn idents to tyVarEnv

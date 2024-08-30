@@ -243,6 +243,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let tyconApp = foldl (lam acc. lam n. tyapp_ acc (ntyvar_ n)) (ntycon_ baseIdent) params in 
     let compileDef = lam ctx. lam def : {ident : Name, tyIdent : Type}.
       match def.tyIdent with TyRecord rec then
+        -- TODO: Determine the proper symbol for this type.
         let recIdent = nameNoSym (concat (nameGetStr def.ident) "Type") in
         -- let recIdent = nameSym (concat (nameGetStr def.ident) "Type") in 
         let ctx = {ctx with conToExtType = mapInsert def.ident recIdent ctx.conToExtType} in 

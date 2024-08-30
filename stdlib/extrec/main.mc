@@ -4,6 +4,7 @@
 -- compiles it to OCaml.
 
 include "map.mc"
+include "seq.mc"
 
 include "boot-parser.mc"
 include "symbolize.mc"
@@ -176,9 +177,10 @@ end
 
 mexpr 
 use BigPipeline in
-let p = doIt "temp/basic.mc" in 
+-- let p = doIt "temp/basic.mc" in 
 -- let p = doIt "temp/constructor-types.mc" in 
 -- let p = doIt "temp/point.mc" in 
+let p = doIt (last argv) in 
 
 -- let p = doIt "example.mc" in 
 -- let p = doIt "symbolize-example/simple-sym.mc" in 
