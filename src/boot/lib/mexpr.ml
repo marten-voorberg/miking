@@ -313,9 +313,9 @@ let getData = function
       (idTmRecCreation, [fi], [List.length labels], [], tms, name :: labels, [], [], [], [], [], [])
   | PTreeTm (TmRecProj (fi, tm, name, label)) -> 
       (idTmRecProj, [fi], [], [], [tm], [name; label], [], [], [], [], [], [])
-  | PTreeTm (TmRecExtend (fi, e, name, r)) -> 
+  | PTreeTm (TmRecExtend (fi, e, r)) -> 
       let labels, tms = r |> Record.bindings |> List.split in
-      (idTmRecExtend, [fi], [List.length labels], [], e :: tms, name :: labels, [], [], [], [], [], [])
+      (idTmRecExtend, [fi], [List.length labels], [], e :: tms, labels, [], [], [], [], [], [])
   | PTreeTm (TmRecUpdate (fi, e, name, r)) -> 
       let labels, tms = r |> Record.bindings |> List.split in
       (idTmRecUpdate, [fi], [List.length labels], [], e :: tms, name :: labels, [], [], [], [], [], [])

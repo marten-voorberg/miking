@@ -47,7 +47,6 @@ lang ExtRecordAst = Ast
                  ty : Type,
                  info : Info}
   | TmExtExtend {e : Expr, 
-                 ident : Name, 
                  bindings : Map String Expr,
                  ty : Type,
                  info : Info}

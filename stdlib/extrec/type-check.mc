@@ -239,25 +239,35 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
                         e = e,
                         bindings = bindings}
   | TmExtExtend t ->
-    match mapLookup t.ident env.extRecordType.tyDeps with Some tydeps in 
-    match mapLookup t.ident env.extRecordType.defs with Some labelToType in 
+    let e = typeCheckExpr env t.e in 
+
+    let ident = match tyTm e with TyExtRec {ident = ident} then ident
+                else errorSingle [infoTm e] (join [
+                  " * You are attempting to extend some other type!\n",
+                  " * Or the type identifier of the extensible record can not be ",
+                  "inferred\n",
+                  " * Try adding a type annotation.\n",
+                  " * The following type was inferred: '",
+                  type2str (tyTm e),
+                  "'."
+                ]) in 
+
+    match mapLookup ident env.extRecordType.tyDeps with Some tydeps in 
+    match mapLookup ident env.extRecordType.defs with Some labelToType in 
     let allLabels = map fst (mapToSeq labelToType) in 
     let boundLabels = mapKeys t.bindings in  
     let unboundLabels = setSubtract (setOfKeys labelToType) (setOfKeys t.bindings) in 
 
-    -- Ensure that the type of t.e is {extrec t.ident of oldMapping}
+    -- Ensure that the type of t.e is {extrec ident of oldMapping}
     let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
     let oldKind = Data {types = kindMap} in 
     let oldR = newnmetavar "r" oldKind env.currentLvl (NoInfo ()) in
 
     let ty = TyExtRec {info = NoInfo (),
-                       ident = t.ident,
+                       ident = ident,
                        ty = oldR} in 
 
-    let e = typeCheckExpr env t.e in 
     unify env [infoTm e] ty (tyTm e) ;
-    
-    -- match tyTm e with TyExtRec {ty = foundTy} in 
 
     let oldKind = getKind env oldR in  
 
@@ -266,11 +276,11 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     let newKind = Data {types = kindMap} in 
 
     -- Copy over the bounds belonging to this identifier
-    let newKind = _update_bounds t.ident (_get_bounds t.ident oldKind) newKind in 
+    let newKind = _update_bounds ident (_get_bounds ident oldKind) newKind in 
 
     -- Mark the extended fields as present
     let newKind = foldl 
-      (lam k. lam l. _extend_upper_bound t.ident l k)
+      (lam k. lam l. _extend_upper_bound ident l k)
       newKind
       (map nameNoSym boundLabels) in 
 
@@ -296,7 +306,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
 
     let unchangedDeps = setFold
       (lam acc. lam label. 
-        setUnion acc (_labeldep_lookup env.extRecordType t.ident label))
+        setUnion acc (_labeldep_lookup env.extRecordType ident label))
       (setEmpty nameCmp)
       unboundLabels in 
     
@@ -326,7 +336,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
 
     iter work (setToSeq unchangedDeps);
 
-    let resultTy = TyExtRec {ident = t.ident,
+    let resultTy = TyExtRec {ident = ident,
                              info = NoInfo (),
                              ty = newR} in 
 

@@ -502,10 +502,10 @@ atom:
   | LBRACKET con_ident OF labels RBRACKET 
       { TmRecCreation(mkinfo $1.i $5.i, $2.v, $4 |> List.fold_left
         (fun acc (k,v) -> Record.add k v acc) Record.empty) }
-  | LBRACKET EXTEND mexpr OF con_ident WITH labels RBRACKET 
-    { let r = $7 |> List.fold_left
+  | LBRACKET EXTEND mexpr WITH labels RBRACKET 
+    { let r = $5 |> List.fold_left
         (fun acc (k,v) -> Record.add k v acc) Record.empty in 
-      TmRecExtend(mkinfo $1.i $8.i, $3, $5.v, r) }
+      TmRecExtend(mkinfo $1.i $6.i, $3, r) }
   | LBRACKET UPDATE mexpr OF con_ident WITH labels RBRACKET 
     { let r = $7 |> List.fold_left
         (fun acc (k,v) -> Record.add k v acc) Record.empty in 

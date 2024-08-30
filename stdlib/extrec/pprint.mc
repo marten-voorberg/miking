@@ -77,7 +77,7 @@ lang ExtRecTermPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
         merged,
         "}"
       ])
-  | TmExtExtend {bindings = bindings, ident = ident, e = e} ->
+  | TmExtExtend {bindings = bindings, e = e} ->
     match pprintCode indent env e with (env, eStr) in 
     let innerIndent = pprintIncr (pprintIncr indent) in
       match
@@ -93,10 +93,8 @@ lang ExtRecTermPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
         strJoin ", " binds
       in
       (env, join [
-        "{recextend ",
+        "{extend ",
         eStr,
-        " of ",
-        nameGetStr ident,
         " with ",
         merged,
         "}"
