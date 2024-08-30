@@ -1364,6 +1364,10 @@ lang RecordTypeCheck = TypeCheck + RecordAst + RecordTypeAst
     let bindingTypes = mapMap tyTm bindings in
     let ty = TyRecord {fields = bindingTypes, info = t.info} in
     TmRecord {t with bindings = bindings, ty = ty}
+end
+
+lang RecordUpdateTypeCheck = TypeCheck + RecordAst + RecordTypeAst 
+  sem typeCheckExpr env =
   | TmRecordUpdate t ->
     let rec = typeCheckExpr env t.rec in
     let value = typeCheckExpr env t.value in
@@ -1746,7 +1750,7 @@ lang MExprTypeCheckMost =
   -- Terms
   AppTypeCheck + MatchTypeCheck + ConstTypeCheck + SeqTypeCheck +
   RecordTypeCheck + TypeTypeCheck + DataTypeCheck + UtestTypeCheck +
-  NeverTypeCheck + ExtTypeCheck +
+  NeverTypeCheck + ExtTypeCheck + 
 
   -- Patterns
   NamedPatTypeCheck + SeqTotPatTypeCheck + SeqEdgePatTypeCheck +
@@ -1762,7 +1766,8 @@ lang MExprTypeCheckMost =
   MetaVarTypeCmp + MetaVarTypeEq + MetaVarTypePrettyPrint
 end
 
-lang MExprTypeCheck = MExprTypeCheckMost + MExprTypeCheckLamLetVar
+lang MExprTypeCheck = MExprTypeCheckMost + MExprTypeCheckLamLetVar +
+                      RecordUpdateTypeCheck
 end
 
 lang RepTypesTypeCheck = OpDeclTypeCheck + ReprDeclTypeCheck + OpVarTypeCheck + OpImplTypeCheck + RepTypesUnify

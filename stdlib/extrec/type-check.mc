@@ -26,7 +26,8 @@ end
 
 lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst + 
                           PresenceKindAst + TypeAbsAppAst + GetKind + 
-                          TypeAbsAppResolver + ResolveType
+                          TypeAbsAppResolver + ResolveType + RecordAst +
+                          RecordTypeAst
   sem _lookupTydeps : TCEnv -> Name -> Set Name
   sem _lookupTydeps env =
   | ident ->
@@ -336,4 +337,52 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     TmExtExtend {t with e = e, 
                         bindings = bindings,
                         ty = resultTy}
+  | TmRecordUpdate t ->
+    let rec = typeCheckExpr env t.rec in 
+
+    match tyTm rec with TyExtRec extRec then
+      match mapLookup extRec.ident env.extRecordType.defs with Some labelToType in 
+      match mapLookup extRec.ident env.extRecordType.tyDeps with Some tydeps in 
+      let label = sidToString t.key in 
+
+      let actualTy = tyTm rec in 
+
+      (match mapLookup label labelToType with Some _ then 
+        () 
+      else 
+        errorSingle [t.info] (join [
+          "The label '",
+          label,
+          "' is not a defined field of the type '",
+          nameGetStr extRec.ident,
+          "'!"])) ;
+
+      
+      let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
+      let kindMap = mapUpdate extRec.ident (lam. Some {lower = setSingleton nameCmp (nameNoSym label), upper = None ()}) kindMap in 
+
+      let kind = Data {types = kindMap} in 
+      let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
+
+      let expectedTy = TyExtRec {ident = extRec.ident, ty = r, info = NoInfo ()} in
+
+      unify env [t.info] expectedTy actualTy ;
+
+      match mapLookup label labelToType with Some (_, tyAbs) in 
+
+      let ty = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = r}) in 
+      let ty = resolveType t.info env false ty in
+      
+      let value = typeCheckExpr env t.value in 
+      unify env [infoTm value] ty (tyTm value) ;
+      -- printLn (type2str ty) ;
+
+      TmRecordUpdate {t with rec = rec,
+                             value = value,
+                             ty = expectedTy}
+    else 
+      let value = typeCheckExpr env t.value in
+      let fields = mapInsert t.key (tyTm value) (mapEmpty cmpSID) in
+      unify env [infoTm rec] (newrecvar fields env.currentLvl (infoTm rec)) (tyTm rec);
+      TmRecordUpdate {t with rec = rec, value = value, ty = tyTm rec}
 end

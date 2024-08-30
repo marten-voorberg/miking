@@ -32,7 +32,7 @@ end
 lang BigSym = MLangSym + ExtRecordSym + RecFieldDeclSym + RecTypeDeclSym
 end
 
-lang BigTypeCheck = MExprTypeCheck + GetPresenceKind + 
+lang BigTypeCheck = MExprTypeCheckMost + GetPresenceKind + MExprTypeCheckLamLetVar +
                     ExtRecordTypeCheck + ExtRowUnify + PresenceKindAstUnify
 end
 
@@ -79,12 +79,11 @@ lang BigPipeline = BigIncludeHandler +
     
     let p = composeProgram p in 
 
-    printLn (mlang2str p);
+    -- printLn (mlang2str p);
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
-    printLn (mlang2str p);
-    never;
+    -- printLn (mlang2str p);
 
     match result.consume (checkCompositionWithOptions defaultCompositionCheckOptions p) 
     with (_, Right compositionCheckEnv) in 
@@ -177,8 +176,8 @@ end
 
 mexpr 
 use BigPipeline in
--- let p = doIt "temp/basic.mc" in 
-let p = doIt "temp/constructor-types.mc" in 
+let p = doIt "temp/basic.mc" in 
+-- let p = doIt "temp/constructor-types.mc" in 
 -- let p = doIt "temp/point.mc" in 
 
 -- let p = doIt "example.mc" in 
