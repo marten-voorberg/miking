@@ -1,4 +1,5 @@
 include "mexpr/type-check.mc"
+include "mexpr/pattern-analysis.mc"
 
 include "unify.mc"
 include "ast.mc"
@@ -27,7 +28,8 @@ end
 lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst + 
                           PresenceKindAst + TypeAbsAppAst + GetKind + 
                           TypeAbsAppResolver + ResolveType + RecordAst +
-                          RecordTypeAst
+                          RecordTypeAst + MatchAst + RecordPat + 
+                          MExprPatAnalysis + PatTypeCheck
   sem _lookupTydeps : TCEnv -> Name -> Set Name
   sem _lookupTydeps env =
   | ident ->
@@ -385,4 +387,81 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
       let fields = mapInsert t.key (tyTm value) (mapEmpty cmpSID) in
       unify env [infoTm rec] (newrecvar fields env.currentLvl (infoTm rec)) (tyTm rec);
       TmRecordUpdate {t with rec = rec, value = value, ty = tyTm rec}
+
+  sem typeCheckExpr env =
+  | TmMatch {pat = PatRecord p} & TmMatch t ->
+    let target = typeCheckExpr env t.target in
+
+    let res = match tyTm target with TyExtRec extRec then
+      match mapLookup extRec.ident env.extRecordType.defs with Some labelToType in 
+      match mapLookup extRec.ident env.extRecordType.tyDeps with Some tydeps in 
+
+      let typeCheckBinding = lam patEnv. lam. lam pat. typeCheckPat env patEnv pat in 
+      match mapMapAccum typeCheckBinding (mapEmpty nameCmp) p.bindings with (patEnv, bindings) in 
+
+      let bindingPairs = mapToSeq bindings in 
+      let tcPair = lam pair.
+        match pair with (labelSid, pat) in 
+        let ty = tyPat pat in 
+        match mapLookup (sidToString labelSid) labelToType with Some (_, tyAbs) in 
+        let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = extRec.ty}) in 
+        let expectedTy = resolveType (NoInfo ()) env false expectedTy in 
+        unify env [NoInfo ()] ty expectedTy
+      in 
+      iter tcPair bindingPairs ;
+
+      let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
+      let kind = Data {types = kindMap} in 
+      let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
+      let ty = TyExtRec {info = NoInfo (), ident = extRec.ident, ty = r} in 
+      (patEnv, PatRecord {p with bindings = bindings, ty = ty})
+    else 
+      match typeCheckPat env (mapEmpty nameCmp) t.pat with (patEnv, pat) in
+      (patEnv, pat)
+    in 
+
+    match res with (patEnv, pat) in 
+    unify env [infoTm target, infoPat pat] (tyPat pat) (tyTm target);
+
+    let matchLvl = addi 1 env.matchLvl in
+    match
+      if env.disableConstructorTypes then ([], [])
+      else
+        let np = patToNormpat pat in
+        (matchNormpat (t.target, np), matchNormpat (t.target, normpatComplement np))
+    with
+      (posMatches, negMatches)
+    in
+
+    let mkMatches =
+      lam matches.
+        joinMap (lam a.
+          (joinMap (lam b.
+            let m = mapUnionWith normpatIntersect a b in
+            if mapAll (lam np. not (null np)) m then [m] else [])
+             env.matches))
+          matches
+    in
+    let mkMatchVars = lam matches.
+      foldl
+        (mapFoldWithKey (lam acc. lam n. lam. mapInsert n matchLvl acc))
+        env.matchVars matches
+    in
+
+    let baseEnv = {env with varEnv = mapUnion env.varEnv patEnv,
+                            matchLvl = matchLvl} in
+    let thnEnv = if env.disableConstructorTypes then baseEnv
+                 else {baseEnv with matches = mkMatches posMatches,
+                                    matchVars = mkMatchVars posMatches} in
+    let elsEnv = if env.disableConstructorTypes then baseEnv
+                 else {baseEnv with matches = mkMatches negMatches,
+                                    matchVars = mkMatchVars negMatches} in
+    let thn = typeCheckExpr thnEnv t.thn in
+    let els = typeCheckExpr elsEnv t.els in
+    unify env [infoTm thn, infoTm els] (tyTm thn) (tyTm els);
+    TmMatch {t with target = target
+            , thn = thn
+            , els = els
+            , ty = tyTm thn
+            , pat = pat}
 end

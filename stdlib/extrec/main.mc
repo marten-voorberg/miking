@@ -129,7 +129,7 @@ lang BigPipeline = BigIncludeHandler +
     -- iter dump (mapToSeq accEnv.tyExtToLabel); 
 
     let tcEnv = {typcheckEnvDefault with
-      disableConstructorTypes = false, 
+      disableConstructorTypes = true, 
       extRecordType = {defs = defs, 
                        tyDeps = tyDeps,
                        labelTyDeps = labelTyDeps,
