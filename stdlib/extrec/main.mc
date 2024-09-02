@@ -14,6 +14,7 @@ include "compile.mc"
 include "type-check.mc"
 include "unify.mc"
 include "monomorphise.mc"
+include "resolve-qualified-name.mc"
 
 include "mlang/include-handler.mc"
 include "mlang/pprint.mc"
@@ -52,7 +53,9 @@ lang BigPipeline = BigIncludeHandler +
                    LanguageComposer +
                    MLangCompositionCheck +
                    MLangCompiler + 
-                   RecFieldDeclCompiler + RecTypeDeclCompiler
+                   RecFieldDeclCompiler + 
+                   RecTypeDeclCompiler + 
+                   ResolveQualifiedName
 
   -- For some reason, this is missing some function definitions, but
   -- I can not figure out why. 
@@ -84,17 +87,21 @@ lang BigPipeline = BigIncludeHandler +
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
-    -- printLn (mlang2str p);
+
 
     match result.consume (checkCompositionWithOptions defaultCompositionCheckOptions p) 
     with (_, Right compositionCheckEnv) in 
+
+    let p = resolveQualifiedNameProgram (mapEmpty nameCmp) p in 
+
+    printLn (mlang2str p);
 
     let compilationCtx = _emptyCompilationContext compositionCheckEnv in 
     let res = result.consume (compile compilationCtx p) in 
 
     match res with (_, Right expr) in 
 
-    printLn (expr2str expr);
+    -- printLn (expr2str expr);
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 
@@ -128,6 +135,7 @@ lang BigPipeline = BigIncludeHandler +
     --   printLn ""
     -- in
     -- iter dump (mapToSeq accEnv.tyExtToLabel); 
+
 
     let tcEnv = {typcheckEnvDefault with
       disableConstructorTypes = true, 
