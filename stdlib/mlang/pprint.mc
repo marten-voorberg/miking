@@ -45,6 +45,15 @@ lang TyUsePrettyPrint = MExprPrettyPrint + TyUseAst + MLangIdentifierPrettyPrint
                 inty])
 end
 
+lang QualifiedNamePrettyPrint = MExprPrettyPrint + QualifiedTypeAst + 
+                                MLangIdentifierPrettyPrint                        
+  sem getTypeStringCode (indent : Int) (env : PprintEnv) =
+  | TyQualifiedName t -> 
+    match pprintLangName env t.lhs with (env, lhs) in
+    match pprintTypeName env t.rhs with (env, rhs) in
+    (env, join [lhs, "::", rhs])                        
+end
+
 
 lang DeclPrettyPrint = PrettyPrint + MLangIdentifierPrettyPrint + DeclAst
   sem pprintDeclCode : Int -> PprintEnv -> Decl -> (PprintEnv, String)
@@ -270,7 +279,7 @@ end
 lang MLangPrettyPrint = MExprPrettyPrint +
 
   -- Extended expressions and types
-  UsePrettyPrint + TyUsePrettyPrint + 
+  UsePrettyPrint + TyUsePrettyPrint + QualifiedNamePrettyPrint + 
 
   -- Declarations
   DeclPrettyPrint + LangDeclPrettyPrint + SynDeclPrettyPrint +

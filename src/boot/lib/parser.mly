@@ -697,7 +697,7 @@ ty_ish_atom:
     { TyVar($1.i,$1.v) }
   | UNDERSCORE
     { TyVar($1.i, us"_") }
-  | ident DARROW ident
+  | ident DCOLON ident
     { TyQualifiedName(mkinfo $1.i $3.i, $1.v, $3.v) }
     
 

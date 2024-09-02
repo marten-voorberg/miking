@@ -67,24 +67,24 @@ lang TyUseSym = Sym + TyUseAst
 end
 
 -- TODO: confirm that this is how it is supposed to work...
-lang QualifiedNameSym = Sym + QualifiedTypeAst + DataTypeAst
-  sem symbolizeType env = 
-  | TyQualifiedName t ->
-      match mapLookup (nameGetStr t.lhs) env.langEnv with Some langEnv then 
-        match mapLookup t.rhs langEnv.extensionEnv with Some constructors then
-          TyData {info = t.info, 
-                  universe = mapEmpty nameCmp,
-                  positive = true,
-                  cons = constructors} 
-        else 
-          symLookupError 
-            {kind = "constructor", info = [t.info], allowFree = false}
-            t.rhs
-      else 
-        symLookupError 
-          {kind = "language", info = [t.info], allowFree = false}
-          t.lhs
-end
+-- lang QualifiedNameSym = Sym + QualifiedTypeAst + DataTypeAst
+--   sem symbolizeType env = 
+--   | TyQualifiedName t ->
+--       match mapLookup (nameGetStr t.lhs) env.langEnv with Some langEnv then 
+--         match mapLookup t.rhs langEnv.extensionEnv with Some constructors then
+--           TyData {info = t.info, 
+--                   universe = mapEmpty nameCmp,
+--                   positive = true,
+--                   cons = constructors} 
+--         else 
+--           symLookupError 
+--             {kind = "constructor", info = [t.info], allowFree = false}
+--             t.rhs
+--       else 
+--         symLookupError 
+--           {kind = "language", info = [t.info], allowFree = false}
+--           t.lhs
+-- end
 
 lang DeclSym = DeclAst + Sym
   sem symbolizeDecl : SymEnv -> Decl -> (SymEnv, Decl)
@@ -405,7 +405,7 @@ lang MLangSym = MLangAst + MExprSym +
                 TmUseSym + TyUseSym + 
                 DeclLetSym + DeclTypeSym + DeclRecLetsSym +
                 DeclConDefSym + DeclUtestSym + DeclExtSym +
-                DeclLangSym + MLangProgramSym + QualifiedNameSym
+                DeclLangSym + MLangProgramSym 
 end
 
 lang TestLang = MLangSym + SymCheck + MLangPrettyPrint
@@ -456,7 +456,7 @@ lang TestLang = MLangSym + SymCheck + MLangPrettyPrint
 
   sem isFullySymbolizedType =
   | TyUse _ -> error "Symbolization should get rid of TyUse!"
-  | TyQualifiedName _ -> error "Symbolization should get rid of TyQualifiedName!"
+  -- | TyQualifiedName _ -> error "Symbolization should get rid of TyQualifiedName!"
 
   sem isFullySymbolizedProgram : MLangProgram -> () -> Bool
   sem isFullySymbolizedProgram =
