@@ -369,17 +369,28 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
       match mapMapAccum typeCheckBinding (mapEmpty nameCmp) p.bindings with (patEnv, bindings) in 
 
       let bindingPairs = mapToSeq bindings in 
-      let tcPair = lam pair.
+      let tcPair = lam accBound. lam pair.
         match pair with (labelSid, pat) in 
         let ty = tyPat pat in 
-        match mapLookup (sidToString labelSid) labelToType with Some (_, tyAbs) in 
+        let tyAbs  = match mapLookup (sidToString labelSid) labelToType with Some (_, tyAbs) 
+                     then tyAbs 
+                     else errorSingle [p.info] (join [
+                      "* The label '",
+                      sidToString labelSid,
+                      "' is not defined for the type '",
+                      nameGetStr extRec.ident,
+                      "'!"
+                     ]) in 
         let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = extRec.ty}) in 
         let expectedTy = resolveType (NoInfo ()) env false expectedTy in 
-        unify env [NoInfo ()] ty expectedTy
+        unify env [NoInfo ()] ty expectedTy ;
+
+        setInsert (nameNoSym (sidToString labelSid)) accBound 
       in 
-      iter tcPair bindingPairs ;
+      let lowerBound = foldl tcPair (setEmpty nameCmp) bindingPairs in
 
       let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
+      let kindMap = mapInsert extRec.ident {lower = lowerBound, upper = None ()} kindMap in 
       let kind = Data {types = kindMap} in 
       let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
       let ty = TyExtRec {info = NoInfo (), ident = extRec.ident, ty = r} in 
