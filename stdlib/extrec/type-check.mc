@@ -129,9 +129,11 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
       (lam label2type. setMap nameCmp nameNoSym (setOfKeys labelToType))
       env.extRecordType.defs in 
 
-    let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
+    -- let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
+    let kindMap = mapEmpty nameCmp in 
     -- let kindMap = mapUpdate t.ident (lam. Some {lower = setMap nameCmp nameNoSym boundLabels, upper = None ()}) kindMap in 
-    let kindMap = mapUpdate t.ident (lam. Some {upper = Some boundLabelNameSet, lower = boundLabelNameSet}) kindMap in 
+    -- let kindMap = mapUpdate t.ident (lam. Some {upper = Some boundLabelNameSet, lower = boundLabelNameSet}) kindMap in 
+    let kindMap = mapUpdate t.ident (lam. Some {upper = Some boundLabelNameSet, lower = setEmpty nameCmp}) kindMap in 
 
 
     let kind = Data {types = kindMap} in 
