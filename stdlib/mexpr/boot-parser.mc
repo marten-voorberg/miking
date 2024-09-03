@@ -373,7 +373,8 @@ lang BootParser = MExprAst + ConstTransformer
            ty = gtype t 0,
            kind = kind}
   | 216 ->
-    TyQualifiedName {info = ginfo t 0,
+    TyQualifiedName {pos = eqi (gint t 0) 1,
+                     info = ginfo t 0,
                      lhs = gname t 0,
                      rhs = gname t 1}
   | _ -> error "Unknown type"

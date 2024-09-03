@@ -319,8 +319,9 @@ let getData = function
   (* Types *)
   | PTreeTy (TyExtRecord (fi, ident, ty)) -> 
       (idTyExtRecord, [fi], [], [ty], [], [ident], [], [], [], [], [], [])
-  | PTreeTy (TyQualifiedName (fi, lhs, rhs)) -> 
-      (idTyQualifiedName, [fi], [], [], [], [lhs ; rhs], [], [], [], [], [], [])
+  | PTreeTy (TyQualifiedName (fi, pos, lhs, rhs)) -> 
+      let posInt = if pos then 1 else 0 in 
+      (idTyQualifiedName, [fi], [], [], [], [lhs ; rhs], [posInt], [], [], [], [], [])
   | PTreeTy (TyUnknown fi) ->
       (idTyUnknown, [fi], [], [], [], [], [], [], [], [], [], [])
   | PTreeTy (TyBool fi) ->

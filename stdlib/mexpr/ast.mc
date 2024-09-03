@@ -1557,9 +1557,10 @@ end
 
 lang QualifiedTypeAst = Ast
   syn Type = 
-  | TyQualifiedName {info : Info,
-                   lhs : Name,
-                   rhs : Name}
+  | TyQualifiedName {pos : Bool,
+                     info : Info,
+                     lhs : Name,
+                     rhs : Name}
   
   sem tyWithInfo info =
   | TyQualifiedName t -> TyQualifiedName {t with info = info}
