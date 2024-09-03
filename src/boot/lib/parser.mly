@@ -219,8 +219,8 @@ toprectype:
    { RecTypeDecl ($1.i, $2.v, $3) }
 
 toprecfield: 
-  | FIELD var_ident OF con_ident ty_op 
-    { RecFieldDecl ($1.i, $2.v, $4.v, $5 $1.i) }
+  | FIELD var_ident ty_op 
+    { RecFieldDecl ($1.i, $2.v, $3 $1.i) }
 
 topcon:
   | CON con_ident ty_op
@@ -304,9 +304,9 @@ decl:
     { let fi = mkinfo $1.i $4.i in
       Data (fi, $2.v, List.length $3, List.map (set_con_params $3) $5, SumExt ) }
   // Syn product extension
-  | SYN type_ident type_params OF type_ident TIMESEQ constr_params constrs
-    { let fi = mkinfo $1.i $6.i in
-      DataProdExt (fi, $2.v, $5.v, List.length $3, List.map (set_con_params $3) $8, ($7 fi)) }
+  | SYN type_ident type_params TIMESEQ constr_params constrs
+    { let fi = mkinfo $1.i $4.i in
+      DataProdExt (fi, $2.v, List.length $3, List.map (set_con_params $3) $6, ($5 fi)) }
   // Sem base definition 
   | SEM var_ident params EQ cases
     { let fi = mkinfo $1.i $4.i in
@@ -428,9 +428,9 @@ mexpr:
   | RECTYPE type_ident type_params IN mexpr
       { let fi = mkinfo $1.i $4.i in
         TmRecType(fi, $2.v, $3, $5) }
-  | FIELD var_ident OF con_ident ty_op IN mexpr
-      { let fi = mkinfo $1.i $6.i in
-        TmRecField(fi, $2.v, $4.v, $5 $1.i, $7)}
+  | FIELD var_ident ty_op IN mexpr
+      { let fi = mkinfo $1.i $4.i in
+        TmRecField(fi, $2.v, $3 $1.i, $5)}
 
 lets:
   | LET var_ident ty_op EQ mexpr

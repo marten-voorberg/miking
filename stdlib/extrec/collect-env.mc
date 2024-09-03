@@ -13,16 +13,10 @@ type DependencyGraph = Digraph Name ()
 type TyDeps = Map Name (Set Name)
 type LabelTyDeps = Map Name (Map String (Set Name))
 
-type AccEnv = {defs : ExtRecDefs,
-               tyToExts : Map Name (Set Name),
-               tyLabelToExt : Map (Name, String) Name,
-               tyExtToLabel : Map (Name, Name) (Set String)}
+type AccEnv = {defs : ExtRecDefs}
 
 let _emptyAccEnv : AccEnv = {
-  defs = mapEmpty nameCmp,
-  tyToExts = mapEmpty nameCmp,
-  tyLabelToExt = mapEmpty (tupleCmp2 nameCmp cmpString),
-  tyExtToLabel = mapEmpty (tupleCmp2 nameCmp nameCmp)
+  defs = mapEmpty nameCmp
 }
 
 lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordTypeAst + 
@@ -47,27 +41,9 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordTypeAst +
             let ty = TyAbs {ident = tyAll.ident,
                             kind = Mono (),
                             body = rhs} in 
-            let labelTypeMap = mapInsert t.label (t.extIdent, ty) labelTypeMap in 
+            let labelTypeMap = mapInsert t.label (nameNoSym "", ty) labelTypeMap in 
 
-            let work = lam optSet.
-              let s = match optSet with Some s then s else setEmpty nameCmp in 
-              Some (setInsert t.extIdent s)
-            in 
-            let tyToExts = mapUpdate ident work env.tyToExts in 
-            
-            let tyLabelToExt = mapInsert (ident, t.label) t.extIdent env.tyLabelToExt in 
-            
-            let work = lam optSet.
-              let s = match optSet with Some s then s else setEmpty cmpString in 
-              Some (setInsert t.label s) 
-            in
-            let tyExtToLabel = mapUpdate (ident, t.extIdent) work env.tyExtToLabel in 
-
-
-            let env = {env with defs = mapInsert ident labelTypeMap env.defs,
-                                tyToExts = tyToExts,
-                                tyLabelToExt = tyLabelToExt,
-                                tyExtToLabel = tyExtToLabel} in 
+            let env = {env with defs = mapInsert ident labelTypeMap env.defs} in 
             collectEnv env t.inexpr
           else 
             errorMulti 

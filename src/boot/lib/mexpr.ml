@@ -306,8 +306,8 @@ let getData = function
       , [] )
   | PTreeTm (TmRecType (fi, n, params, tm)) -> 
       (idTmRecType, [fi], [List.length params], [], [tm], n :: params, [], [], [], [], [], [])
-  | PTreeTm (TmRecField (fi, n, ext, ty, tm)) -> 
-      (idTmRecField, [fi], [], [ty], [tm], [n ; ext], [], [], [], [], [], [])
+  | PTreeTm (TmRecField (fi, n, ty, tm)) -> 
+      (idTmRecField, [fi], [], [ty], [tm], [n], [], [], [], [], [], [])
   | PTreeTm (TmRecCreation (fi, name, r)) -> 
       let labels, tms = r |> Record.bindings |> List.split in
       (idTmRecCreation, [fi], [List.length labels], [], tms, name :: labels, [], [], [], [], [], [])
@@ -570,7 +570,7 @@ let getData = function
       , []
       , []
       , [] )
-  | PTreeDecl (DataProdExt (fi, ident, extIdent, nParams, decls, globExt)) ->
+  | PTreeDecl (DataProdExt (fi, ident, nParams, decls, globExt)) ->
       let lst =
         List.map
           (fun x ->
@@ -590,7 +590,7 @@ let getData = function
       , [List.length decls; nParams]
       , globExt :: tys
       , []
-      , ident :: extIdent :: List.concat [allStr; tyParams]
+      , ident :: List.concat [allStr; tyParams]
       , []
       , []
       , []
@@ -610,13 +610,13 @@ let getData = function
       , []
       , []
       , [] )
-  | PTreeTop (TopRecField (RecFieldDecl (fi, ident, ext, ty))) ->
+  | PTreeTop (TopRecField (RecFieldDecl (fi, ident, ty))) ->
       ( idDeclRecField
       , [fi]
       , []
       , [ty]
       , []
-      , [ident ; ext]
+      , [ident]
       , []
       , []
       , []

@@ -154,7 +154,7 @@ lang BootParserMLang = BootParser + MLangAst
     let nParams = if eqi nCons 0 then 0 else glistlen d 1 in 
 
     let parseCon = lam i. 
-      let ident = gname d (addi i 2) in 
+      let ident = gname d (addi i 1) in 
       let ty = gtype d (addi i 1) in 
       {ident = ident, tyIdent = ty}
     in 
@@ -175,7 +175,6 @@ lang BootParserMLang = BootParser + MLangAst
     in 
 
     SynDeclProdExt {ident = gname d 0,
-                    extIdent = gname d 1,
                     includes = [],
                     individualExts = map parseCon (range 0 nCons 1),
                     globalExt = globalTyOpt,

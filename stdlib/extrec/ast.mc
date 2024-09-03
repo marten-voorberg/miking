@@ -15,7 +15,6 @@ lang RecFieldDeclAst = DeclAst + Ast
   syn Decl = 
   | RecFieldDecl {info : Info,
                   label : String,
-                  extIdent : Name,
                   tyLabel : Type}
 end
 
@@ -28,7 +27,6 @@ lang ExtRecordAst = Ast
                info : Info}
   | TmRecField {label : String, 
                 tyIdent : Type, 
-                extIdent : Name,
                 inexpr : Expr,
                 ty : Type,
                 info : Info}

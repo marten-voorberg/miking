@@ -119,37 +119,11 @@ lang BigPipeline = BigIncludeHandler +
 
     let labelTyDeps = computeLabelTyDeps tyDeps defs in 
 
-    -- printLn "=== tyToExts";
-    -- let dump = lam pair.
-    --   match pair with (ty, exts) in 
-    --   print (nameGetStr ty) ;
-    --   print " => " ;
-    --   iter (lam e. print (nameGetStr e); print ", ") (setToSeq exts);
-    --   printLn ""
-    -- in
-    -- iter dump (mapToSeq accEnv.tyToExts); 
-
-    -- printLn "=== tyExtToLabel ===";
-    -- let dump = lam pair.
-    --   match pair with ((ty, ext), labels) in 
-    --   print (nameGetStr ty) ;
-    --   print ",";
-    --   print (nameGetStr ext);
-    --   print " => " ;
-    --   iter (lam l. print l; print ", ") (setToSeq labels);
-    --   printLn ""
-    -- in
-    -- iter dump (mapToSeq accEnv.tyExtToLabel); 
-
-
     let tcEnv = {typcheckEnvDefault with
       disableConstructorTypes = false, 
       extRecordType = {defs = defs, 
                        tyDeps = tyDeps,
-                       labelTyDeps = labelTyDeps,
-                       tyToExts = accEnv.tyToExts,
-                       tyLabelToExt = accEnv.tyLabelToExt,
-                       tyExtToLabel = accEnv.tyExtToLabel}} in 
+                       labelTyDeps = labelTyDeps}} in 
 
     let expr = typeCheckExpr tcEnv expr in 
 

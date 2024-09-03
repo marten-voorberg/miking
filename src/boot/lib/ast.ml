@@ -254,7 +254,7 @@ and decl =
   (* TODO(?,?): Local? *)
   | Data of info * ustring * int * cdecl list * decl_type
   (* If no global extension is given, the last ty fields will be a unit type. *)
-  | DataProdExt of info * ustring * ustring * int * cdecl list * ty
+  | DataProdExt of info * ustring * int * cdecl list * ty
   | Inter of
       info * ustring * ty * param list option * (pat * tm) list * decl_type
   | Alias of info * ustring * ustring list * ty
@@ -280,7 +280,7 @@ and ext_decl = Ext of info * ustring * bool * ty
 
 and rectype_decl = RecTypeDecl of info * ustring * ustring list
 
-and recfield_decl = RecFieldDecl of info * ustring * ustring * ty
+and recfield_decl = RecFieldDecl of info * ustring * ty
 
 and top =
   | TopLang of mlang
@@ -350,7 +350,7 @@ and tm =
   | TmBox of info * (tm * env option) ref
   (* Extensible Record Types *)
   | TmRecType of info * ustring * ustring list * tm 
-  | TmRecField of info * ustring * ustring * ty * tm 
+  | TmRecField of info * ustring * ty * tm 
   | TmRecCreation of info * ustring * tm Record.t
   | TmRecProj of info * tm * ustring * ustring
   | TmRecExtend of info * tm * tm Record.t 
@@ -491,8 +491,8 @@ let smap_accum_left_tm_tm (f : 'a -> tm -> 'a * tm) (acc : 'a) : tm -> 'a * tm
       f acc t |> fun (acc, t') -> (acc, TmType (fi, x, params, ty, t'))
   | TmRecType (fi, name, params, t) ->
       f acc t |> fun (acc, t') -> (acc, TmRecType (fi, name, params, t'))
-  | TmRecField (fi, name, ext, ty, t) ->
-      f acc t |> fun (acc, t') -> (acc, TmRecField (fi, name, ext, ty, t'))
+  | TmRecField (fi, name, ty, t) ->
+      f acc t |> fun (acc, t') -> (acc, TmRecField (fi, name, ty, t'))
   | TmRecProj (fi, tm, n1, n2) -> 
     f acc tm |> fun (acc, t') -> (acc, TmRecProj (fi, t', n1, n2))
   | TmRecCreation (fi, name, r) -> 
@@ -571,9 +571,9 @@ let smap_accum_left_tm_ty (f : 'a -> ty -> 'a * ty) (acc : 'a) : tm -> 'a * tm
   | TmExt (fi, name, sym, side, ty, tm) ->
       let acc, ty = f acc ty in
       (acc, TmExt (fi, name, sym, side, ty, tm))
-  | TmRecField (fi, name, ext, ty, inexpr) -> 
+  | TmRecField (fi, name, ty, inexpr) -> 
     let acc, ty = f acc ty in 
-    (acc, TmRecField (fi, name, ext, ty, inexpr))
+    (acc, TmRecField (fi, name, ty, inexpr))
   | ( TmVar _
     | TmApp _
     | TmConst _
@@ -760,7 +760,7 @@ let tm_info = function
   | TmBox (fi, _)
   | TmExt (fi, _, _, _, _, _)
   | TmRecType (fi, _, _, _)
-  | TmRecField (fi, _, _, _, _) 
+  | TmRecField (fi, _, _, _) 
   | TmRecCreation (fi, _, _)
   | TmRecProj (fi, _, _, _)
   | TmRecExtend (fi, _, _) ->

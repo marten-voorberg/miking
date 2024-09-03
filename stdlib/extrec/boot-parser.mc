@@ -24,7 +24,6 @@ lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordTypeAst
                info = ginfo t 0}
   | 118 -> 
     TmRecField {label = gstr t 0,
-                extIdent = gname t 1,
                 tyIdent = gtype t 0,
                 inexpr = gterm t 0,
                 ty = tyunknown_,
@@ -72,7 +71,6 @@ lang RecDeclBootParser = BootParserMLang + ExtRecordTypeAst + RecTypeDeclAst +
   | 712 ->
     RecFieldDecl {info = ginfo d 0,
                   label = gstr d 0,
-                  extIdent = gname d 1, 
                   tyLabel = gtype d 0}
 end
 

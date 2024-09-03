@@ -794,7 +794,7 @@ and print_tm' fmt t =
       let name = string_of_ustring (pprint_type_str n) in
       fprintf fmt "@[<hov 0>@[<hov %d>rectype %s in@]@ %a@]" !ref_indent name
         print_tm (Match, tm)
-  | TmRecField (_, n, _,ty, tm) ->
+  | TmRecField (_, n, ty, tm) ->
       let name = string_of_ustring n in
       let ty = ty |> ustring_of_ty |> string_of_ustring in
       fprintf fmt "@[<hov 0>field %s%s in@ %a@]" name (print_ty_if_known ty)
