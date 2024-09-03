@@ -150,6 +150,16 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
       --   "' does not refer to an extensible product or sum type!"
       -- ])
   
+  sem _negate =
+  | kindMap ->
+    let f = lam bounds. 
+      match bounds.upper with Some upper then 
+        {lower = upper, upper = Some bounds.lower}
+      else 
+        {lower = setEmpty nameCmp, upper = Some bounds.lower}
+    in 
+    mapMap f kindMap
+
   sem resolveTyHelper : ResolveStaticEnv -> ResolveQualifiedNameEnv -> [(Name, Kind)] -> Type -> ([(Name, Kind)], Type)
   sem resolveTyHelper staticEnv accEnv acc = 
   | TyQualifiedName t & ty ->
@@ -171,6 +181,10 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
       else acc 
     in 
     let kindMap = setFold folder (mapEmpty nameCmp) tydeps in
+
+    let kindMap = if t.pos then kindMap 
+                           else _negate kindMap in 
+
     let kind = Data {types = kindMap} in 
     let ident = nameSym "ss" in 
     let tyvar = ntyvar_ ident in 
