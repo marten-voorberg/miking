@@ -16,6 +16,10 @@ type ResolveQualifiedNameEnv = {
   langEnvs : Map Name ResolveLangEnv
 }
 
+-- TODO(voorberg, 03/09/2024): Maybe it would be better to get rid of qualified
+-- names during type checking. As we can then just generate metavar with the
+-- correct kind instead of having to introduce forall terms which may
+-- not be legal in all places.
 lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst + 
                             MLangPrettyPrint + ExtRecordTypeAst
                             
@@ -133,7 +137,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
 
   sem resolveTyHelper : ResolveStaticEnv -> ResolveQualifiedNameEnv -> [(Name, Kind)] -> Type -> ([(Name, Kind)], Type)
   sem resolveTyHelper staticEnv accEnv acc = 
-  | TyQualifiedName t ->
+  | TyQualifiedName t & ty ->
     let env : ResolveLangEnv = mapLookupOrElse 
       (lam. errorSingle [t.info] " * Langauge on lhs does not exist!") 
       t.lhs 
@@ -142,11 +146,15 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     
     match mapLookup t.rhs env.prodFields with Some prodFields then
       let prodFiels = setMap nameCmp nameRemoveSym prodFields in 
+
       let kindMap = mapFromSeq nameCmp [(t.rhs, {lower = prodFields, upper = None ()})] in 
       let kind = Data {types = kindMap} in 
-      printLn (kind2str kind);
       let ident = nameSym "ss" in 
-      (cons (ident, kind) acc, TyExtRec {info = t.info, ident = t.rhs, ty = ntyvar_ ident}) 
+
+      let newTy = TyExtRec {info = t.info, ident = t.rhs, ty = ntyvar_ ident} in 
+      let tyAlias = TyAlias {display = ty, content = newTy} in 
+
+      (cons (ident, kind) acc, tyAlias) 
     else match mapLookup t.rhs env.sumFields with Some sumFields then
       error "TODO: CREATE A SUM TYPE"
     else 

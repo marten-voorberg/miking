@@ -36,6 +36,12 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     match mapLookup ident env.extRecordType.tyDeps with Some deps then deps
     else error "Tydeps not found!"
 
+  sem _inspectTyWithinAlias : Type -> Type
+  sem _inspectTyWithinAlias = 
+  | TyAlias {content = content} -> _inspectTyWithinAlias content
+  | ty -> ty
+
+
   sem _relevantExtensions : TCEnv -> Name -> Set Name
   sem _relevantExtensions env = 
   | ident ->
@@ -202,7 +208,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
   | TmExtExtend t ->
     let e = typeCheckExpr env t.e in 
 
-    let ident = match tyTm e with TyExtRec {ident = ident} then ident
+    let ident = match _inspectTyWithinAlias (tyTm e) with TyExtRec {ident = ident} then ident
                 else errorSingle [infoTm e] (join [
                   " * You are attempting to extend some other type!\n",
                   " * Or the type identifier of the extensible record can not be ",
@@ -313,7 +319,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
   | TmRecordUpdate t ->
     let rec = typeCheckExpr env t.rec in 
 
-    match tyTm rec with TyExtRec extRec then
+    match _inspectTyWithinAlias (tyTm rec) with TyExtRec extRec then
       match mapLookup extRec.ident env.extRecordType.defs with Some labelToType in 
       match mapLookup extRec.ident env.extRecordType.tyDeps with Some tydeps in 
       let label = sidToString t.key in 
@@ -363,7 +369,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
   | TmMatch {pat = PatRecord p} & TmMatch t ->
     let target = typeCheckExpr env t.target in
 
-    let res = match tyTm target with TyExtRec extRec then
+    let handleExtRec = lam extRec.
       match mapLookup extRec.ident env.extRecordType.defs with Some labelToType in 
       match mapLookup extRec.ident env.extRecordType.tyDeps with Some tydeps in 
 
@@ -397,6 +403,10 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
       let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
       let ty = TyExtRec {info = NoInfo (), ident = extRec.ident, ty = r} in 
       (patEnv, PatRecord {p with bindings = bindings, ty = ty})
+    in
+
+    let res = match _inspectTyWithinAlias (tyTm target) with TyExtRec extRec then
+      handleExtRec extRec
     else 
       match typeCheckPat env (mapEmpty nameCmp) t.pat with (patEnv, pat) in
       (patEnv, pat)
