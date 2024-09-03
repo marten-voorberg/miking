@@ -698,9 +698,9 @@ ty_ish_atom:
   | UNDERSCORE
     { TyVar($1.i, us"_") }
   | GREATER ident DCOLON ident
-    { TyQualifiedName(mkinfo $1.i $4.i, true, $2.v, $4.v) }
-  | LESS ident DCOLON ident
     { TyQualifiedName(mkinfo $1.i $4.i, false, $2.v, $4.v) }
+  | LESS ident DCOLON ident
+    { TyQualifiedName(mkinfo $1.i $4.i, true, $2.v, $4.v) }
     
 
 %inline ty_data:
