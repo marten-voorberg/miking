@@ -135,6 +135,19 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     in 
     foldl worker ty acc 
 
+  sem _identToBound (env: ResolveLangEnv) info =
+  | ident ->
+    match mapLookup ident env.prodFields with Some fields then
+      {lower = fields, upper = None ()}
+    else match mapLookup (nameRemoveSym ident) env.sumFields with Some fields then
+      {lower = setEmpty nameCmp, upper = Some fields}
+    else
+      errorSingle [info] (join [
+        " * The provided identifier '",
+        nameGetStr ident,
+        "' does not refer to an extensible product or sum type!"
+      ])
+  
   sem resolveTyHelper : ResolveStaticEnv -> ResolveQualifiedNameEnv -> [(Name, Kind)] -> Type -> ([(Name, Kind)], Type)
   sem resolveTyHelper staticEnv accEnv acc = 
   | TyQualifiedName t & ty ->
@@ -143,23 +156,33 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
       t.lhs 
       accEnv.langEnvs
     in
-    
-    match mapLookup t.rhs env.prodFields with Some prodFields then
-      let prodFiels = setMap nameCmp nameRemoveSym prodFields in 
+    let tydeps = match mapLookup t.rhs staticEnv.tydeps with Some tydeps then tydeps
+                 else errorSingle [t.info] (join [
+                  " * Unknown rhs '",
+                  nameGetStr t.rhs,
+                  "' of qualified type!"
+                 ]) in 
 
-      let kindMap = mapFromSeq nameCmp [(t.rhs, {lower = prodFields, upper = None ()})] in 
-      let kind = Data {types = kindMap} in 
-      let ident = nameSym "ss" in 
+    let kindMap = setFold 
+      (lam acc. lam dep. mapInsert dep (_identToBound env t.info dep) acc)
+      (mapEmpty nameCmp)
+      tydeps in
+    let kind = Data {types = kindMap} in 
+    let ident = nameSym "ss" in 
+    let tyvar = ntyvar_ ident in 
 
-      let newTy = TyExtRec {info = t.info, ident = t.rhs, ty = ntyvar_ ident} in 
-      let tyAlias = TyAlias {display = ty, content = newTy} in 
+    let newTy = match mapLookup (nameRemoveSym t.rhs) env.prodFields with Some _
+                then TyExtRec {info = t.info, ident = t.rhs, ty = tyvar} 
+                else match mapLookup (nameRemoveSym t.rhs) env.sumFields with Some _
+                then TyApp {lhs = TyCon {ident = t.rhs, info = t.info, data = tyvar},
+                            rhs = tyvar,
+                            info = t.info}
+                else error "Illegal state! Should either be sum or product type!"
+    in
 
-      (cons (ident, kind) acc, tyAlias) 
-    else match mapLookup t.rhs env.sumFields with Some sumFields then
-      error "TODO: CREATE A SUM TYPE"
-    else 
-      errorSingle [t.info] "* Unknown rhs of qualified type!"
+    let tyAlias = TyAlias {display = ty, content = newTy} in 
 
+    (cons (ident, kind) acc, tyAlias) 
   | ty -> 
     smapAccumL_Type_Type (resolveTyHelper staticEnv accEnv) acc ty 
 end

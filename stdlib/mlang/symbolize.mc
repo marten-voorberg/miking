@@ -74,7 +74,11 @@ lang QualifiedNameSym = Sym + QualifiedTypeAst + DataTypeAst
                            allowFree = false} 
                           env.namespaceEnv 
                           t.lhs in 
-      TyQualifiedName {t with lhs = lhs}
+      match mapLookup (nameGetStr lhs) env.langEnv with Some langEnv in 
+      let rhs = match mapLookup (nameGetStr t.rhs) langEnv.tyConEnv with Some symbRhs 
+                then printLn "Found symbol :)"; symbRhs 
+                else printLn "Found no symbol :("; t.rhs in 
+      TyQualifiedName {t with lhs = lhs, rhs = rhs}
 end
 
 lang DeclSym = DeclAst + Sym
