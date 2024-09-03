@@ -43,6 +43,7 @@ type CompositionCheckEnv = {
   nextId : Int,
   -- Mapping from the symbolized name of a syn or sem to their base declaration
   baseMap : Map (String, String) Name,
+  baseMap2 : Map Name Name,
   -- Mapping from symbolized name of a syn to the amount of parameters
   paramMap : Map (String, String) Int,
   -- Mapping form a symbolized sem name to the symbolized names of its arguments if they are defined.
@@ -87,6 +88,7 @@ let _emptyCompositionCheckEnv : CompositionCheckEnv = {
   options = defaultCompositionCheckOptions,
   nextId = 0,
   baseMap = mapEmpty tupleStringCmp,
+  baseMap2 = mapEmpty nameCmp,
   paramMap = mapEmpty tupleStringCmp,
   semPatMap = mapEmpty tupleStringCmp,
   semArgsMap = mapEmpty tupleStringCmp,
@@ -97,9 +99,10 @@ let _emptyCompositionCheckEnv : CompositionCheckEnv = {
   langToSems = mapEmpty cmpString
 }
 
-let insertBaseMap : CompositionCheckEnv -> (String, String) -> Unknown -> CompositionCheckEnv = 
-  lam env. lam k. lam v. 
-    {env with baseMap = mapInsert k v env.baseMap}
+let insertBaseMap : CompositionCheckEnv -> (String, String) -> Name -> Name -> CompositionCheckEnv = 
+  lam env. lam k. lam k2. lam v. 
+    {env with baseMap = mapInsert k v env.baseMap,
+              baseMap2 = mapInsert k2 v env.baseMap2}
     
 let insertParamMap : CompositionCheckEnv -> (String, String) -> Int -> CompositionCheckEnv = 
   lam env. lam k. lam v. 
@@ -289,7 +292,7 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
 
 
     match s.includes with [] then 
-      result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident)
+      result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident s.ident)
     else 
       let includeList = map 
         (lam incl. match mapLookup incl env.baseMap with Some b in b) 
@@ -297,7 +300,7 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
       let includeSet = setOfSeq nameCmp includeList in 
 
       if eqi 1 (setSize includeSet) then
-        result.ok (insertBaseMap env (langStr, nameGetStr s.ident) (head includeList))
+        result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident (head includeList))
       else
         result.err (DifferentBaseSyn {
           synIdent = s.ident,
@@ -309,7 +312,7 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
     } in 
     match s.includes with [] then 
       let env = {env with semBaseToTyAnnot = mapInsert s.ident s.tyAnnot env.semBaseToTyAnnot} in 
-      result.ok (insertBaseMap env (langStr, nameGetStr s.ident)  s.ident)
+      result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident s.ident)
     else 
       let includeList = map 
         (lam incl. match mapLookup incl env.baseMap with Some b in b) 
@@ -317,7 +320,7 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
       let includeSet = setOfSeq nameCmp includeList in 
 
       if eqi 1 (setSize includeSet) then
-        result.ok (insertBaseMap env (langStr, nameGetStr s.ident)  (head includeList))
+        result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident (head includeList))
       else
         result.err (DifferentBaseSem {
           semIdent = s.ident, 
