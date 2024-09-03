@@ -246,7 +246,6 @@ lang DataKindUnify = Unify + DataKindAst + PolyKindAst + MonoKindAst
     if mapAll hasNoBounds r.types then u.empty
     else u.err (Kinds (k, Data r))
   | (Data r1, Data r2) ->
-    printLn "Do we make it?";
     if mapAllWithKey
          (lam t. lam ks2.
            optionMapOrElse

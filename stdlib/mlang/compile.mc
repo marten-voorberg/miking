@@ -52,14 +52,17 @@ type CompilationContext = use MLangAst in {
   -- symbolized names that the function has in different fragments.
   semSymbols : Map String [Name],
 
-  conToExtType : Map Name Name
+  conToExtType : Map Name Name,
+
+  allBaseSyns : Set Name
 }
 
 let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam env : CompositionCheckEnv. {
   exprs = [],
   compositionCheckEnv = env,
   semSymbols = mapEmpty cmpString,
-  conToExtType = mapEmpty nameCmp
+  conToExtType = mapEmpty nameCmp,
+  allBaseSyns = setEmpty nameCmp
 }
 
 let mapParamIdent = nameNoSym "m"
@@ -226,6 +229,16 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     else
       ctx
   
+  sem _insertImplicitTyVars : CompilationContext -> Type -> Type
+  sem _insertImplicitTyVars ctx =
+  | TyCon t & ty -> 
+    if setMem t.ident ctx.allBaseSyns then
+      TyApp {lhs = TyCon {t with data = ntyvar_ mapParamIdent}, 
+             rhs = ntyvar_ mapParamIdent, info = t.info}
+    else
+      ty
+  | ty -> smap_Type_Type (_insertImplicitTyVars ctx) ty
+
   sem compileSynConstructors : String -> CompilationContext -> Decl -> CompilationContext
   sem compileSynConstructors langStr ctx = 
   | DeclSyn s ->
@@ -253,6 +266,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
                                            inexpr = uunit_,
                                            info = infoTy def.tyIdent}) in 
         let work = lam acc. lam sid. lam ty. 
+          let ty = _insertImplicitTyVars ctx ty in 
           let label = sidToString sid in 
           let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
           withExpr acc (TmRecField {label = label,
@@ -407,10 +421,21 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
       info = d.info}
 end 
 
-lang MLangTopLevelCompiler = MLangTopLevel + DeclCompiler
+lang MLangTopLevelCompiler = MLangTopLevel + DeclCompiler + LangDeclAst + SynDeclAst
+  sem _gatherBaseSemNames : Set Name -> Decl -> Set Name
+  sem _gatherBaseSemNames acc =
+  | DeclLang d -> 
+    foldl _gatherBaseSemNames acc d.decls 
+  | DeclSyn {includes = [], ident = ident} -> 
+    setInsert ident acc
+  | _ -> acc
+  
+
   sem compileProg : CompilationContext -> MLangProgram -> CompilationResult
   sem compileProg ctx = 
   | prog -> 
+    let ctx = {ctx with allBaseSyns = foldl _gatherBaseSemNames (setEmpty nameCmp) prog.decls} in 
+
     let res = result.foldlM compileDecl ctx prog.decls in
     result.map (lam ctx. withExpr ctx prog.expr) res
 end

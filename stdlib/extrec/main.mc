@@ -101,7 +101,7 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    -- printLn (expr2str expr);
+    printLn (expr2str expr);
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 
@@ -138,7 +138,7 @@ lang BigPipeline = BigIncludeHandler +
 
 
     let tcEnv = {typcheckEnvDefault with
-      disableConstructorTypes = true, 
+      disableConstructorTypes = false, 
       extRecordType = {defs = defs, 
                        tyDeps = tyDeps,
                        labelTyDeps = labelTyDeps,
