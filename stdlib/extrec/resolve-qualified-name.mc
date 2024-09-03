@@ -138,15 +138,17 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
   sem _identToBound (env: ResolveLangEnv) info =
   | ident ->
     match mapLookup ident env.prodFields with Some fields then
-      {lower = fields, upper = None ()}
+      Some {lower = fields, upper = None ()}
     else match mapLookup (nameRemoveSym ident) env.sumFields with Some fields then
-      {lower = setEmpty nameCmp, upper = Some fields}
+      Some {lower = setEmpty nameCmp, upper = Some fields}
     else
-      errorSingle [info] (join [
-        " * The provided identifier '",
-        nameGetStr ident,
-        "' does not refer to an extensible product or sum type!"
-      ])
+      None ()
+      -- {lower = setEmpty nameCmp, upper = None ()}
+      -- errorSingle [info] (join [
+      --   " * The provided identifier '",
+      --   nameGetStr ident,
+      --   "' does not refer to an extensible product or sum type!"
+      -- ])
   
   sem resolveTyHelper : ResolveStaticEnv -> ResolveQualifiedNameEnv -> [(Name, Kind)] -> Type -> ([(Name, Kind)], Type)
   sem resolveTyHelper staticEnv accEnv acc = 
@@ -163,10 +165,12 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
                   "' of qualified type!"
                  ]) in 
 
-    let kindMap = setFold 
-      (lam acc. lam dep. mapInsert dep (_identToBound env t.info dep) acc)
-      (mapEmpty nameCmp)
-      tydeps in
+    let folder = lam acc. lam dep.
+      match _identToBound env t.info dep with Some bound
+      then mapInsert dep bound acc
+      else acc 
+    in 
+    let kindMap = setFold folder (mapEmpty nameCmp) tydeps in
     let kind = Data {types = kindMap} in 
     let ident = nameSym "ss" in 
     let tyvar = ntyvar_ ident in 
