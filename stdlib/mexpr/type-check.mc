@@ -32,13 +32,20 @@ include "mexpr/type.mc"
 include "mexpr/unify.mc"
 include "mexpr/repr-ast.mc"
 
+include "extrec/ast.mc"
+
 type ReprSubst = use Ast in {vars : [Name], pat : Type, repr : Type}
 
 type ExtRecDefs = use Ast in Map Name (Map String (Name, Type))
 type ExtRecEnvType = {
   defs : ExtRecDefs,
   tyDeps : Map Name (Set Name),
-  labelTyDeps : Map Name (Map String (Set Name))
+  mlangTyDeps : Map Name (Set Name),
+  labelTyDeps : Map Name (Map String (Set Name)),
+  langEnvs : Map Name ({
+    prodFields : Map Name (Set Name),
+    sumFields : Map Name (Set Name)
+  })
 }
 
 type TCEnv = {
@@ -86,7 +93,9 @@ let typcheckEnvEmpty : TCEnv = {
   extRecordType = {
     defs = mapEmpty nameCmp,
     tyDeps = mapEmpty nameCmp,
-    labelTyDeps = mapEmpty nameCmp
+    mlangTyDeps = mapEmpty nameCmp,
+    labelTyDeps = mapEmpty nameCmp,
+    langEnvs = mapEmpty nameCmp
   },
   matchLvl = 0,
   currentLvl = 0,
@@ -187,7 +196,7 @@ end
 -- TYPE UNIFICATION --
 ----------------------
 
-lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + PrettyPrint + Cmp + RepTypesHelpers
+lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + PrettyPrint + Cmp + RepTypesHelpers + ExtRecordTypeAst + VarTypeAst
   -- Unify the types `ty1' and `ty2', where
   -- `ty1' is the expected type of an expression, and
   -- `ty2' is the inferred type of the expression.
@@ -291,8 +300,13 @@ lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + PrettyPrint
           switch ty
           case TyAlias x then
             let acc = {acc with aliases = mapInsert x.display x.content acc.aliases} in
-            collectAliasesAndKinds (collectAliasesAndKinds acc x.display) x.content
+            printLn "case 1";
+            printLn (type2str x.content);
+            let acc = collectAliasesAndKinds acc x.display in 
+            collectAliasesAndKinds acc x.content
           case TyMetaVar x then
+            printLn "case 2";
+            printLn ("now here...");
             switch deref x.contents
             case Unbound u then
               let acc = {acc with kinds = mapInsert u.ident u.kind acc.kinds} in
@@ -300,7 +314,19 @@ lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + PrettyPrint
             case Link ty then
               collectAliasesAndKinds acc ty
             end
-          case _ then sfold_Type_Type collectAliasesAndKinds acc ty
+          case TyExtRec ty then 
+            printLn "case 4";
+            printLn (type2str ty.ty);
+            collectAliasesAndKinds acc ty.ty
+          case TyVar t then
+            printLn "case 5";
+            printLn "This would be weird";
+            acc
+          case other then 
+            printLn "case 3";
+            print "\t";
+            printLn (type2str other);
+            sfold_Type_Type collectAliasesAndKinds acc ty
           end
     in
     let res =
@@ -624,7 +650,8 @@ let _computeUniverse : TCEnv -> Name -> Map Name (Set Name) =
 -- NOTE(aathn, 2023-05-10): In the future, this should be replaced
 -- with something which also performs a proper kind check.
 lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
-  UnknownTypeAst + DataTypeAst + DataKindAst + FunTypeAst + VarTypeSubstitute + AppTypeUtils
+  UnknownTypeAst + DataTypeAst + DataKindAst + FunTypeAst + VarTypeSubstitute + 
+  AppTypeUtils + QualifiedTypeAst + ExtRecordTypeAst
   sem resolveType : Info -> TCEnv -> Bool -> Type -> Type
   sem resolveType info env closeDatas =
   | (TyCon _ | TyApp _) & ty ->
@@ -678,9 +705,65 @@ lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
   -- If we encounter a TyAlias, it means that the type was already processed by
   -- a previous call to typeCheck.
   | TyAlias t -> TyAlias t
+  | TyQualifiedName t & ty ->
+      let tcEnv = env in 
 
+      let tydeps = match mapLookup t.rhs env.extRecordType.mlangTyDeps with Some tydeps then tydeps
+                  else errorSingle [t.info] (join [
+                    " * Unknown rhs '",
+                    nameGetStr t.rhs,
+                    "' of qualified type!"
+                  ]) in 
+
+      let env : ResolveLangEnv = mapLookupOrElse 
+        (lam. errorSingle [t.info] " * Langauge on lhs does not exist!") 
+        t.lhs 
+        env.extRecordType.langEnvs
+      in
+
+      let folder = lam acc. lam dep.
+        match _identToBound env t.info dep with Some bound
+        then mapInsert dep bound acc
+        else acc 
+      in 
+      let kindMap = setFold folder (mapEmpty nameCmp) tydeps in
+
+      let kindMap = if t.pos then kindMap else _negate kindMap in 
+
+      let kind = Data {types = kindMap} in 
+      let tyvar = newnmetavar "ss" kind tcEnv.currentLvl t.info in 
+
+      let newTy = match mapLookup (nameRemoveSym t.rhs) env.prodFields with Some _
+                  then TyExtRec {info = t.info, ident = t.rhs, ty = tyvar} 
+                  else match mapLookup (nameRemoveSym t.rhs) env.sumFields with Some _
+                  then TyApp {lhs = TyCon {ident = t.rhs, info = t.info, data = tyvar},
+                              rhs = tyvar,
+                              info = t.info}
+                  else error "Illegal state! Should either be sum or product type!"
+      in
+
+      TyAlias {display = ty, content = newTy} 
   | ty ->
     smap_Type_Type (resolveType info env closeDatas) ty
+
+  sem _identToBound (env: ResolveLangEnv) info =
+  | ident ->
+    match mapLookup ident env.prodFields with Some fields then
+      Some {lower = fields, upper = None ()}
+    else match mapLookup (nameRemoveSym ident) env.sumFields with Some fields then
+      Some {lower = setEmpty nameCmp, upper = Some fields}
+    else
+      None ()
+  
+  sem _negate =
+  | kindMap ->
+    let f = lam bounds. 
+      match bounds.upper with Some upper then 
+        {lower = upper, upper = Some bounds.lower}
+      else 
+        {lower = setEmpty nameCmp, upper = Some bounds.lower}
+    in 
+    mapMap f kindMap
 end
 
 lang SubstituteUnknown = UnknownTypeAst + ConTypeAst + AliasTypeAst

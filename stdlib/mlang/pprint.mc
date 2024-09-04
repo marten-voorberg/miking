@@ -49,9 +49,10 @@ lang QualifiedNamePrettyPrint = MExprPrettyPrint + QualifiedTypeAst +
                                 MLangIdentifierPrettyPrint                        
   sem getTypeStringCode (indent : Int) (env : PprintEnv) =
   | TyQualifiedName t -> 
+    let prefix = if t.pos then "< " else "> " in 
     match pprintLangName env t.lhs with (env, lhs) in
     match pprintTypeName env t.rhs with (env, rhs) in
-    (env, join [lhs, "::", rhs])                        
+    (env, join [prefix, lhs, "::", rhs])                        
 end
 
 
