@@ -300,13 +300,9 @@ lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + PrettyPrint
           switch ty
           case TyAlias x then
             let acc = {acc with aliases = mapInsert x.display x.content acc.aliases} in
-            printLn "case 1";
-            printLn (type2str x.content);
             let acc = collectAliasesAndKinds acc x.display in 
             collectAliasesAndKinds acc x.content
           case TyMetaVar x then
-            printLn "case 2";
-            printLn ("now here...");
             switch deref x.contents
             case Unbound u then
               let acc = {acc with kinds = mapInsert u.ident u.kind acc.kinds} in
@@ -315,17 +311,10 @@ lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + PrettyPrint
               collectAliasesAndKinds acc ty
             end
           case TyExtRec ty then 
-            printLn "case 4";
-            printLn (type2str ty.ty);
             collectAliasesAndKinds acc ty.ty
           case TyVar t then
-            printLn "case 5";
-            printLn "This would be weird";
             acc
           case other then 
-            printLn "case 3";
-            print "\t";
-            printLn (type2str other);
             sfold_Type_Type collectAliasesAndKinds acc ty
           end
     in
@@ -651,7 +640,7 @@ let _computeUniverse : TCEnv -> Name -> Map Name (Set Name) =
 -- with something which also performs a proper kind check.
 lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
   UnknownTypeAst + DataTypeAst + DataKindAst + FunTypeAst + VarTypeSubstitute + 
-  AppTypeUtils + QualifiedTypeAst + ExtRecordTypeAst
+  AppTypeUtils + QualifiedTypeAst + ExtRecordTypeAst + MExprPrettyPrint
   sem resolveType : Info -> TCEnv -> Bool -> Type -> Type
   sem resolveType info env closeDatas =
   | (TyCon _ | TyApp _) & ty ->
@@ -728,9 +717,19 @@ lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
       in 
       let kindMap = setFold folder (mapEmpty nameCmp) tydeps in
 
+      let kind = Data {types = kindMap} in 
+      printLn "Before negation";
+      print (type2str ty);
+      print "\t";
+      printLn (kind2str kind);
+
       let kindMap = if t.pos then kindMap else _negate kindMap in 
 
+      printLn "After negation";
       let kind = Data {types = kindMap} in 
+      print (type2str ty);
+      print "\t";
+      printLn (kind2str kind);
       let tyvar = newnmetavar "ss" kind tcEnv.currentLvl t.info in 
 
       let newTy = match mapLookup (nameRemoveSym t.rhs) env.prodFields with Some _
@@ -756,12 +755,15 @@ lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
       None ()
   
   sem _negate =
-  | kindMap ->
+  | kindMap -> 
     let f = lam bounds. 
-      match bounds.upper with Some upper then 
-        {lower = upper, upper = Some bounds.lower}
+      let newUpper = (if setIsEmpty bounds.lower 
+                      then None () 
+                      else Some bounds.lower) in 
+      match bounds.upper with Some newLower then 
+        {lower = newLower, upper = newUpper}
       else 
-        {lower = setEmpty nameCmp, upper = Some bounds.lower}
+        {lower = setEmpty nameCmp, upper = newUpper}
     in 
     mapMap f kindMap
 end
