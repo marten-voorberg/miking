@@ -305,6 +305,7 @@ lang OCamlPrettyPrint =
   | CBootParserGetListLength _ -> intrinsicOpBootparser "getListLength"
   | CBootParserGetConst _ -> intrinsicOpBootparser "getConst"
   | CBootParserGetPat _ -> intrinsicOpBootparser "getPat"
+  | CBootParserGetCopat _ -> intrinsicOpBootparser "getCopat"
   | CBootParserGetInfo _ -> intrinsicOpBootparser "getInfo"
 
   sem collectTopNames =

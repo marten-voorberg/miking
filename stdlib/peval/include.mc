@@ -144,6 +144,7 @@ let builtinsMapping = mapFromSeq cmpString [
     ("bootParserGetListLength", "BootParserAst_CBootParserGetListLength"),
     ("bootParserGetConst", "BootParserAst_CBootParserGetConst"),
     ("bootParserGetPat", "BootParserAst_CBootParserGetPat"),
+    ("bootParserGetCopat", "BootParserAst_CBootParserGetCopat"),
     ("bootParserGetInfo", "BootParserAst_CBootParserGetInfo")
 ]
 

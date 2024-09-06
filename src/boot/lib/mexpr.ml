@@ -471,6 +471,9 @@ let getData = function
       (idPatOr, [fi], [], [], [], [], [], [], [], [p1; p2], [], [], [])
   | PTreePat (PatNot (fi, p)) ->
       (idPatNot, [fi], [], [], [], [], [], [], [], [p], [], [], [])
+  (* Copatterns *)
+  | PTreeCopat (CopatRecord (fi, strs)) ->
+      (idRecordCopat, [fi], [List.length strs], [], [], strs, [], [], [], [], [], [], [])
   (* MLang *)
   | PTreeProgram (Program (includes, tops, expr)) ->
       let includeStrings =
@@ -1231,6 +1234,10 @@ let arity = function
   | CbootParserGetPat None ->
       2
   | CbootParserGetPat (Some _) ->
+      1
+  | CbootParserGetCopat None ->
+      2
+  | CbootParserGetCopat (Some _) ->
       1
   | CbootParserGetInfo None ->
       2
@@ -2595,6 +2602,13 @@ and delta (apply : info -> tm -> tm -> tm) fi c v =
     , TmConst (_, CInt n) ) ->
       TmConst (fi, CbootParserTree (getPat ptree n))
   | CbootParserGetPat (Some _), _ ->
+      fail_constapp fi
+  | CbootParserGetCopat None, t ->
+      TmConst (fi, CbootParserGetCopat (Some t))
+  | ( CbootParserGetCopat (Some (TmConst (fi, CbootParserTree ptree)))
+    , TmConst (_, CInt n) ) ->
+      TmConst (fi, CbootParserTree (getCopat ptree n))
+  | CbootParserGetCopat (Some _), _ ->
       fail_constapp fi
   | CbootParserGetInfo None, t ->
       TmConst (fi, CbootParserGetInfo (Some t))

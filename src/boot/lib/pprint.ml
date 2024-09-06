@@ -561,6 +561,8 @@ let rec print_const fmt = function
       fprintf fmt "bootParserParseGetConst"
   | CbootParserGetPat _ ->
       fprintf fmt "bootParserParseGetPat"
+  | CbootParserGetCopat _ ->
+    fprintf fmt "bootParserParseGetCopat"
   | CbootParserGetInfo _ ->
       fprintf fmt "bootParserParseGetInfo"
   (* Python intrinsics *)

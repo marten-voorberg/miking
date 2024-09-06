@@ -231,6 +231,7 @@ lang BootParserArity = ConstArity + BootParserAst
   | CBootParserGetListLength _ -> 2
   | CBootParserGetConst _ -> 2
   | CBootParserGetPat _ -> 2
+  | CBootParserGetCopat _ -> 2
   | CBootParserGetInfo _ -> 2
 end
 

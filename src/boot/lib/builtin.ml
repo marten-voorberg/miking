@@ -156,6 +156,7 @@ let builtin =
   ; ("bootParserGetListLength", f (CbootParserGetListLength None))
   ; ("bootParserGetConst", f (CbootParserGetConst None))
   ; ("bootParserGetPat", f (CbootParserGetPat None))
+  ; ("bootParserGetCopat", f (CbootParserGetCopat None))
   ; ("bootParserGetInfo", f (CbootParserGetInfo None)) ]
   (* Append python intrinsics *)
   @ Pyffi.externals

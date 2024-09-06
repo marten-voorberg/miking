@@ -247,6 +247,7 @@ lang BootParserDep = ConstDep + BootParserAst
   | CBootParserGetListLength _ -> []
   | CBootParserGetConst _ -> []
   | CBootParserGetPat _ -> []
+  | CBootParserGetCopat _ -> []
   | CBootParserGetInfo _ -> []
 end
 

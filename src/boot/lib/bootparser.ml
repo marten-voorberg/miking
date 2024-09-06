@@ -27,6 +27,8 @@ let getConst = Mexpr.getConst
 
 let getPat = Mexpr.getPat
 
+let getCopat = Mexpr.getCopat
+
 let getInfo = Mexpr.getInfo
 
 let parseMExprString = Mexpr.parseMExprString

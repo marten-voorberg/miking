@@ -295,6 +295,7 @@ lang BootParserTypeAst = TyConst + BootParserAst
   | CBootParserGetListLength _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, tyint_])
   | CBootParserGetConst _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, b])
   | CBootParserGetPat _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, b])
+  | CBootParserGetCopat _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, b])
   | CBootParserGetInfo _ -> mktybootparsetree_ d (lam b. tyarrows_ [b, tyint_, b])
 end
 

@@ -137,6 +137,7 @@ let builtin = use MExprAst in
   , ("bootParserGetListLength", CBootParserGetListLength ())
   , ("bootParserGetConst", CBootParserGetConst ())
   , ("bootParserGetPat", CBootParserGetPat ())
+  , ("bootParserGetCopat", CBootParserGetCopat ())
   , ("bootParserGetInfo", CBootParserGetInfo ())
   ]
 

@@ -98,6 +98,7 @@ lang ConstSideEffect = ConstSideEffectBase + MExprAst
   | CBootParserGetId _ | CBootParserGetTerm _ | CBootParserGetType _
   | CBootParserGetString _ | CBootParserGetInt _ | CBootParserGetFloat _
   | CBootParserGetListLength _ | CBootParserGetConst _ | CBootParserGetPat _
+  | CBootParserGetCopat _ 
   | CBootParserGetInfo _ -> true
 end
 

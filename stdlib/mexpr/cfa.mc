@@ -1578,6 +1578,7 @@ lang BootParserCFA = CFA + ConstCFA + BootParserAst
   | CBootParserGetListLength _ -> graph
   | CBootParserGetConst _ -> graph
   | CBootParserGetPat _ -> graph
+  | CBootParserGetCopat _ -> graph
   | CBootParserGetInfo _ -> graph
 end
 

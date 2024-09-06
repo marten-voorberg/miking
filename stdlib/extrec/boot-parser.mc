@@ -11,6 +11,8 @@ include "name.mc"
 include "ast.mc"
 include "ast-builder.mc"
 
+let gcopat = lam tree. lam i. bootParserGetCopat tree i 
+
 lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordTypeAst
   sem matchTerm t = 
   | 117 -> 
@@ -101,8 +103,7 @@ lang CosemBootParser = BootParserMLang + RecordCopatAst + CosemDeclAst
       {ident = gname d (addi 1 i), tyAnnot = gtype d i} in 
     let args = map parseArg (range 0 nArgs 1) in 
 
-    let parseCase = lam i.
-      (RecordCopat {info = NoInfo (), fields = []}, gterm d i) in 
+    let parseCase = lam i. (gcopat d i, gterm d i) in 
     let cases = map parseCase (range 0 nCases 1) in 
 
     DeclCosem {info = ginfo d 0,
@@ -111,6 +112,11 @@ lang CosemBootParser = BootParserMLang + RecordCopatAst + CosemDeclAst
                cases = cases,
                isBase = isBase,
                includes = []}
+
+  sem gcopat c =
+  | n -> let c2 = bootParserGetCopat c n in
+         matchCopat c2 (bootParserGetId c2)
+
   sem matchCopat c = 
   | 800 -> 
     let n = glistlen c 0 in 

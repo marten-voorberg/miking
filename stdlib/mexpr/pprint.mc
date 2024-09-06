@@ -909,6 +909,7 @@ lang BootParserPrettyPrint = BootParserAst + ConstPrettyPrint
   | CBootParserGetListLength _ -> "bootParserGetListLength"
   | CBootParserGetConst _ -> "bootParserGetConst"
   | CBootParserGetPat _ -> "bootParserGetPat"
+  | CBootParserGetCopat _ -> "bootParserGetCopat"
   | CBootParserGetInfo _ -> "bootParserGetInfo"
 end
 

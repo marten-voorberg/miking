@@ -222,6 +222,7 @@ and const =
   | CbootParserGetListLength of tm option
   | CbootParserGetConst of tm option
   | CbootParserGetPat of tm option
+  | CbootParserGetCopat of tm option
   | CbootParserGetInfo of tm option
   (* External functions *)
   | CPy of tm Pyast.ext
@@ -954,6 +955,7 @@ let const_has_side_effect = function
   | CbootParserGetListLength _
   | CbootParserGetConst _
   | CbootParserGetPat _
+  | CbootParserGetCopat _
   | CbootParserGetInfo _ ->
       true
   (* External functions *)
