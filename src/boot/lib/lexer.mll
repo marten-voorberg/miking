@@ -33,8 +33,9 @@ let reserved_strings = [
   ("in",            fun(i) -> Parser.IN{i=i;v=()});
   ("end",           fun(i) -> Parser.END{i=i;v=()});
   ("syn",           fun(i) -> Parser.SYN{i=i;v=()});
-  ("cosyn",           fun(i) -> Parser.COSYN{i=i;v=()});
+  ("cosyn",         fun(i) -> Parser.COSYN{i=i;v=()});
   ("sem",           fun(i) -> Parser.SEM{i=i;v=()});
+  ("cosem",         fun(i) -> Parser.COSEM{i=i;v=()});
   ("use",           fun(i) -> Parser.USE{i=i;v=()});
   ("mexpr",         fun(i) -> Parser.MEXPR{i=i;v=()});
   ("include",       fun(i) -> Parser.INCLUDE{i=i;v=()});
@@ -85,7 +86,7 @@ let reserved_strings = [
   ("!",             fun(i) -> Parser.NOT{i=i;v=()});
   ("_",             fun(i) -> Parser.UNDERSCORE{i=i;v=()});
   ("->",            fun(i) -> Parser.ARROW{i=i;v=()});
-  ("=>",            fun(i) -> Parser.DARROW{i=i;v=()});
+  ("<-",            fun(i) -> Parser.LARROW{i=i;v=()});
   (">",             fun(i) -> Parser.GREATER{i=i;v=()});
   ("<",             fun(i) -> Parser.LESS{i=i;v=()});
 ]
@@ -179,7 +180,7 @@ let ident = ('_'| lcase_letter) (digit | '_' | us_letter)*
 let uident = ucase_letter (digit | '_' | us_letter)*
 
 let symtok =  "="  | "+" |  "-" | "*"  | "/" | "%"  | "<"  | "<=" | ">" | ">=" | "<<" | ">>" | ">>>" | "==" |
-              "!=" | "!" | "&&" | "||" | "++"| "$" | "("  | ")"  | "["  | "]" | "{"  | "}"  |
+              "!=" | "!" | "&&" | "||" | "++"| "$" | "("  | ")"  | "["  | "]" | "{"  | "}"  | "<-" |
               "::" | ":" | ","  | ";"  | "."  | "&" | "|" | "->" | "=>" | "++" | "+=" | "*="
 
 let line_comment = "--" [^ '\013' '\010']*

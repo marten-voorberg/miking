@@ -77,6 +77,7 @@ end
 lang CosynBootParser = BootParserMLang + CosynDeclAst
   sem matchDecl d =
   | 714 ->
+    printLn "parsing here!??";
     let n = glistlen d 0 in 
     let isBase = eqi (glistlen d 1) 0 in
     let params = map (lam i. gname d (addi i 1)) (range 0 n 1) in 
@@ -88,10 +89,39 @@ lang CosynBootParser = BootParserMLang + CosynDeclAst
                includes = []}
 end
 
-lang MyPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint + DeclCosynPrettyPrint
+lang CosemBootParser = BootParserMLang + RecordCopatAst + CosemDeclAst
+  sem matchDecl d =
+  | 715 ->
+    printLn "parsing here!";
+    let nArgs = glistlen d 0 in 
+    let nCases = glistlen d 1 in 
+    let isBase = eqi (glistlen d 2) 0 in 
+
+    let parseArg = lam i.
+      {ident = gname d (addi 1 i), tyAnnot = gtype d i} in 
+    let args = map parseArg (range 0 nArgs 1) in 
+
+    let parseCase = lam i.
+      (RecordCopat {info = NoInfo (), fields = []}, gterm d i) in 
+    let cases = map parseCase (range 0 nCases 1) in 
+
+    DeclCosem {info = ginfo d 0,
+               ident = gname d 0,
+               args = args,
+               cases = cases,
+               isBase = isBase,
+               includes = []}
+  sem matchCopat c = 
+  | 800 -> 
+    let n = glistlen c 0 in 
+    RecordCopat {info = ginfo c 0,
+                 fields = map (gstr c) (range 0 n 1)}
+end 
+
+lang MyPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint + DeclCosynPrettyPrint + DeclCosemPrettyPrint
 end
 
-lang MyBigBootParserForTesting = ExtRecBootParser + CosynBootParser end
+lang MyBigBootParserForTesting = ExtRecBootParser + CosynBootParser + CosemBootParser end
 
 mexpr
 use MyBigBootParserForTesting in 
@@ -123,5 +153,15 @@ let str = strJoin "\n" [
 let p = parseProgram str in 
 printLn (mlang2str p) ;
 
+-- Test syn product extension
+let str = strJoin "\n" [
+  "lang L1",
+  "  cosyn Env a = {x : a}",
+  "  cosem makeEnv param =",
+  "  | {x} <- {x = 10}",
+  "end"
+] in
+let p = parseProgram str in 
+printLn (mlang2str p) ;
 
 ()

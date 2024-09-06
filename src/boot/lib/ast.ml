@@ -237,6 +237,7 @@ and ptree =
   | PTreeProgram of program
   | PTreeTop of top
   | PTreeDecl of decl
+  | PTreeCopat of copat
 
 (* Terms in MLang *)
 and cdecl =
@@ -261,6 +262,7 @@ and decl =
   (* The fields in order represent 
      Info, identifier, param list, type, isBase *)
   | Cosyn of info * ustring * ustring list * ty * bool
+  | Cosem of info * ustring * param list * (copat * tm) list * bool
 
 and with_kind = WithType | WithValue
 
@@ -389,6 +391,10 @@ and pat =
   | PatOr of info * pat * pat
   (* Not pattern *)
   | PatNot of info * pat
+
+(* Copatterns *)
+and copat =
+  | CopatRecord of info * ustring list
 
 (* Types *)
 (* NOTE(aathn, 2022-06-10): Types are not symbolized in boot *)

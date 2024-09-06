@@ -70,6 +70,7 @@
 %token <unit Ast.tokendata> SYN
 %token <unit Ast.tokendata> COSYN
 %token <unit Ast.tokendata> SEM
+%token <unit Ast.tokendata> COSEM
 %token <unit Ast.tokendata> USE
 %token <unit Ast.tokendata> MEXPR
 %token <unit Ast.tokendata> INCLUDE
@@ -102,7 +103,7 @@
 %token <unit Ast.tokendata> PLUSEQ        /* "+="   */
 %token <unit Ast.tokendata> TIMESEQ       /* "*="   */
 %token <unit Ast.tokendata> ARROW         /* "->"  */
-%token <unit Ast.tokendata> DARROW        /* "=>"  */
+%token <unit Ast.tokendata> LARROW         /* "<-"  */
 %token <unit Ast.tokendata> ADD           /* "+"   */
 
 
@@ -296,10 +297,13 @@ decls:
   |
     { [] }
 decl:
-  // Cosyn base definition
+  // Cosyn definition
   | COSYN type_ident type_params cosyn_symbol ty
     { let fi = mkinfo $1.i (ty_info $5) in 
       Cosyn (fi, $2.v, $3, $5, $4)}
+  // Cosem definition
+  | COSEM var_ident params EQ cosem_cases
+    { Cosem (mkinfo $1.i $4.i, $2.v, $3, $5, true)}
   // Syn base definition
   | SYN type_ident type_params EQ constrs
     { let fi = mkinfo $1.i $4.i in
@@ -357,6 +361,16 @@ params:
       Param (fi, $1.v, TyUnknown fi) :: $2 }
   |
     { [] }
+
+cosem_cases: 
+  | cosem_case cosem_cases
+    { $1 :: $2 }
+  | 
+    { [] }
+
+cosem_case:
+  | BAR copat LARROW mexpr
+    { ($2, $4) }
 
 cases:
   | case cases
@@ -563,6 +577,11 @@ name:
     { ($1.i, NameStr($1.v,Symb.Helpers.nosym)) }
   | UNDERSCORE
     { ($1.i, NameWildcard) }
+
+copat: 
+  | LBRACKET separated_list(COMMA, var_ident) RBRACKET 
+    { CopatRecord (mkinfo $1.i $3.i, List.map (fun x -> x.v) $2) }
+
 
 pat:
   | pat_conj BAR pat

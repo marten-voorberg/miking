@@ -125,6 +125,34 @@ lang DeclCosynPrettyPrint = DeclPrettyPrint + CosynDeclAst
     (env, join ["cosyn ", typeNameStr, params, eqSym, typeStr])
 end
 
+lang CopatPrettyPrint = CopatAst
+  sem geCopatStringCode indent env = 
+end
+
+lang RecordCopatPrettyPrint = RecordCopatAst + CopatPrettyPrint 
+  sem getCopatStringCode indent env = 
+  | RecordCopat c ->
+    (env, join ["{ ", (strJoin ", " c.fields), " }"])
+end
+
+lang DeclCosemPrettyPrint = DeclPrettyPrint + CosemDeclAst + RecordCopatPrettyPrint
+  sem pprintDeclCode indent env = 
+  | DeclCosem t -> 
+    match pprintVarName env t.ident with (env, ident) in
+    let eqSym = if t.isBase then " = " else " *= " in 
+
+    let pprintCase = lam env. lam cs. 
+      match cs with (copat, tm) in 
+      match getCopatStringCode indent env copat with (env, copat) in 
+      match pprintCode (pprintIncr indent) env tm with (env, tm) in 
+      (env, join [pprintSpacing indent, "| ", copat, " <- ", "\n", 
+                  pprintSpacing (pprintIncr indent), tm]) in 
+    match mapAccumL pprintCase env t.cases with (env, str) in 
+    let str = strJoin "\n" str in 
+
+    (env, join ["cosyn ", ident, eqSym, "\n", str])
+end
+
 lang TypeAbsPrettyPrint = PrettyPrint + TypeAbsAst
   sem getTypeStringCode indent env =
   | TyAbs t -> 

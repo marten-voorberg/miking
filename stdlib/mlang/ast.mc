@@ -339,6 +339,36 @@ lang CosynDeclAst = DeclAst + Ast
                includes : [(String, String)]}
 end
 
+lang CopatAst
+  syn Copat = 
+
+  sem copatInfo =
+
+  sem copatWithInfo info =
+end
+
+lang RecordCopatAst = CopatAst
+  syn Copat =
+  | RecordCopat {info : Info, 
+                 fields : [String]}
+
+  sem copatInfo =
+  | RecordCopat c -> c.info
+
+  sem copatWithInfo info =
+  | RecordCopat c -> {RecordCopat c with info = info}
+end 
+
+lang CosemDeclAst = DeclAst + CopatAst + Ast
+  syn Decl = 
+  | DeclCosem {info : Info, 
+               ident : Name,
+               args : [{ident : Name, tyAnnot : Type}],
+               cases : [(Copat, Expr)],
+               includes : [(String, String)],
+               isBase : Bool}
+end 
+
 lang MLangTopLevel = DeclAst
   type MLangProgram = {
     decls : [Decl],
@@ -364,6 +394,6 @@ lang MLangAst =
   -- Declarations
   + LangDeclAst + SynDeclAst + SemDeclAst + LetDeclAst + TypeDeclAst
   + RecLetsDeclAst + DataDeclAst + UtestDeclAst + ExtDeclAst + IncludeDeclAst
-  + TyUseAst + SynProdExtDeclAst + CosynDeclAst
+  + TyUseAst + SynProdExtDeclAst + CosynDeclAst + CosemDeclAst
 
 end
