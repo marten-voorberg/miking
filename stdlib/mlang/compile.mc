@@ -39,6 +39,7 @@ include "option.mc"
 include "map.mc"
 include "bool.mc"
 include "name.mc"
+include "error.mc"
 include "set.mc"
 include "result.mc"
 
@@ -116,6 +117,8 @@ let isTypeDecl = use MLangAst in
   lam d. match d with DeclType _ then true else false
 let isSynDecl = use MLangAst in 
   lam d. match d with DeclSyn _ then true else false
+let isCosynDecl = use MLangAst in 
+  lam d. match d with DeclCosyn _ then true else false
 let isSemDecl = use MLangAst in 
   lam d. match d with DeclSem _ then true else false
 let isProdDecl = use MLangAst in 
@@ -193,13 +196,14 @@ end
 
 lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst + 
                         SynDeclAst + TypeDeclAst + SynProdExtDeclAst + 
-                        ExtRecordAst + ExtRecordTypeAst
+                        ExtRecordAst + ExtRecordTypeAst + CosynDeclAst
   sem compileDecl ctx = 
   | DeclLang l -> 
     let langStr = nameGetStr l.ident in
 
     let typeDecls = filter isTypeDecl l.decls in 
     let synDecls = filter isSynDecl l.decls in 
+    let cosynDecls = filter isCosynDecl l.decls in 
     let semDecls = filter isSemDecl l.decls in 
     let prodDecls = filter isProdDecl l.decls in 
 
@@ -210,6 +214,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
 
     let res = result.foldlM compileDecl ctx typeDecls in 
     let res = result.map (lam ctx. foldl compileSynTypes ctx synDecls) res in 
+    let res = result.map (lam ctx. foldl (compileCosyn langStr) ctx cosynDecls) res in 
     let res = result.map (lam ctx. foldl (compileSynConstructors langStr) ctx synDecls) res in 
     let res = result.map (lam ctx. foldl (compileSynProd langStr) ctx prodDecls) res in 
 
@@ -226,6 +231,37 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     error "Unexpected DeclSyn"
   | DeclSem s -> 
     error "Unexpected DeclSem!"
+
+  sem compileCosyn : String -> CompilationContext -> Decl -> CompilationContext
+  sem compileCosyn langStr ctx = 
+  | DeclCosyn s -> 
+    match mapLookup (langStr, nameGetStr s.ident) ctx.compositionCheckEnv.baseMap 
+    with Some baseIdent in 
+
+    let ctx = if s.isBase 
+              then withExpr ctx (TmRecType {ident = s.ident,
+                                            params = s.params,
+                                            info = s.info,
+                                            ty = tyunknown_,
+                                            inexpr = uunit_}) 
+              else ctx in 
+    
+    let compileField = lam ctx. lam sid. lam ty.
+      let tyIdent = tyarrow_ (ntycon_ baseIdent) ty in  
+      withExpr ctx (TmRecField {label = sidToString sid,
+                                tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
+                                inexpr = uunit_,
+                                ty = tyunknown_,
+                                info = s.info}) in 
+
+    match s.ty with TyRecord rec then
+      mapFoldWithKey compileField ctx rec.fields
+    else
+      errorSingle [s.info] (join [
+        " * A cosyn can only have record types as their type!"
+      ])
+      
+                                        
 
   sem compileSynTypes : CompilationContext -> Decl -> CompilationContext
   sem compileSynTypes ctx =

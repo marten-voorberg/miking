@@ -169,7 +169,7 @@ lang DeclExtSym = DeclSym + ExtDeclAst
 end
 
 lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst + 
-                   SynDeclAst + LetSym + SynProdExtDeclAst
+                   SynDeclAst + LetSym + SynProdExtDeclAst + CosynDeclAst
   sem symbolizeDecl env = 
   | DeclLang t -> 
     -- Symbolize the name of the language
@@ -202,6 +202,9 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     let isTypeDecl = lam d. match d with DeclType _ then true else false in 
     let typeDecls = filter isTypeDecl t.decls in 
 
+    let isCosynDecl = lam d. match d with DeclCosyn _ then true else false in 
+    let cosynDecls = filter isCosynDecl t.decls in  
+
     -- 1. Symbolize ident and params of SynDecls in this langauge
     let symbSynStep1 = lam langEnv : NameEnv. lam synDecl.
       match synDecl with DeclSyn s in
@@ -222,6 +225,27 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
       ({langEnv with tyConEnv = tyConEnv}, synn)
     in
     match mapAccumL symbSynStep1 langEnv synDecls with (langEnv, synDecls) in 
+
+    -- 1.5 Symboilze idents and params of CosynDecls
+    let symbCosynStep1 = lam langEnv : NameEnv. lam synDecl.
+      match synDecl with DeclCosyn s in
+      let env = updateEnv env langEnv in 
+
+      let ident = nameSym (nameGetStr s.ident) in 
+      match mapAccumL setSymbol env.currentEnv.tyVarEnv s.params with (_, params) in
+
+      let synn = DeclCosyn {s with params = params,
+                                   ident = ident} in 
+
+      let tyConEnv = if s.isBase then
+        mapInsert (nameGetStr ident) ident langEnv.tyConEnv
+      else 
+        langEnv.tyConEnv
+      in
+
+      ({langEnv with tyConEnv = tyConEnv}, synn)
+    in
+    match mapAccumL symbCosynStep1 langEnv cosynDecls with (langEnv, cosynDecls) in 
 
     -- 2. Symbolize DeclType, params, and body.
     let symbDeclType = lam langEnv : NameEnv. lam typeDecl. 
@@ -296,6 +320,25 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
       (langEnv, decl)
     in 
     match mapAccumL symbSynConstructors langEnv synDecls with (langEnv, synDecls) in 
+
+    -- 3.25 Symbolize tyident of cosyns
+    let symbCosynStep2 = lam langEnv : NameEnv. lam synDecl.
+      match synDecl with DeclCosyn s in
+      let env = updateEnv env langEnv in 
+
+      -- Add syn params and syn idents to tyVarEnv
+      let paramPairs = map (lam p. (nameGetStr p, p)) s.params in 
+      let paramMap = mapFromSeq cmpString paramPairs in 
+
+      let env = updateEnv env langEnv in 
+      let m = mapUnion env.currentEnv.tyVarEnv paramMap in 
+      let env = symbolizeUpdateTyVarEnv env m in 
+
+      let synn = DeclCosyn {s with ty = symbolizeType env s.ty} in 
+
+      (langEnv, synn)
+    in
+    match mapAccumL symbCosynStep2 langEnv cosynDecls with (langEnv, cosynDecls) in 
 
     -- 3.5 Symbolize product extension
     let symbDef = lam params : [Name]. lam langEnv : NameEnv. lam def : {ident : Name, tyIdent : Type}. 
@@ -378,7 +421,7 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     let semDecls = map (symbSem2 langEnv) semDecls in
 
     let env = {env with langEnv = mapInsert (nameGetStr t.ident) langEnv env.langEnv} in 
-    let t = {t with decls = join [typeDecls, synDecls, semDecls, prodDecls],
+    let t = {t with decls = join [typeDecls, synDecls, cosynDecls, semDecls, prodDecls],
                     includes = includes,
                     ident = ident} in
 

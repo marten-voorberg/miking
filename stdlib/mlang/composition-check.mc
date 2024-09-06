@@ -115,6 +115,8 @@ let insertArgsMap : CompositionCheckEnv -> (String, String) -> Option [Name] -> 
 let insertSemPatMap = lam env. lam k. lam v.
   {env with semPatMap = mapInsert k v env.semPatMap}
 
+-- TODO(voorberg, 09/09/2024): Refactor to avoid code duplication between syn, sem and cosyn. 
+-- E.g. checking the params and base is identical for cosyn and syn.
 lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrettyPrint
   syn CompositionError =
   | DifferentBaseSyn {
@@ -231,6 +233,8 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
     _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr, validateStrictSumExtension]
   | SynDeclProdExt s & d ->
     validateSynSemBase langStr env d
+  | DeclCosyn _ & d -> 
+    _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr]
   | other -> result.ok env
 
   sem validateSynSemParams : String ->
@@ -238,6 +242,28 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
                              Decl -> 
                              Result CompositionWarning CompositionError CompositionCheckEnv
   sem validateSynSemParams langStr env = 
+  | DeclCosyn s ->  
+    let str = nameGetStr s.ident in 
+    let paramNum = length s.params in 
+
+    match s.includes with [] then 
+      result.ok (insertParamMap env (langStr, str) paramNum)
+    else 
+      let paramNum = length s.params in 
+
+      let includeList = map 
+        (lam incl. match mapLookup incl env.paramMap with Some b in b) 
+        s.includes in 
+      let includeSet = setOfSeq subi includeList in 
+      let includeSet = setInsert paramNum includeSet in 
+
+      if eqi 1 (setSize includeSet) then
+        result.ok (insertParamMap env (langStr, str) paramNum)
+      else
+        result.err (MismatchedSynParams {
+          synIdent = s.ident,
+          info = s.info
+        })
   | DeclSyn s -> 
     let str = nameGetStr s.ident in 
     let paramNum = length s.params in 
@@ -289,6 +315,24 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
                            Decl -> 
                            Result CompositionWarning CompositionError CompositionCheckEnv
   sem validateSynSemBase langStr env =
+  | DeclCosyn s -> 
+    let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair} in
+
+    match s.includes with [] then 
+      result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident s.ident)
+    else 
+      let includeList = map 
+        (lam incl. match mapLookup incl env.baseMap with Some b in b) 
+        s.includes in 
+      let includeSet = setOfSeq nameCmp includeList in 
+
+      if eqi 1 (setSize includeSet) then
+        result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident (head includeList))
+      else
+        result.err (DifferentBaseSyn {
+          synIdent = s.ident,
+          info = s.info
+        })
   | DeclSyn s -> 
     let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair} in
 

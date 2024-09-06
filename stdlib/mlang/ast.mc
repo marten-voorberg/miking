@@ -329,6 +329,15 @@ lang IncludeDeclAst = DeclAst
   | DeclInclude d -> d.info
 end
 
+lang CosynDeclAst = DeclAst + Ast
+  syn Decl = 
+  | DeclCosyn {info : Info,
+               ident : Name,
+               params : [Name],
+               isBase : Bool,
+               ty : Type,
+               includes : [(String, String)]}
+end
 
 lang MLangTopLevel = DeclAst
   type MLangProgram = {
@@ -355,6 +364,6 @@ lang MLangAst =
   -- Declarations
   + LangDeclAst + SynDeclAst + SemDeclAst + LetDeclAst + TypeDeclAst
   + RecLetsDeclAst + DataDeclAst + UtestDeclAst + ExtDeclAst + IncludeDeclAst
-  + TyUseAst + SynProdExtDeclAst
+  + TyUseAst + SynProdExtDeclAst + CosynDeclAst
 
 end

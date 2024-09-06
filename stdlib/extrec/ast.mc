@@ -18,16 +18,6 @@ lang RecFieldDeclAst = DeclAst + Ast
                   tyLabel : Type}
 end
 
-lang CosynDeclAst = DeclAst + Ast
-  syn Decl = 
-  | DeclCosyn {info : Info,
-               ident : Name,
-               params : [Name],
-               isBase : Bool,
-               ty : Type,
-               includes : [(String, String)]}
-end
-
 
 lang ExtRecordAst = Ast
   syn Expr = 
