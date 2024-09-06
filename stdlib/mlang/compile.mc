@@ -58,8 +58,15 @@ type CompilationContext = use MLangAst in {
 
   baseToCons : Map Name (Set Name),
 
-  baseMap : Map Name Name
+  baseMap : Map Name Name,
+
+  globalFields : Map Name Type
 }
+
+let mergeRecordTypes = lam l. lam r. 
+  use RecordTypeAst in 
+  match (l, r) with (TyRecord left, TyRecord right) in 
+  TyRecord {left with fields = mapUnion left.fields right.fields}
 
 let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam env : CompositionCheckEnv. {
   exprs = [],
@@ -68,7 +75,8 @@ let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam e
   conToExtType = mapEmpty nameCmp,
   allBaseSyns = setEmpty nameCmp,
   baseToCons = mapEmpty nameCmp,
-  baseMap = mapEmpty nameCmp
+  baseMap = mapEmpty nameCmp,
+  globalFields = mapEmpty nameCmp
 }
 
 let mapParamIdent = nameNoSym "m"
@@ -261,7 +269,11 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let forallWrapper = makeForallWrapper params in 
     let tyconApp = foldl (lam acc. lam n. tyapp_ acc (ntyvar_ n)) (ntycon_ baseIdent) params in 
     let compileDef = lam ctx. lam def : {ident : Name, tyIdent : Type}.
-      match def.tyIdent with TyRecord rec then
+      match def.tyIdent with TyRecord _ then
+        let tyIdent = mergeRecordTypes 
+          def.tyIdent
+          (mapLookupOrElse (lam. tyrecord_ []) baseIdent ctx.globalFields) in 
+        match tyIdent with TyRecord rec in 
         -- TODO: Determine the proper symbol for this type.
         let recIdent = nameNoSym (concat (nameGetStr def.ident) "Type") in
         -- let recIdent = nameSym (concat (nameGetStr def.ident) "Type") in 
@@ -352,7 +364,13 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
         mapFoldWithKey work ctx rec.fields
       in 
 
-      setFold compileGlobalExt ctx relevantCons
+      let ctx = setFold compileGlobalExt ctx relevantCons in 
+
+      let newGlobalExt = mergeRecordTypes 
+        (mapLookupOrElse (lam. tyrecord_ []) baseIdent ctx.globalFields)
+        globalExt in 
+
+      {ctx with globalFields = mapInsert baseIdent newGlobalExt ctx.globalFields}
     else 
       ctx
 
