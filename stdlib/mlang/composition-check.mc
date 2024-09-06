@@ -229,6 +229,8 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
     _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr, validateStrictSumExtension, validateSemCaseOrdering langStr]
   | DeclSyn s & d ->
     _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr, validateStrictSumExtension]
+  | SynDeclProdExt s & d ->
+    validateSynSemBase langStr env d
   | other -> result.ok env
 
   sem validateSynSemParams : String ->
@@ -290,6 +292,24 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
   | DeclSyn s -> 
     let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair} in
 
+
+    match s.includes with [] then 
+      result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident s.ident)
+    else 
+      let includeList = map 
+        (lam incl. match mapLookup incl env.baseMap with Some b in b) 
+        s.includes in 
+      let includeSet = setOfSeq nameCmp includeList in 
+
+      if eqi 1 (setSize includeSet) then
+        result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident (head includeList))
+      else
+        result.err (DifferentBaseSyn {
+          synIdent = s.ident,
+          info = s.info
+        })
+  | SynDeclProdExt s ->
+    let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair} in
 
     match s.includes with [] then 
       result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident s.ident)

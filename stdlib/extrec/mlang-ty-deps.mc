@@ -11,10 +11,16 @@ include "set.mc"
 include "tuple.mc"
 include "ast.mc"
 
+type GlobalExtInfo = use MLangAst in {
+  ty : Type,
+  excludedCons : Set Name 
+}
+
 type MLangTyDepsEnv = {
   depGraph : DependencyGraph,
   allBaseSyns : Set Name,
   allSynTypes : Set Name,
+  globalExtMap : Map Name [GlobalExtInfo],
   baseMap : Map Name Name
 }
 
@@ -35,6 +41,18 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
     let typeIdents = map (lam def. nameNoSym (concat (nameGetStr def.ident) "Type")) d.defs in 
 
     {env with allSynTypes = foldr setInsert env.allSynTypes typeIdents}
+  | SynDeclProdExt d -> 
+    match d.globalExt with Some globalExt then 
+      match mapLookup d.ident env.baseMap with Some baseIdent in 
+
+      let excludedCons = setOfSeq nameCmp (map (lam e. e.ident) d.individualExts) in 
+
+      let oldList = mapLookupOr [] baseIdent env.globalExtMap in 
+      let newList = cons {ty = globalExt, excludedCons = excludedCons} oldList in 
+
+      {env with globalExtMap = mapInsert baseIdent newList env.globalExtMap}
+    else 
+      env
 
   sem _gatherDeps : MLangTyDepsEnv -> Set Name -> Type -> Set Name
   sem _gatherDeps env acc = 
@@ -46,11 +64,18 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
   | ty -> 
     sfold_Type_Type (_gatherDeps env) acc ty
 
-  sem _handleDef : MLangTyDepsEnv -> {ident : Name, tyIdent : Type} -> MLangTyDepsEnv 
-  sem _handleDef env = 
+  sem _handleDef : MLangTyDepsEnv -> [Type] -> {ident : Name, tyIdent : Type} -> MLangTyDepsEnv 
+  sem _handleDef env exts = 
   | {ident = ident, tyIdent = tyIdent} -> 
+    let mergeTy = lam l. lam r.
+      match l with TyRecord leftRec in 
+      match r with TyRecord rightRec in 
+      TyRecord {leftRec with fields = mapUnion leftRec.fields rightRec.fields}
+    in 
+    let ty = foldl mergeTy tyIdent exts in 
+
     let ident = nameNoSym (concat (nameGetStr ident) "Type") in 
-    let deps = _gatherDeps env (setEmpty nameCmp) tyIdent in 
+    let deps = _gatherDeps env (setEmpty nameCmp) ty in 
 
     {env with depGraph = setFold (lam g. lam dep. digraphMaybeAddEdge ident dep () g) env.depGraph deps}
 
@@ -66,11 +91,18 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
     let work = lam g. lam tyIdent. digraphMaybeAddEdge baseIdent tyIdent () g in 
     let env = {env with depGraph = foldl work env.depGraph typeIdents} in 
 
-    let env = foldl _handleDef env d.defs in 
+    let exts = match mapLookup baseIdent env.globalExtMap with Some extensions
+      then extensions
+      else [] 
+    in 
 
-    env
+    let def2ext = lam d.
+      mapOption (lam ext. if not (setMem d.ident ext.excludedCons) then Some (d.tyIdent) else None ()) exts
+    in
+
+    foldl (lam env. lam d. _handleDef env (def2ext d) d) env d.defs 
   | SynDeclProdExt d -> 
-    foldl _handleDef env d.individualExts 
+    foldl (lam env. lam d. _handleDef env [] d) env d.individualExts 
   | _ -> env
 
   sem _updateTyDeps : DependencyGraph -> TyDeps -> Name -> TyDeps
@@ -91,6 +123,7 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
     let env = {baseMap = baseMap, 
                allSynTypes = setEmpty nameCmp,
                allBaseSyns = setEmpty nameCmp,
+               globalExtMap = mapEmpty nameCmp,
                depGraph = digraphEmpty nameCmp (lam. lam. true)} in 
 
     let env = foldl _collectNames env decls in 

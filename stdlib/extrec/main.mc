@@ -103,6 +103,7 @@ lang BigPipeline = BigIncludeHandler +
     -- printLn (mlang2str p);
 
     let compilationCtx = _emptyCompilationContext compositionCheckEnv in 
+    let compilationCtx = {compilationCtx with baseMap = compositionCheckEnv.baseMap2} in 
     let res = result.consume (compile compilationCtx p) in 
 
     match res with (_, Right expr) in 

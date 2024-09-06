@@ -70,6 +70,9 @@ con SynInfo : use MLangAst in {ident : Name,
                                info : Info,
                                orig : String,
                                params : [Name]} -> DeclInfo
+con ProdInfo : use MLangAst in {ident : Name,
+                               info : Info,
+                               orig : String} -> DeclInfo
 
 let decl2info = lam orig. lam d.
   use MLangAst in 
@@ -86,11 +89,16 @@ let decl2info = lam orig. lam d.
     case DeclType t then TypeInfo {ident = t.ident,
                                    orig = orig,
                                    info = t.info}     
+    case SynDeclProdExt d then ProdInfo {ident = d.ident,
+                                        info = d.info,
+                                        orig = orig}
   end                     
 
 let isTypeInfo = lam i. match i with TypeInfo _ then true else false
 let isSemInfo = lam i. match i with SemInfo _ then true else false
 let isSynInfo = lam i. match i with SynInfo _ then true else false
+let isProdInfo = lam i. match i with ProdInfo _ then true else false
+
 
 let extractInfoName : DeclInfo -> (Info, String) = lam info.
   switch info 
@@ -133,6 +141,7 @@ lang LanguageComposer = MLangAst
     let synOrSemNames = mapOption 
       (lam d. match d with DeclSem {ident = ident} then Some ident 
               else match d with DeclSyn {ident = ident} then Some ident
+              else match d with SynDeclProdExt {ident = ident} then Some ident
               else None ()) decls in 
     let synOrSemStrings = map nameGetStr synOrSemNames in 
 
@@ -180,6 +189,25 @@ lang LanguageComposer = MLangAst
       let info = {ident = d.ident, info = d.info} in 
       (ctxWithDeclInfo ctx (langStr, nameGetStr d.ident) (decl2info langStr decl), 
        DeclSyn {d with includes = includes})
+  | decl & SynDeclProdExt d ->
+    let identStr = nameGetStr d.ident in 
+    let findMatchingInfo : String -> Option DeclInfo = lam incl.
+      mapLookup (incl, identStr) ctx.langMap in 
+    let foundIncludes : [DeclInfo] = mapOption findMatchingInfo includes in 
+    
+    let conflicts = filter isTypeInfo foundIncludes in 
+
+    let errors = cons (d.info, nameGetStr d.ident) (map extractInfoName conflicts) in 
+
+    if not (null conflicts) then
+      errorMulti errors "The declared syn has an identifier that conflicts with included types!"
+    else
+      let includedSyns = filter (lam i. or (isProdInfo i) (isSynInfo i)) foundIncludes in 
+
+      let includes = map projIdent includedSyns in 
+      let info = {ident = d.ident, info = d.info} in 
+      (ctxWithDeclInfo ctx (langStr, nameGetStr d.ident) (decl2info langStr decl), 
+       SynDeclProdExt {d with includes = includes})
   | decl & DeclType d -> 
     let identStr = nameGetStr d.ident in 
     let findMatchingInfo : String -> Option DeclInfo = lam incl.

@@ -54,7 +54,11 @@ type CompilationContext = use MLangAst in {
 
   conToExtType : Map Name Name,
 
-  allBaseSyns : Set Name
+  allBaseSyns : Set Name,
+
+  baseToCons : Map Name (Set Name),
+
+  baseMap : Map Name Name
 }
 
 let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam env : CompositionCheckEnv. {
@@ -62,7 +66,9 @@ let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam e
   compositionCheckEnv = env,
   semSymbols = mapEmpty cmpString,
   conToExtType = mapEmpty nameCmp,
-  allBaseSyns = setEmpty nameCmp
+  allBaseSyns = setEmpty nameCmp,
+  baseToCons = mapEmpty nameCmp,
+  baseMap = mapEmpty nameCmp
 }
 
 let mapParamIdent = nameNoSym "m"
@@ -291,11 +297,20 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
                                 info = s.info})
     in 
     let ctx = foldl compileDef ctx s.defs in 
+
+    -- Update baseToCons map
+    let newSet = foldr 
+      setInsert
+      (mapLookupOrElse (lam. setEmpty nameCmp) baseIdent ctx.baseToCons)
+      (map (lam d. d.ident) s.defs) in 
+    let ctx = {ctx with baseToCons = mapInsert baseIdent newSet ctx.baseToCons} in 
+
     ctx
 
   sem compileSynProd : String -> CompilationContext -> Decl -> CompilationContext
   sem compileSynProd langStr ctx =
   | SynDeclProdExt s ->
+    -- Compile indiv ext
     let compileExt = lam ctx. lam ext. 
       match ext with {ident = ident, tyIdent = tyIdent} in 
       match mapLookup ident ctx.conToExtType with Some recIdent in 
@@ -311,7 +326,36 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
       in
       mapFoldWithKey work ctx rec.fields 
     in 
-    foldl compileExt ctx s.individualExts
+    let ctx = foldl compileExt ctx s.individualExts in 
+
+    -- Compile global ext
+    match s.globalExt with Some globalExt then
+      match mapLookup s.ident ctx.baseMap with Some baseIdent in 
+      match mapLookup baseIdent ctx.baseToCons with Some allConstructors in 
+      let explicitConstructors = setOfSeq nameCmp (map (lam e. e.ident) s.individualExts) in 
+    
+      let relevantCons = setSubtract allConstructors explicitConstructors in 
+
+      match globalExt with TyRecord rec in 
+
+      let compileGlobalExt = lam ctx. lam ident.
+        match mapLookup ident ctx.conToExtType with Some recIdent in 
+        let work = lam acc. lam sid. lam ty. 
+          let label = sidToString sid in 
+          let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
+            withExpr acc (TmRecField {label = label,
+                                      tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
+                                      inexpr = uunit_,
+                                      ty = tyunknown_,
+                                      info = infoTy ty}) 
+        in
+        mapFoldWithKey work ctx rec.fields
+      in 
+
+      setFold compileGlobalExt ctx relevantCons
+    else 
+      ctx
+
   -- sem compileSem : CompilationContext -> Map String Name -> Map String Name -> Decl -> RecLetBinding 
   sem compileSem langStr ctx semNames = 
   | DeclSem d -> 
