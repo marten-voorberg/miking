@@ -68,6 +68,7 @@
 %token <unit Ast.tokendata> IN
 %token <unit Ast.tokendata> END
 %token <unit Ast.tokendata> SYN
+%token <unit Ast.tokendata> COSYN
 %token <unit Ast.tokendata> SEM
 %token <unit Ast.tokendata> USE
 %token <unit Ast.tokendata> MEXPR
@@ -295,6 +296,10 @@ decls:
   |
     { [] }
 decl:
+  // Cosyn base definition
+  | COSYN type_ident type_params cosyn_symbol ty
+    { let fi = mkinfo $1.i (ty_info $5) in 
+      Cosyn (fi, $2.v, $3, $5, $4)}
   // Syn base definition
   | SYN type_ident type_params EQ constrs
     { let fi = mkinfo $1.i $4.i in
@@ -322,6 +327,10 @@ decl:
   | TYPE type_ident type_params EQ ty
     { let fi = mkinfo $1.i $4.i in
       Alias (fi, $2.v, $3, $5) }
+
+cosyn_symbol: 
+  | EQ { true }
+  | TIMESEQ { false }
 
 constrs:
   | constr constrs

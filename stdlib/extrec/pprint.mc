@@ -1,6 +1,8 @@
 include "mexpr/pprint.mc"
 include "mexpr/ast.mc"
 
+include "mlang/pprint.mc"
+
 include "ast.mc"
 include "ast-builder.mc"
 
@@ -26,12 +28,9 @@ lang ExtRecTermPrettyPrint = TypePrettyPrint + PrettyPrint + ExtRecordAst
   | TmRecField t -> 
     let ty =  typeToString env t.tyIdent in 
     match pprintCode indent env t.inexpr with (env, inexpr) in
-    match pprintTypeName env t.extIdent with (env, ext) in
     (env, join [
       "recfield ",
       t.label, 
-      " of ",
-      ext,
       " : ",
       ty,
       " in ",
@@ -113,6 +112,19 @@ lang ExtRecordTypePrettyPrint = PrettyPrint + ExtRecordTypeAst
   --   (env, join ["<", rowStr, ">"])
 end
 
+lang DeclCosynPrettyPrint = DeclPrettyPrint + CosynDeclAst 
+  sem pprintDeclCode indent env = 
+  | DeclCosyn t -> 
+    match pprintTypeName env t.ident with (env, typeNameStr) in
+    match mapAccumL pprintEnvGetStr env t.params with (env, params) in
+    let params = join (map (concat " ") params) in
+
+    match getTypeStringCode indent env t.ty with (env, typeStr) in 
+    let eqSym = if t.isBase then " = " else " *= " in 
+
+    (env, join ["cosyn ", typeNameStr, params, eqSym, typeStr])
+end
+
 lang TypeAbsPrettyPrint = PrettyPrint + TypeAbsAst
   sem getTypeStringCode indent env =
   | TyAbs t -> 
@@ -133,6 +145,7 @@ lang PresenceKindPrettyPrint = PrettyPrint + PresenceKindAst
   sem getKindStringCode (indent : Int) (env : PprintEnv) =
   | Presence () -> (env, "Presence")
 end
+
 
 lang ExtRecPrettyPrint = ExtRecTermPrettyPrint + ExtRecordTypePrettyPrint +
                          TypeAbsPrettyPrint + TypeAbsAppAst + 

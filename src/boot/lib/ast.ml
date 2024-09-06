@@ -258,6 +258,9 @@ and decl =
   | Inter of
       info * ustring * ty * param list option * (pat * tm) list * decl_type
   | Alias of info * ustring * ustring list * ty
+  (* The fields in order represent 
+     Info, identifier, param list, type, isBase *)
+  | Cosyn of info * ustring * ustring list * ty * bool
 
 and with_kind = WithType | WithValue
 

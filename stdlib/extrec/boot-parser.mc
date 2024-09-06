@@ -74,11 +74,27 @@ lang RecDeclBootParser = BootParserMLang + ExtRecordTypeAst + RecTypeDeclAst +
                   tyLabel = gtype d 0}
 end
 
-lang MyPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint 
+lang CosynBootParser = BootParserMLang + CosynDeclAst
+  sem matchDecl d =
+  | 714 ->
+    let n = glistlen d 0 in 
+    let isBase = eqi (glistlen d 1) 0 in
+    let params = map (lam i. gname d (addi i 1)) (range 0 n 1) in 
+    DeclCosyn {info = ginfo d 0,
+               ident = gname d 0, 
+               ty = gtype d 0,
+               isBase = isBase,
+               params = params,
+               includes = []}
 end
 
+lang MyPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint + DeclCosynPrettyPrint
+end
+
+lang MyBigBootParserForTesting = ExtRecBootParser + CosynBootParser end
+
 mexpr
-use ExtRecBootParser in 
+use MyBigBootParserForTesting in 
 use MyPrettyPrint in 
 let parseProgram = lam str.
   match result.consume (parseMLangString str) with (_, Right p) in p
@@ -88,11 +104,24 @@ in
 let str = strJoin "\n" [
   "mexpr",
   "rectype Foo in",
-  "recfield x of MyExt: Foo -> Int in",
+  "recfield x : Foo -> Int in",
   "let r = {Foo of x = 1} in ",
-  "(r of Foo)->x"
+  "r.x"
 ] in
 let p = parseProgram str in 
 printLn (mlang2str p) ;
+
+-- Test syn product extension
+let str = strJoin "\n" [
+  "lang L1",
+  "  cosyn Env a = {x : a}",
+  "end",
+  "lang L2 = L1",
+  "  cosyn Env a *= {y : a}",
+  "end"
+] in
+let p = parseProgram str in 
+printLn (mlang2str p) ;
+
 
 ()

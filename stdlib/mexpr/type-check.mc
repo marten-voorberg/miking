@@ -704,7 +704,7 @@ lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
                     "' of qualified type!"
                   ]) in 
 
-      let env : ResolveLangEnv = mapLookupOrElse 
+      let env = mapLookupOrElse 
         (lam. errorSingle [t.info] " * Langauge on lhs does not exist!") 
         t.lhs 
         env.extRecordType.langEnvs
@@ -745,7 +745,7 @@ lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
   | ty ->
     smap_Type_Type (resolveType info env closeDatas) ty
 
-  sem _identToBound (env: ResolveLangEnv) info =
+  sem _identToBound env info =
   | ident ->
     match mapLookup ident env.prodFields with Some fields then
       Some {lower = fields, upper = None ()}

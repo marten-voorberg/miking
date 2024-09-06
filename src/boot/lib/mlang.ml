@@ -769,6 +769,9 @@ let rec translate_tm (env : mlang_env) : tm -> tm = function
 let add_decl_to_lang (lang_fi : info) (lang_name : ustring) (data : lang_data)
     : decl -> lang_data = function
   (* | DataProdExt (fi, name, param_count, constructors, ty) ->  *)
+  | Cosyn (fi, _, _, _, _) -> 
+    raise_error fi ( "Cosyn definitions are not supported by this version of "
+                   ^ "Miking.")
   | DataProdExt (fi, _, _, _, _) ->
       raise_error fi
         ( "Product extension is not supported by this version of "

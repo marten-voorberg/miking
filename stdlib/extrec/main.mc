@@ -39,7 +39,7 @@ lang BigTypeCheck = MExprTypeCheckMost + GetPresenceKind + MExprTypeCheckLamLetV
                     ExtRecordTypeCheck + ExtRowUnify + PresenceKindAstUnify
 end
 
-lang BigIncludeHandler = MLangIncludeHandler + BootParserMLang + ExtRecBootParser + RecDeclBootParser
+lang BigIncludeHandler = MLangIncludeHandler + BootParserMLang + ExtRecBootParser + RecDeclBootParser + CosynBootParser
 end
 
 lang BigPipeline = BigIncludeHandler + 

@@ -169,6 +169,8 @@ let idDeclRecField = 712
 
 let idDeclSynProd = 713 
 
+let idDeclCosyn = 714
+
 let sym = Symb.gensym ()
 
 let patNameToStr = function NameStr (x, _) -> x | NameWildcard -> us ""
@@ -668,6 +670,19 @@ let getData = function
       ( idDeclType
       , [fi]
       , [List.length params]
+      , [ty]
+      , []
+      , ident :: params
+      , []
+      , []
+      , []
+      , []
+      , []
+      , [] )
+  | PTreeDecl (Cosyn (fi, ident, params, ty, isBase)) -> 
+    (idDeclCosyn
+      , [fi]
+      , [List.length params; if isBase then 0 else 1]
       , [ty]
       , []
       , ident :: params
