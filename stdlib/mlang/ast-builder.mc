@@ -161,6 +161,39 @@ let decl_sem_args_ty_cases_ = use MLangAst in
            info = NoInfo {},
            declKind = base_kind_}
 
+let decl_ncosyn_ = use MLangAst in 
+  lam n : Name. lam params : [Name]. lam isBase : Bool. lam ty : Type. 
+    DeclCosyn {ident = n,
+               params = params,
+               isBase = isBase,
+               ty = ty,
+               info = NoInfo (),
+               includes = []}
+
+let decl_cosyn_ = lam s. lam sparams. 
+  decl_ncosyn_ (nameNoSym s) (map nameNoSym sparams)
+
+
+let decl_ncosem_ = use MLangAst in 
+  lam n : Name. lam nargs : [(Name, Type)]. lam cases: [(Copat, Expr)]. lam isBase : Bool.
+  DeclCosem {ident = n,
+             info = NoInfo (),
+             args = map (lam tupl. {ident = tupl.0, tyAnnot = tupl.1}) nargs,
+             cases = cases,
+             isBase = isBase,
+             includes = []} 
+
+let decl_cosem_ = use MLangAst in 
+  lam s : String. lam args : [(String, Type)]. lam cases: [(Copat, Expr)]. lam isBase : Bool.
+  decl_ncosem_ (nameNoSym s) (map (lam tupl. (nameNoSym tupl.0, tupl.1)) args) cases isBase
+
+let nrecord_copat_ = use RecordCopatAst in 
+  lam n : Name. lam fields : [String]. 
+    RecordCopat {info = NoInfo (), ident = n, fields = fields} 
+  
+let record_copat_ = use RecordCopatAst in 
+  lam s : String. lam fields : [String]. nrecord_copat_ (nameNoSym s) fields
+
 let decl_nsem_ = use MLangAst in
   lam n. lam nargs: [(Name, Type)]. lam cases: [(Pat, Expr)].
   DeclSem {ident = n, tyAnnot = tyunknown_,

@@ -35,6 +35,13 @@ let defaultCompositionCheckOptions = {
   disableStrictSumExtension = false
 }
 
+type ExtendedCopat = use MLangAst in {
+  copat : Copat,
+  thn : Expr,
+  id : Int,
+  orig : (String, String)
+}
+
 type CompositionCheckEnv = {
   -- NOTE(voorberg, 04/06/2024): It might be cleaner to move the options out
   -- of the environment since they will not be updated during the checks anyways.
@@ -55,6 +62,9 @@ type CompositionCheckEnv = {
   -- We also introduce a unique id for each case. We need this id to be able 
   -- to remove duplicate cases under languaage composition.
   semPatMap : Map (String, String) [use MLangAst in {pat: Pat, thn : Expr, id : Int, orig : (String, String)}],
+
+  -- Cosem cases. Note that we again introduce an ID to distinguish cases.
+  cosemCaseMap : Map (String, String) (Set ExtendedCopat),
 
   semTyVarMap : Map (String, String) [Name],
 
@@ -84,6 +94,19 @@ let collectPats = lam env. lam includes.
 
 let tupleStringCmp = tupleCmp2 cmpString cmpString
 
+let cmpExtCopat : ExtendedCopat -> ExtendedCopat -> Int = 
+  lam lhs. lam rhs. subi lhs.id rhs.id
+
+let collectCopats = lam env. lam includes.
+  let incl2pats = lam i : (String, String). 
+    match mapLookup i env.cosemCaseMap with Some cases then
+      cases
+    else error (concat 
+      " * Illegal state during composition-check! The co-patterns for each \n"
+      " * included cosem should have already been parsed!")
+  in 
+  foldl setUnion (setEmpty cmpExtCopat) (map incl2pats includes)
+
 let _emptyCompositionCheckEnv : CompositionCheckEnv = {
   options = defaultCompositionCheckOptions,
   nextId = 0,
@@ -92,6 +115,7 @@ let _emptyCompositionCheckEnv : CompositionCheckEnv = {
   paramMap = mapEmpty tupleStringCmp,
   semPatMap = mapEmpty tupleStringCmp,
   semArgsMap = mapEmpty tupleStringCmp,
+  cosemCaseMap = mapEmpty tupleStringCmp,
   semTyVarMap = mapEmpty tupleStringCmp,
   semSymMap = mapEmpty tupleStringCmp,
   semBaseToTyAnnot = mapEmpty nameCmp,
@@ -117,7 +141,7 @@ let insertSemPatMap = lam env. lam k. lam v.
 
 -- TODO(voorberg, 09/09/2024): Refactor to avoid code duplication between syn, sem and cosyn. 
 -- E.g. checking the params and base is identical for cosyn and syn.
-lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrettyPrint
+lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrettyPrint + RecordCopatAst
   syn CompositionError =
   | DifferentBaseSyn {
     synIdent : Name,
@@ -144,6 +168,10 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
     info : Info
   }
   | SyntaxSumExtHasNoIncludes {
+    ident : Name,
+    info : Info
+  }
+  | OverlappingCopatterns {
     ident : Name,
     info : Info
   }
@@ -206,6 +234,13 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
       "--disable-strict-sum-extension flag to disable this check."
     ] in 
     errorMulti [(e.info, "")] msg
+  | OverlappingCopatterns e ->
+    let msg = join [
+      " * Invalid language composition because the declaration '",
+      nameGetStr e.ident,
+      "' contains overlapping co-patterns!"
+    ] in 
+    errorMulti [(e.info, "")] msg
   
   sem checkComposition : MLangProgram -> Result CompositionWarning CompositionError CompositionCheckEnv
   sem checkComposition =| prog -> 
@@ -235,13 +270,72 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
     validateSynSemBase langStr env d
   | DeclCosyn _ & d -> 
     _foldlMfun env d [validateSynSemParams langStr, validateSynSemBase langStr]
+  | DeclCosem _ & d ->
+    _foldlMfun env d [validateSynSemParams langStr, 
+                      validateSynSemBase langStr, 
+                      validateCosemPatterns langStr]
   | other -> result.ok env
+
+  sem validateCosemPatterns langStr env = 
+  | DeclCosem d ->  
+    let includedCases = collectCopats env d.includes in 
+
+    let work = lam env. lam cas.
+      match cas with (copat, thn) in 
+      ({env with nextId = addi env.nextId 1}, {copat = copat, 
+                                               thn = thn, 
+                                               id = env.nextId,
+                                               orig = (langStr, nameGetStr d.ident)}) in 
+    match mapAccumL work env d.cases with (env, newCases) in 
+    let newCases = setOfSeq cmpExtCopat newCases in 
+
+    let allCases = setUnion newCases includedCases in 
+
+    let propError = lam acc : Either CompositionError (Set String). lam cas. 
+      switch acc 
+        case Left err then Left err
+        case Right s then 
+          match cas with {copat = RecordCopat {fields = fields}} in 
+          let fields = setOfSeq cmpString fields in 
+          if setDisjoint s fields then
+            Right (setUnion s fields)
+          else 
+            Left (OverlappingCopatterns {ident = d.ident, info = d.info})
+      end
+    in 
+    
+    match setFold propError (Right (setEmpty cmpString)) allCases with Left err then 
+      result.err err
+    else
+      let env = {env with cosemCaseMap = mapInsert (langStr, nameGetStr d.ident) allCases env.cosemCaseMap} in 
+      result.ok env 
+
 
   sem validateSynSemParams : String ->
                              CompositionCheckEnv -> 
                              Decl -> 
                              Result CompositionWarning CompositionError CompositionCheckEnv
   sem validateSynSemParams langStr env = 
+  | DeclCosem s ->
+    let args = map (lam a. a.ident) s.args in 
+    let includeParams : [[Name]] = mapOption (lam incl. match mapLookup incl env.semArgsMap with Some res in res) s.includes in 
+
+    let errIfUnequalAmount : [Name] -> Option CompositionError = lam params.
+      if eqi (length params) (length args) then
+        None ()
+      else 
+        Some (MismatchedSemParams {
+          semIdent = s.ident,
+          info = s.info
+        })
+    in
+
+    let errs = mapOption errIfUnequalAmount includeParams in 
+
+    if neqi (length errs) 0 then
+      result.err (head errs)
+    else 
+       result.ok (insertArgsMap env (langStr, nameGetStr s.ident) (Some args))
   | DeclCosyn s ->  
     let str = nameGetStr s.ident in 
     let paramNum = length s.params in 
@@ -315,6 +409,36 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
                            Decl -> 
                            Result CompositionWarning CompositionError CompositionCheckEnv
   sem validateSynSemBase langStr env =
+  | DeclCosem s -> 
+    let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair} in
+
+    match s.includes with [] then 
+      if s.isBase then 
+        result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident s.ident)
+      else 
+        result.err (DifferentBaseSem {
+          semIdent = s.ident,
+          info = s.info
+        })
+    else 
+      if s.isBase then 
+        result.err (DifferentBaseSem {
+          semIdent = s.ident,
+          info = s.info
+        })
+      else 
+        let includeList = map 
+          (lam incl. match mapLookup incl env.baseMap with Some b in b) 
+          s.includes in 
+        let includeSet = setOfSeq nameCmp includeList in 
+
+        if eqi 1 (setSize includeSet) then
+          result.ok (insertBaseMap env (langStr, nameGetStr s.ident) s.ident (head includeList))
+        else
+          result.err (DifferentBaseSem {
+            semIdent = s.ident,
+            info = s.info
+          })
   | DeclCosyn s -> 
     let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair} in
 
@@ -558,7 +682,14 @@ in
 let assertDifferentBaseSem = lam res. 
   switch result.consume res 
   case (_, Left ([DifferentBaseSem _] ++ _)) then print "."
-  case _ then error "Assertion failed!"
+  case _ then error "Assertion failed! DifferentBaseSem error was expected!"
+  end
+in
+
+let assertOverlappingCopatterns = lam res. 
+  switch result.consume res 
+  case (_, Left ([OverlappingCopatterns _] ++ _)) then print "."
+  case _ then error "Assertion failed! OverlappingCopatterns error was expected!"
   end
 in
 
@@ -628,7 +759,7 @@ let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
 assertValid (checkCompositionDisableStrictness p) ;
 
--- Test invalid language composition due to lack of base
+-- Test invalid language composition of sems due to lack of base
 let p : MLangProgram = {
     decls = [
         decl_langi_ "L1" [] [
@@ -639,6 +770,25 @@ let p : MLangProgram = {
         ],
         decl_langi_ "L12" ["L1", "L2"] [
           decl_sem_ "f" [] []
+        ]        
+    ],
+    expr = bind_ (use_ "L2") (int_ 10)
+} in 
+let p = composeProgram p in
+match symbolizeMLang symEnvDefault p with (_, p) in 
+assertDifferentBaseSem (checkCompositionDisableStrictness p) ;
+
+-- Test invalid language composition of co-sems due to lack of base
+let p : MLangProgram = {
+    decls = [
+        decl_langi_ "L1" [] [
+            decl_cosem_ "f" [] [] false
+        ],
+        decl_langi_ "L2" [] [
+            decl_cosem_ "f" [] [] false
+        ],
+        decl_langi_ "L12" ["L1", "L2"] [
+          decl_cosem_ "f" [] [] false
         ]        
     ],
     expr = bind_ (use_ "L2") (int_ 10)
@@ -726,6 +876,22 @@ let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
 assertMismatchedSemsParams (checkCompositionDisableStrictness p) ;
 
+-- Test co-semantic function with non-matching number of params
+let p : MLangProgram = {
+    decls = [
+        decl_lang_ "L0" [
+            decl_cosem_ "f" [("x", tyint_), ("y", tyint_)] [] true
+        ],
+        decl_langi_ "L1" ["L0"] [
+          decl_cosem_ "f" [("x", tyint_)] [] false
+        ]
+    ],
+    expr = bind_ (use_ "L0") (int_ 10)
+} in 
+let p = composeProgram p in
+match symbolizeMLang symEnvDefault p with (_, p) in 
+assertMismatchedSemsParams (checkCompositionDisableStrictness p) ;
+
 -- Test that semantic params get copied correctly. 
 let p : MLangProgram = {
     decls = [
@@ -790,6 +956,36 @@ let p : MLangProgram = {
 let p = composeProgram p in
 match symbolizeMLang symEnvDefault p with (_, p) in 
 assertInvalidSemParams (checkCompositionDisableStrictness p) ;
+
+-- Test co-sem with invalid overlapping co-patterns
+let p : MLangProgram = {
+    decls = [
+        decl_lang_ "L0" [
+            decl_cosyn_ "Foo" [] true (tyrecord_ [("x", tyint_), ("y", tyint_), ("z", tyint_)]),
+            decl_cosem_ "f" [] [(record_copat_ "Foo" ["x", "y"], never_), 
+                                (record_copat_ "Foo" ["y", "z"], never_)] true
+        ]
+    ],
+    expr = bind_ (use_ "L0") (int_ 10)
+} in 
+let p = composeProgram p in
+match symbolizeMLang symEnvDefault p with (_, p) in 
+assertOverlappingCopatterns (checkCompositionDisableStrictness p) ;
+
+-- Test co-sem with valid non-overlapping co-patterns
+let p : MLangProgram = {
+    decls = [
+        decl_lang_ "L0" [
+            decl_cosyn_ "Foo" [] true (tyrecord_ [("x", tyint_), ("y", tyint_), ("z", tyint_)]),
+            decl_cosem_ "f" [] [(record_copat_ "Foo" ["x"], never_), 
+                                (record_copat_ "Foo" ["y", "z"], never_)] true
+        ]
+    ],
+    expr = bind_ (use_ "L0") (int_ 10)
+} in 
+let p = composeProgram p in
+match symbolizeMLang symEnvDefault p with (_, p) in 
+assertValid (checkCompositionDisableStrictness p) ;
 
 -- Test invalid sem where patterns are spread accross langauges
 -- Test sem with invalid overlapping patterns
