@@ -121,6 +121,8 @@ let isCosynDecl = use MLangAst in
   lam d. match d with DeclCosyn _ then true else false
 let isSemDecl = use MLangAst in 
   lam d. match d with DeclSem _ then true else false
+let isCosemDecl = use MLangAst in 
+  lam d. match d with DeclCosem _ then true else false
 let isProdDecl = use MLangAst in 
   lam d. match d with SynDeclProdExt _ then true else false
 
@@ -197,6 +199,7 @@ end
 lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst + 
                         SynDeclAst + TypeDeclAst + SynProdExtDeclAst + 
                         ExtRecordAst + ExtRecordTypeAst + CosynDeclAst
+                        + CosemDeclAst + RecordCopatAst
   sem compileDecl ctx = 
   | DeclLang l -> 
     let langStr = nameGetStr l.ident in
@@ -205,6 +208,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let synDecls = filter isSynDecl l.decls in 
     let cosynDecls = filter isCosynDecl l.decls in 
     let semDecls = filter isSemDecl l.decls in 
+    let cosemDecls = filter isCosemDecl l.decls in 
     let prodDecls = filter isProdDecl l.decls in 
 
     let nameSeq =  (map (lam s. match s with DeclSem s in (nameGetStr s.ident, s.ident)) semDecls) in 
@@ -218,15 +222,16 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let res = result.map (lam ctx. foldl (compileSynConstructors langStr) ctx synDecls) res in 
     let res = result.map (lam ctx. foldl (compileSynProd langStr) ctx prodDecls) res in 
 
-    let compileSemToResult : CompilationContext -> [Decl] -> CompilationContext
-      = lam ctx. lam sems.
-        let bindings = map (compileSem langStr ctx semNames) sems in 
-        withExpr ctx (TmRecLets {bindings = bindings,
+    let compileSemToResult : CompilationContext -> [Decl] -> [Decl] -> CompilationContext
+      = lam ctx. lam sems. lam cosems.
+        let semBindings = map (compileSem langStr ctx semNames) sems in 
+        let cosemBindings = map (compileCosem langStr ctx semNames) cosems in 
+        withExpr ctx (TmRecLets {bindings = concat semBindings cosemBindings,
                                  inexpr = uunit_, 
                                  ty = tyunknown_,
                                  info = l.info})
     in
-    result.map (lam ctx. compileSemToResult ctx semDecls) res
+    result.map (lam ctx. compileSemToResult ctx semDecls cosemDecls) res
   | DeclSyn s -> 
     error "Unexpected DeclSyn"
   | DeclSem s -> 
@@ -410,7 +415,45 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     else 
       ctx
 
-  -- sem compileSem : CompilationContext -> Map String Name -> Map String Name -> Decl -> RecLetBinding 
+  sem compileCosem langStr ctx cosemNames = 
+  | DeclCosem {info = info, ident = ident, cases = []} ->
+    {ident = ident,
+     tyAnnot = tyunknown_,
+     tyBody = tyunknown_,
+     body = ulam_ "" never_,
+     info = info}
+  | DeclCosem d -> 
+    -- TODO: gather cases from includes
+    let syms = mapi (lam i. lam. (nameSym (concat "cosemResult" (int2string i)))) d.cases in
+
+    let pairs = mapi (lam i. lam c. (get syms i, c.1)) d.cases in 
+    let compileThn = lam acc. lam pair. 
+      match pair with (ident, thn) in
+      bind_ (nulet_ ident thn) acc in 
+  
+    match head d.cases with (RecordCopat {ident = ident}, _) in 
+
+    let f = lam acc. lam i. lam c.
+      match c with (RecordCopat {fields = fields}, _) in
+      let g = lam acc. lam str. 
+        mapInsert str (recordproj_ str (nvar_ (get syms i))) acc in 
+      foldl g acc fields
+    in 
+    let bindings = foldli f (mapEmpty cmpString) d.cases in
+    let creator = TmExtRecord {ident = ident,
+                               bindings = bindings,
+                               info = d.info,
+                               ty = tyunknown_} in 
+
+    let expr = foldl compileThn creator pairs in 
+    let expr = foldl (lam acc. lam arg. nulam_ arg.ident acc) expr (reverse d.args) in 
+
+    {ident = d.ident,
+     tyAnnot = tyunknown_,
+     tyBody = tyunknown_,
+     body = expr,
+     info = d.info}
+
   sem compileSem langStr ctx semNames = 
   | DeclSem d -> 
     -- If this semantic function does not have a type annotation, copy the 

@@ -170,7 +170,11 @@ end
 
 lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst + 
                    SynDeclAst + LetSym + SynProdExtDeclAst + CosynDeclAst +
-                   CosemDeclAst
+                   CosemDeclAst + RecordCopatAst
+  sem symbolizeCopat env =
+  | RecordCopat c ->
+    RecordCopat {c with ident = getSymbol {kind = "type", info = [c.info], allowFree = false} env.currentEnv.tyConEnv c.ident}
+
   sem symbolizeDecl env = 
   | DeclLang t -> 
     -- Symbolize the name of the language
@@ -455,8 +459,9 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
       match mapAccumL symbArgTy env s.args with (env, args) in 
 
       let symbCases = lam cas : (Copat, Expr). 
+          let copat = symbolizeCopat env cas.0 in 
           let thn = symbolizeExpr env cas.1 in
-          (cas.0, thn)
+          (copat, thn)
       in
       let cases = map symbCases s.cases in
 
