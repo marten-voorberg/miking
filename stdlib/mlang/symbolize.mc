@@ -169,7 +169,8 @@ lang DeclExtSym = DeclSym + ExtDeclAst
 end
 
 lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst + 
-                   SynDeclAst + LetSym + SynProdExtDeclAst + CosynDeclAst
+                   SynDeclAst + LetSym + SynProdExtDeclAst + CosynDeclAst +
+                   CosemDeclAst
   sem symbolizeDecl env = 
   | DeclLang t -> 
     -- Symbolize the name of the language
@@ -204,6 +205,9 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
 
     let isCosynDecl = lam d. match d with DeclCosyn _ then true else false in 
     let cosynDecls = filter isCosynDecl t.decls in  
+
+    let isCosemDecl = lam d. match d with DeclCosem _ then true else false in 
+    let cosemDecls = filter isCosemDecl t.decls in  
 
     -- 1. Symbolize ident and params of SynDecls in this langauge
     let symbSynStep1 = lam langEnv : NameEnv. lam synDecl.
@@ -381,6 +385,19 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     in 
     match mapAccumL symbSem langEnv semDecls with (langEnv, semDecls) in 
 
+    -- 4.5 Assign names to cosemantic functions
+    let symbCosem = lam langEnv : NameEnv. lam declSem. 
+      match declSem with DeclCosem s in 
+      match setSymbol langEnv.varEnv s.ident with (varEnv, ident) in 
+
+      let langEnv = {langEnv with varEnv = varEnv} in 
+      let decl = DeclCosem {s with ident = ident} in 
+  
+      (langEnv, decl)
+    in 
+    match mapAccumL symbCosem langEnv cosemDecls with (langEnv, cosemDecls) in 
+
+
     -- 5. Assign names to semantic bodies, params, and types
     let symbSem2 = lam langEnv : NameEnv. lam declSem. 
       match declSem with DeclSem s in 
@@ -420,8 +437,37 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     in
     let semDecls = map (symbSem2 langEnv) semDecls in
 
+    -- 5. Assign names to cosemantic bodies, params, and types
+    let symbCosem2 = lam langEnv : NameEnv. lam declSem. 
+      match declSem with DeclCosem s in 
+
+      let env = updateEnv env langEnv in
+
+      let symbArgTy = lam env : SymEnv. lam arg : {ident : Name, tyAnnot : Type}. 
+          match setSymbol env.currentEnv.varEnv arg.ident with (varEnv, ident) in 
+          let env = symbolizeUpdateVarEnv env varEnv in 
+
+          match symbolizeTyAnnot env arg.tyAnnot with (tyVarEnv, tyAnnot) in 
+          let env = symbolizeUpdateTyVarEnv env tyVarEnv in 
+
+          (env, {ident = ident, tyAnnot = tyAnnot})
+      in
+      match mapAccumL symbArgTy env s.args with (env, args) in 
+
+      let symbCases = lam cas : (Copat, Expr). 
+          let thn = symbolizeExpr env cas.1 in
+          (cas.0, thn)
+      in
+      let cases = map symbCases s.cases in
+
+      let decl = DeclCosem {s with cases = cases, args = args} in 
+
+      decl
+    in
+    let cosemDecls = map (symbCosem2 langEnv) cosemDecls in
+
     let env = {env with langEnv = mapInsert (nameGetStr t.ident) langEnv env.langEnv} in 
-    let t = {t with decls = join [typeDecls, synDecls, cosynDecls, semDecls, prodDecls],
+    let t = {t with decls = join [typeDecls, synDecls, cosynDecls, semDecls, prodDecls, cosemDecls],
                     includes = includes,
                     ident = ident} in
 

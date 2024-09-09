@@ -17,7 +17,7 @@ include "option.mc"
 
 include "mexpr/const-transformer.mc"
 
-lang MLangConstTransformer = MLangAst + ConstTransformer 
+lang MLangConstTransformer = MLangAst + ConstTransformer + CosemDeclAst
   sem constTransformProgram : [(String, Const)] -> MLangProgram -> MLangProgram
   sem constTransformProgram builtins =
   | prog ->
@@ -31,6 +31,9 @@ lang MLangConstTransformer = MLangAst + ConstTransformer
   | DeclSem d ->
     let transformCase = lam c. {c with thn = constTransform builtins c.thn} in
     DeclSem {d with cases = map transformCase d.cases}
+  | DeclCosem d ->
+    let transformCase = lam c. (c.0, constTransform builtins c.1) in
+    DeclCosem {d with cases = map transformCase d.cases}
   | DeclLet d -> 
     DeclLet {d with body = constTransform builtins d.body}
   | DeclRecLets d ->
