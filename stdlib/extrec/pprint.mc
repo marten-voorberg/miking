@@ -129,10 +129,11 @@ lang CopatPrettyPrint = CopatAst
   sem geCopatStringCode indent env = 
 end
 
-lang RecordCopatPrettyPrint = RecordCopatAst + CopatPrettyPrint 
+lang RecordCopatPrettyPrint = RecordCopatAst + CopatPrettyPrint + MExprIdentifierPrettyPrint
   sem getCopatStringCode indent env = 
   | RecordCopat c ->
-    (env, join ["{ ", (strJoin ", " c.fields), " }"])
+    match pprintTypeName env c.ident with (env, ident) in 
+    (env, join ["{ ", ident, " of ", (strJoin ", " c.fields), " }"])
 end
 
 lang DeclCosemPrettyPrint = DeclPrettyPrint + CosemDeclAst + RecordCopatPrettyPrint
@@ -150,7 +151,7 @@ lang DeclCosemPrettyPrint = DeclPrettyPrint + CosemDeclAst + RecordCopatPrettyPr
     match mapAccumL pprintCase env t.cases with (env, str) in 
     let str = strJoin "\n" str in 
 
-    (env, join ["cosyn ", ident, eqSym, "\n", str])
+    (env, join ["cosem ", ident, eqSym, "\n", str])
 end
 
 lang TypeAbsPrettyPrint = PrettyPrint + TypeAbsAst

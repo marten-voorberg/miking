@@ -579,8 +579,8 @@ name:
     { ($1.i, NameWildcard) }
 
 copat: 
-  | LBRACKET separated_list(COMMA, var_ident) RBRACKET 
-    { CopatRecord (mkinfo $1.i $3.i, List.map (fun x -> x.v) $2) }
+  | LBRACKET con_ident OF separated_list(COMMA, var_ident) RBRACKET 
+    { CopatRecord (mkinfo $1.i $5.i, $2.v, List.map (fun x -> x.v) $4) }
 
 
 pat:

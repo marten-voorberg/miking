@@ -29,7 +29,8 @@ include "mlang/compile.mc"
 include "mexpr/type-check.mc"
 include "mexpr/eval.mc"
 
-lang BigPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint 
+lang BigPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint + 
+                      DeclCosemPrettyPrint + DeclCosynPrettyPrint
 end
 
 lang BigSym = MLangSym + ExtRecordSym + RecFieldDeclSym + RecTypeDeclSym
@@ -69,6 +70,7 @@ lang BigPipeline = BigIncludeHandler +
     sfold_Expr_Expr dumpTypes acc t.inexpr
   | TmRecLets t -> 
     let acc = foldl 
+     
       (lam acc. lam b. snoc acc (join [nameGetStr b.ident, " : ", type2str b.tyBody]))
       acc 
       t.bindings in 
@@ -85,7 +87,7 @@ lang BigPipeline = BigIncludeHandler +
     
     let p = composeProgram p in 
 
-    -- printLn (mlang2str p);
+    printLn (mlang2str p);
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
