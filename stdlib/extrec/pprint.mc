@@ -126,7 +126,7 @@ lang DeclCosynPrettyPrint = DeclPrettyPrint + CosynDeclAst
 end
 
 lang CopatPrettyPrint = CopatAst
-  sem geCopatStringCode indent env = 
+  sem getCopatStringCode indent env = 
 end
 
 lang RecordCopatPrettyPrint = RecordCopatAst + CopatPrettyPrint + MExprIdentifierPrettyPrint

@@ -87,7 +87,7 @@ lang BigPipeline = BigIncludeHandler +
     
     let p = composeProgram p in 
 
-    printLn (mlang2str p);
+    -- printLn (mlang2str p);
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
@@ -110,7 +110,7 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    printLn (expr2str expr);
+    -- printLn (expr2str expr);
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 

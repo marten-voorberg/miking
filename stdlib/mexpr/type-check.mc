@@ -718,18 +718,18 @@ lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
       let kindMap = setFold folder (mapEmpty nameCmp) tydeps in
 
       let kind = Data {types = kindMap} in 
-      printLn "Before negation";
-      print (type2str ty);
-      print "\t";
-      printLn (kind2str kind);
+      -- printLn "Before negation";
+      -- print (type2str ty);
+      -- print "\t";
+      -- printLn (kind2str kind);
 
       let kindMap = if t.pos then kindMap else _negate kindMap in 
 
-      printLn "After negation";
-      let kind = Data {types = kindMap} in 
-      print (type2str ty);
-      print "\t";
-      printLn (kind2str kind);
+      -- printLn "After negation";
+      -- let kind = Data {types = kindMap} in 
+      -- print (type2str ty);
+      -- print "\t";
+      -- printLn (kind2str kind);
       let tyvar = newnmetavar "ss" kind tcEnv.currentLvl t.info in 
 
       let newTy = match mapLookup (nameRemoveSym t.rhs) env.prodFields with Some _
