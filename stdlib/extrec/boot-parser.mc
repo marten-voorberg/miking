@@ -79,7 +79,6 @@ end
 lang CosynBootParser = BootParserMLang + CosynDeclAst
   sem matchDecl d =
   | 714 ->
-    printLn "parsing here!??";
     let n = glistlen d 0 in 
     let isBase = eqi (glistlen d 1) 0 in
     let params = map (lam i. gname d (addi i 1)) (range 0 n 1) in 
@@ -94,7 +93,6 @@ end
 lang CosemBootParser = BootParserMLang + RecordCopatAst + CosemDeclAst
   sem matchDecl d =
   | 715 ->
-    printLn "parsing here!";
     let nArgs = glistlen d 0 in 
     let nCases = glistlen d 1 in 
     let isBase = eqi (glistlen d 2) 0 in 
