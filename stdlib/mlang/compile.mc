@@ -416,43 +416,59 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
       ctx
 
   sem compileCosem langStr ctx cosemNames = 
-  | DeclCosem {info = info, ident = ident, cases = []} ->
-    {ident = ident,
-     tyAnnot = tyunknown_,
-     tyBody = tyunknown_,
-     body = ulam_ "" never_,
-     info = info}
   | DeclCosem d -> 
     -- TODO: gather cases from includes
-    let syms = mapi (lam i. lam. (nameSym (concat "cosemResult" (int2string i)))) d.cases in
+    match mapLookup (langStr, nameGetStr d.ident) ctx.compositionCheckEnv.cosemCaseMap 
+    with Some cases in 
 
-    let pairs = mapi (lam i. lam c. (get syms i, c.1)) d.cases in 
-    let compileThn = lam acc. lam pair. 
-      match pair with (ident, thn) in
-      bind_ (nulet_ ident thn) acc in 
-  
-    match head d.cases with (RecordCopat {ident = ident}, _) in 
+    if setIsEmpty cases then 
+      let body = foldl (lam acc. lam arg. nulam_ arg.ident acc) (inever_ d.info) d.args in 
+      {ident = d.ident,
+      tyAnnot = tyunknown_,
+      tyBody = tyunknown_,
+      body = body,
+      info = d.info}
+    else 
+      let cases = setToSeq cases in 
 
-    let f = lam acc. lam i. lam c.
-      match c with (RecordCopat {fields = fields}, _) in
-      let g = lam acc. lam str. 
-        mapInsert str (recordproj_ str (nvar_ (get syms i))) acc in 
-      foldl g acc fields
-    in 
-    let bindings = foldli f (mapEmpty cmpString) d.cases in
-    let creator = TmExtRecord {ident = ident,
-                               bindings = bindings,
-                               info = d.info,
-                               ty = tyunknown_} in 
+      let syms = mapi (lam i. lam. (nameSym (concat "cosemResult" (int2string i)))) cases in
 
-    let expr = foldl compileThn creator pairs in 
-    let expr = foldl (lam acc. lam arg. nulam_ arg.ident acc) expr (reverse d.args) in 
+      let argsIdents = map (lam a. a.ident) d.args in 
 
-    {ident = d.ident,
-     tyAnnot = tyunknown_,
-     tyBody = tyunknown_,
-     body = expr,
-     info = d.info}
+      let pairs = mapi (lam i. lam c. (get syms i, c)) cases in 
+      
+      let compileThn = lam acc : Expr. lam pair : (Name, ExtendedCopat). 
+        match pair with (ident, c) in
+
+        match mapLookup c.orig ctx.compositionCheckEnv.semArgsMap with Some (Some origArgs) in 
+        let pairs = join [zip origArgs argsIdents] in 
+
+        let subst = mapFromSeq nameCmp pairs in
+        let thn = substituteIdentifiersExpr subst c.thn in 
+        bind_ (nulet_ ident thn) acc in 
+    
+      match head cases with {copat = RecordCopat {ident = ident}} in 
+
+      let f = lam acc. lam i. lam c.
+        match c with {copat = RecordCopat {fields = fields}} in
+        let g = lam acc. lam str. 
+          mapInsert str (recordproj_ str (nvar_ (get syms i))) acc in 
+        foldl g acc fields
+      in 
+      let bindings = foldli f (mapEmpty cmpString) cases in
+      let creator = TmExtRecord {ident = ident,
+                                bindings = bindings,
+                                info = d.info,
+                                ty = tyunknown_} in 
+
+      let expr = foldl compileThn creator pairs in 
+      let expr = foldl (lam acc. lam arg. nulam_ arg.ident acc) expr (reverse d.args) in 
+
+      {ident = d.ident,
+      tyAnnot = tyunknown_,
+      tyBody = tyunknown_,
+      body = expr,
+      info = d.info}
 
   sem compileSem langStr ctx semNames = 
   | DeclSem d -> 

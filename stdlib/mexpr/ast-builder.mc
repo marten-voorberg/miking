@@ -623,6 +623,9 @@ let record2tuple
 let never_ = use MExprAst in
   TmNever {ty = tyunknown_, info = NoInfo ()}
 
+let inever_ = use MExprAst in 
+  lam i : Info. TmNever {ty = tyunknown_, info = i}
+
 -- Exhaustive match
 let matchex_ = use MExprAst in
   lam target. lam pat. lam thn.

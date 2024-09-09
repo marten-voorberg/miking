@@ -239,7 +239,11 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
       match synDecl with DeclCosyn s in
       let env = updateEnv env langEnv in 
 
-      let ident = nameSym (nameGetStr s.ident) in 
+      let ident = if s.isBase then 
+        nameSym (nameGetStr s.ident)
+      else 
+        getSymbol {kind = "Type Constructor", info = [s.info], allowFree = false} env.currentEnv.tyConEnv s.ident 
+      in 
       match mapAccumL setSymbol env.currentEnv.tyVarEnv s.params with (_, params) in
 
       let synn = DeclCosyn {s with params = params,

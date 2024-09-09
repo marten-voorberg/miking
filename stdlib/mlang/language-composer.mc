@@ -201,16 +201,16 @@ lang LanguageComposer = ExtendedMLang
     let findMatchingInfo : String -> Option DeclInfo = lam incl.
       mapLookup (incl, identStr) ctx.langMap in 
     let foundIncludes : [DeclInfo] = mapOption findMatchingInfo includes in 
-    
+
     let conflicts = filter isSemInfo foundIncludes in 
     let errors = cons (d.info, nameGetStr d.ident) (map extractInfoName conflicts) in 
 
     if not (null conflicts) then
       errorMulti errors "The declared sem has an identifier that conflicts with included sems!"
     else
-      let includedSems = filter isCosemInfo foundIncludes in 
+      let includedCosems = filter isCosemInfo foundIncludes in 
 
-      let includes = map projIdent includedSems in 
+      let includes = map projIdent includedCosems in 
       (ctxWithDeclInfo ctx (langStr, nameGetStr d.ident) (decl2info langStr decl), 
        DeclCosem {d with includes = includes})
   | decl & DeclSyn d ->
