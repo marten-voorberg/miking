@@ -293,7 +293,7 @@ lang LanguageComposer = ExtendedMLang
 
     -- We are going to include elements from ctx.langMap that
     -- (1) that are not Type declarations.
-    -- (2) that are not Cosem declarations
+    -- (2) that are not Cosyn declarations
     -- (3) belong to an included langauge
     -- (4) that have not already been included explicitly through a syn or sem
     let pred = lam k. lam v. 
@@ -515,6 +515,39 @@ match get p.decls 3 with DeclLang {decls = innerDecls} in
 match head innerDecls with DeclSyn f12 in 
 utest length f12.includes with 2 in 
 utest nameGetStr f12.ident with "S" in 
+
+-- Test cosem composition
+let p : MLangProgram = {
+  decls = [
+    decl_lang_ "L0" [
+      decl_cosem_ "f" [] [] true
+    ],
+    decl_langi_ "L1" ["L0"] [
+    ]
+  ],
+  expr = uunit_
+} in 
+let p = composeProgram p in 
+match get p.decls 1 with DeclLang {decls = decls} in 
+utest length decls with 1 in 
+
+-- Test cosem composition
+let p : MLangProgram = {
+  decls = [
+    decl_lang_ "L0" [
+      decl_cosem_ "f" [] [] true
+    ],
+    decl_langi_ "L1" ["L0"] [
+      decl_cosem_ "f" [] [] false
+    ]
+  ],
+  expr = uunit_
+} in 
+let p = composeProgram p in 
+match get p.decls 1 with DeclLang {decls = decls} in 
+utest length decls with 1 in 
+match head decls with DeclCosem d in
+utest d.includes with [("L0", "f")] using eqSeq (tupleEq2 eqString eqString) in 
 
 ()
 

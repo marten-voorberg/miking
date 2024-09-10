@@ -304,6 +304,9 @@ decl:
   // Cosem definition
   | COSEM var_ident params EQ cosem_cases
     { Cosem (mkinfo $1.i $4.i, $2.v, $3, $5, true)}
+    // Cosem definition
+  | COSEM var_ident params TIMESEQ cosem_cases
+    { Cosem (mkinfo $1.i $4.i, $2.v, $3, $5, false)}
   // Syn base definition
   | SYN type_ident type_params EQ constrs
     { let fi = mkinfo $1.i $4.i in

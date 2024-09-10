@@ -92,9 +92,13 @@ lang BigPipeline = BigIncludeHandler +
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
 
-
-    match result.consume (checkCompositionWithOptions defaultCompositionCheckOptions p) 
-    with (_, Right compositionCheckEnv) in 
+    let res = result.consume (checkCompositionWithOptions defaultCompositionCheckOptions p) in 
+    let compositionCheckEnv = 
+      switch res
+        case (_, Right compositionCheckEnv) then compositionCheckEnv
+        case (_, Left errs) then iter raiseError errs; never
+      end
+    in
 
     let mlangTyDeps = getProgTyDeps compositionCheckEnv.baseMap2 p in  
     -- printLn (dumpTyDeps mlangTyDeps) ;
@@ -132,7 +136,7 @@ lang BigPipeline = BigIncludeHandler +
     let expr = typeCheckExpr tcEnv expr in 
 
     printLn (strJoin "\n" (dumpTypes [] expr));
-    -- printLn (expr2str expr);
+    printLn (expr2str expr);
 
     -- iter (lam n. printLn (nameGetStr n)) (setToSeq (deref tcEnv.extPatNames)) ;
     let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
