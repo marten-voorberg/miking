@@ -65,6 +65,8 @@ test: test-boot
 
 build: boot
 # Run the complete bootstrapping process to compile `mi`.
+# If you made any changes to `boot` you must run `make boot` and 
+# `make install-boot` beforehand.
 	@./make.sh
 
 build-mi:
