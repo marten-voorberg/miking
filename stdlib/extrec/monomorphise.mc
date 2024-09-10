@@ -2,14 +2,36 @@ include "mexpr/type-check.mc"
 include "mexpr/ast.mc"
 include "mexpr/ast-builder.mc"
 
+include "mlang/compile.mc"
+
 include "map.mc"
 include "stringid.mc"
 include "set.mc"
 
-lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst + MExprAst + MExprPrettyPrint
+lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst + MExprAst + MExprPrettyPrint + TypeAbsAst
   sem monomorphiseExpr : ExtRecEnvType -> Set Name -> Expr -> Expr
   sem monomorphiseExpr env names = 
-  | TmRecType t -> monomorphiseExpr env names t.inexpr
+  | TmRecType t -> 
+    match mapLookup t.ident env.defs with Some labelToType in 
+
+    let fields = mapFoldWithKey 
+      (lam acc. lam label. lam pair.
+        match pair with (_, TyAbs {body = ty}) in 
+        let ty = removeExtRecTypes_Type () ty in 
+        let ty = TyArrow {info = NoInfo (),
+                          from = tyunit_,
+                          to = ty} in 
+        mapInsert (stringToSid label) ty acc) 
+      (mapEmpty cmpSID)
+      labelToType
+    in 
+
+    TmType {ident = t.ident,
+            params = cons mapParamIdent t.params,
+            tyIdent = TyRecord {info = NoInfo (), fields = fields},
+            inexpr = monomorphiseExpr env names t.inexpr,
+            ty = t.ty,
+            info = t.info}
   | TmRecField t -> monomorphiseExpr env names t.inexpr 
   | TmExtRecord t -> 
     match mapLookup t.ident env.defs with Some labelToType in 
@@ -73,5 +95,35 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst
   | ty -> ty
 
 
-  sem monomorphiseType : ExtRecEnvType -> Type -> Type
+  sem removeExtRecTypes_Expr env = 
+  | expr -> 
+    let expr = smap_Expr_Type (removeExtRecTypes_Type env) expr in  
+    let expr = smap_Expr_TypeLabel (removeExtRecTypes_Type env) expr in 
+    smap_Expr_Expr (removeExtRecTypes_Expr env) expr
+    
+  sem removeExtRecTypes_Type env = 
+  | TyExtRec t -> 
+    TyApp {lhs = TyCon {ident = t.ident, info = t.info, data = tyunknown_},
+           rhs = ntyvar_ mapParamIdent, 
+           info = t.info}
+    
+  | TyAll t & ty ->
+    TyAll {t with kind = removeExtRecTypes_Kind env t.kind,
+                  ty = removeExtRecTypes_Type env t.ty}
+  | ty -> 
+    smap_Type_Type (removeExtRecTypes_Type env) ty 
+
+  sem removeExtRecTypes_Kind env = 
+  sem removeExtRecTypes_Kind =
+  | Data k & kind -> 
+    -- printLn (kind2str kind);
+    let pred = lam n. not (strEndsWith (nameGetStr n) "Type") in 
+    let kind = Data {k with types = mapFilterWithKey (lam k. lam. pred k) k.types} in 
+    -- printLn (kind2str kind);
+    kind
+  | kind -> 
+    smap_Kind_Type (removeExtRecTypes_Type env) kind
+
+
+
 end

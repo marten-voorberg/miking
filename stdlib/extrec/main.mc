@@ -24,9 +24,11 @@ include "mlang/symbolize.mc"
 include "mlang/const-transformer.mc"
 include "mlang/language-composer.mc"
 include "mlang/composition-check.mc"
+include "mlang/postprocess.mc"
 include "mlang/compile.mc"
 
 include "mexpr/type-check.mc"
+include "mexpr/phase-stats.mc"
 include "mexpr/eval.mc"
 
 lang BigPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint + 
@@ -58,7 +60,9 @@ lang BigPipeline = BigIncludeHandler +
                    RecFieldDeclCompiler + 
                    RecTypeDeclCompiler + 
                    ResolveQualifiedName + 
-                   ComputeMLangTyDeps
+                   ComputeMLangTyDeps +
+                   PhaseStats +
+                   PostProcess
 
   -- For some reason, this is missing some function definitions, but
   -- I can not figure out why. 
@@ -78,6 +82,77 @@ lang BigPipeline = BigIncludeHandler +
   | expr ->
     sfold_Expr_Expr dumpTypes acc expr
 
+  sem stripTypes = 
+  | e ->
+    let e = smap_Expr_Type (lam. tyunknown_) e in 
+    smap_Expr_Expr stripTypes e
+
+  sem compileExtendedMLangToOcaml options runner =| filepath ->
+    let log = mkPhaseLogState options.debugPhases in
+
+    let p = parseAndHandleIncludes filepath in 
+    endPhaseStats log "parsing-include-handling" uunit_;
+
+    let p = constTransformProgram builtin p in
+    endPhaseStats log "const-transformation" uunit_;
+
+    let p = composeProgram p in 
+    endPhaseStats log "language-inclusion-generation" uunit_;
+
+    match symbolizeMLang symEnvDefault p with (_, p) in 
+    endPhaseStats log "symbolization" uunit_;
+
+    let checkOptions = {defaultCompositionCheckOptions with 
+      disableStrictSumExtension = options.disableStrictSumExtension} in 
+
+    match result.consume (checkCompositionWithOptions checkOptions p) with (_, res) in 
+    endPhaseStats log "composition-check" uunit_; 
+
+    switch res 
+      case Left errs then 
+        iter raiseError errs ;
+        never
+      case Right env then
+        let ctx = _emptyCompilationContext env in 
+
+        let mlangTyDeps = getProgTyDeps env.baseMap2 p in  
+        let p = resolveQualifiedNameProgram mlangTyDeps p in 
+        let compilationCtx = _emptyCompilationContext env in 
+        let compilationCtx = {compilationCtx with baseMap = env.baseMap2} in 
+
+        let res = result.consume (compile compilationCtx p) in 
+
+        match res with (_, Right expr) in 
+
+        let accEnv = collectEnv _emptyAccEnv expr in 
+        let defs = accEnv.defs in 
+
+        let depGraph = createDependencyGraph defs in 
+        -- printLn (dumpDependencyGraph depGraph) ;
+
+        let tyDeps = computeTyDeps depGraph in 
+        -- printLn (dumpTyDeps tyDeps) ;
+
+        let labelTyDeps = computeLabelTyDeps tyDeps defs in 
+
+        let tcEnv = {typcheckEnvDefault with
+          disableConstructorTypes = false, 
+          extRecordType = {defs = defs, 
+                          tyDeps = tyDeps,
+                          labelTyDeps = labelTyDeps}} in 
+        
+        let expr = typeCheckExpr tcEnv expr in 
+        let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
+        let expr = removeExtRecTypes_Expr () expr in 
+
+        printLn (expr2str expr);
+
+        let expr = postprocess env.semSymMap expr in 
+        endPhaseStats log "postprocess" expr;
+
+        runner options filepath expr;
+        ()
+    end
   sem doIt =| filepath ->
     let p = parseAndHandleIncludes filepath in 
 
@@ -135,12 +210,14 @@ lang BigPipeline = BigIncludeHandler +
 
     let expr = typeCheckExpr tcEnv expr in 
 
-    printLn (strJoin "\n" (dumpTypes [] expr));
-    printLn (expr2str expr);
+    -- printLn (strJoin "\n" (dumpTypes [] expr));
+    -- printLn (expr2str expr);
 
     -- iter (lam n. printLn (nameGetStr n)) (setToSeq (deref tcEnv.extPatNames)) ;
     let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
+    let expr = removeExtRecTypes_Expr () expr in 
 
+    printLn (expr2str expr);
     expr
 
   sem runIt =| filepath ->

@@ -139,6 +139,10 @@ let optionsConfig : ParseConfig Options = [
     "Compile using the MLang Pipeline. Note that this is an unstable, experimental feature!",
     lam p: ArgPart Options.
       let o: Options = p.options in {o with mlangPipeline = true}),
+      ([("--experimental-records", "", "")],
+    "Compile using experimental records. Note that this is an unstable, experimental feature!",
+    lam p: ArgPart Options.
+      let o: Options = p.options in {o with experimentalRecords = true}),
   ([("--disable-strict-sum-extension", "", "")],
     (join ["Disable the strict composition checks for sum extension when",
       "using the --mlang-pipeline. By default, you must use '+=' when",

@@ -27,6 +27,7 @@ include "jvm/compile.mc"
 include "mlang/main.mc"
 include "peval/compile.mc"
 
+include "extrec/main.mc"
 
 lang MCoreCompile =
   BootParser +
@@ -140,9 +141,13 @@ let compile = lam files. lam options : Options. lam args.
   use MCoreCompile in
 
   if options.mlangPipeline then
-    printLn "WARNING: You are using an experimental, unstable pipeline.";
+    printLn " * WARNING: You are using an experimental, unstable pipeline.";
     use MLangPipeline in 
     iter (compileMLangToOcaml options compileWithUtests) files
+  else if options.experimentalRecords then  
+    printLn " * WARNING: You are using an experimental, unstable pipeline.";
+    use BigPipeline in 
+    iter (compileExtendedMLangToOcaml options compileWithUtests) files
   else
     let compileFile = lam file.
       let log = mkPhaseLogState options.debugPhases in

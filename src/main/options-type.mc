@@ -36,5 +36,6 @@ type Options = {
   output : Option String,
   tuneOptions : TuneOptions,
   mlangPipeline : Bool,
+  experimentalRecords : Bool,
   disableStrictSumExtension : Bool
 }

@@ -39,6 +39,7 @@ let optionsDefault : Options = {
   output = None (),
   tuneOptions = tuneOptionsDefault,
   mlangPipeline = false,
+  experimentalRecords = false,
   disableStrictSumExtension = false
 }
 
