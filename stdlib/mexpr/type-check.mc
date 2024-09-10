@@ -40,12 +40,7 @@ type ExtRecDefs = use Ast in Map Name (Map String (Name, Type))
 type ExtRecEnvType = {
   defs : ExtRecDefs,
   tyDeps : Map Name (Set Name),
-  mlangTyDeps : Map Name (Set Name),
-  labelTyDeps : Map Name (Map String (Set Name)),
-  langEnvs : Map Name ({
-    prodFields : Map Name (Set Name),
-    sumFields : Map Name (Set Name)
-  })
+  labelTyDeps : Map Name (Map String (Set Name))
 }
 
 type TCEnv = {
@@ -93,9 +88,7 @@ let typcheckEnvEmpty : TCEnv = {
   extRecordType = {
     defs = mapEmpty nameCmp,
     tyDeps = mapEmpty nameCmp,
-    mlangTyDeps = mapEmpty nameCmp,
-    labelTyDeps = mapEmpty nameCmp,
-    langEnvs = mapEmpty nameCmp
+    labelTyDeps = mapEmpty nameCmp
   },
   matchLvl = 0,
   currentLvl = 0,
@@ -695,77 +688,12 @@ lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
   -- a previous call to typeCheck.
   | TyAlias t -> TyAlias t
   | TyQualifiedName t & ty ->
-      let tcEnv = env in 
-
-      let tydeps = match mapLookup t.rhs env.extRecordType.mlangTyDeps with Some tydeps then tydeps
-                  else errorSingle [t.info] (join [
-                    " * Unknown rhs '",
-                    nameGetStr t.rhs,
-                    "' of qualified type!"
-                  ]) in 
-
-      let env = mapLookupOrElse 
-        (lam. errorSingle [t.info] " * Langauge on lhs does not exist!") 
-        t.lhs 
-        env.extRecordType.langEnvs
-      in
-
-      let folder = lam acc. lam dep.
-        match _identToBound env t.info dep with Some bound
-        then mapInsert dep bound acc
-        else acc 
-      in 
-      let kindMap = setFold folder (mapEmpty nameCmp) tydeps in
-
-      let kind = Data {types = kindMap} in 
-      -- printLn "Before negation";
-      -- print (type2str ty);
-      -- print "\t";
-      -- printLn (kind2str kind);
-
-      let kindMap = if t.pos then kindMap else _negate kindMap in 
-
-      -- printLn "After negation";
-      -- let kind = Data {types = kindMap} in 
-      -- print (type2str ty);
-      -- print "\t";
-      -- printLn (kind2str kind);
-      let tyvar = newnmetavar "ss" kind tcEnv.currentLvl t.info in 
-
-      let newTy = match mapLookup (nameRemoveSym t.rhs) env.prodFields with Some _
-                  then TyExtRec {info = t.info, ident = t.rhs, ty = tyvar} 
-                  else match mapLookup (nameRemoveSym t.rhs) env.sumFields with Some _
-                  then TyApp {lhs = TyCon {ident = t.rhs, info = t.info, data = tyvar},
-                              rhs = tyvar,
-                              info = t.info}
-                  else error "Illegal state! Should either be sum or product type!"
-      in
-
-      TyAlias {display = ty, content = newTy} 
+    errorSingle [t.info] (join [
+      " * Encountered a qualified name during type checking.\n",
+      " * These types should have been resolved before type checking!"
+    ])
   | ty ->
     smap_Type_Type (resolveType info env closeDatas) ty
-
-  sem _identToBound env info =
-  | ident ->
-    match mapLookup ident env.prodFields with Some fields then
-      Some {lower = fields, upper = None ()}
-    else match mapLookup (nameRemoveSym ident) env.sumFields with Some fields then
-      Some {lower = setEmpty nameCmp, upper = Some fields}
-    else
-      None ()
-  
-  sem _negate =
-  | kindMap -> 
-    let f = lam bounds. 
-      let newUpper = (if setIsEmpty bounds.lower 
-                      then None () 
-                      else Some bounds.lower) in 
-      match bounds.upper with Some newLower then 
-        {lower = newLower, upper = newUpper}
-      else 
-        {lower = setEmpty nameCmp, upper = newUpper}
-    in 
-    mapMap f kindMap
 end
 
 lang SubstituteUnknown = UnknownTypeAst + ConTypeAst + AliasTypeAst

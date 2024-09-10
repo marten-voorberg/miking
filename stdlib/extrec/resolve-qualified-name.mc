@@ -130,87 +130,81 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     let decl = smap_Decl_Type (resolveTy staticEnv accEnv) decl in 
     (accEnv, decl)
   | decl ->
-    -- todo: make this non-shallow...
     let decl = smap_Decl_Type (resolveTy staticEnv accEnv) decl in 
     (accEnv, decl)
 
   sem resolveTy : ResolveStaticEnv -> ResolveQualifiedNameEnv -> Type -> Type
   sem resolveTy staticEnv accEnv =
-  | ty -> ty
-    -- match resolveTyHelper staticEnv accEnv [] ty with (acc, ty) in 
+  | ty ->
+    match resolveTyHelper staticEnv accEnv [] ty with (acc, ty) in 
 
-    -- let worker = lam tyAcc. lam pair. 
-    --   match pair with (ident, kind) in 
-    --   nstyall_ ident kind tyAcc 
-    -- in 
-    -- foldl worker ty acc 
+    let worker = lam tyAcc. lam pair. 
+      match pair with (ident, kind) in 
+      nstyall_ ident kind tyAcc 
+    in 
+    foldl worker ty acc 
 
-  -- sem _identToBound (env: ResolveLangEnv) info =
-  -- | ident ->
-  --   match mapLookup ident env.prodFields with Some fields then
-  --     Some {lower = fields, upper = None ()}
-  --   else match mapLookup (nameRemoveSym ident) env.sumFields with Some fields then
-  --     Some {lower = setEmpty nameCmp, upper = Some fields}
-  --   else
-  --     None ()
-      -- {lower = setEmpty nameCmp, upper = None ()}
-      -- errorSingle [info] (join [
-      --   " * The provided identifier '",
-      --   nameGetStr ident,
-      --   "' does not refer to an extensible product or sum type!"
-      -- ])
+  sem _identToBound env info =
+  | ident ->
+    match mapLookup ident env.prodFields with Some fields then
+      Some {lower = fields, upper = None ()}
+    else match mapLookup (nameRemoveSym ident) env.sumFields with Some fields then
+      Some {lower = setEmpty nameCmp, upper = Some fields}
+    else
+      None ()
   
-  -- sem _negate =
-  -- | kindMap ->
-  --   let f = lam bounds. 
-  --     match bounds.upper with Some upper then 
-  --       {lower = upper, upper = Some bounds.lower}
-  --     else 
-  --       {lower = setEmpty nameCmp, upper = Some bounds.lower}
-  --   in 
-  --   mapMap f kindMap
+  sem _negate =
+  | kindMap -> 
+    let f = lam bounds. 
+      let newUpper = (if setIsEmpty bounds.lower 
+                      then None () 
+                      else Some bounds.lower) in 
+      match bounds.upper with Some newLower then 
+        {lower = newLower, upper = newUpper}
+      else 
+        {lower = setEmpty nameCmp, upper = newUpper}
+    in 
+    mapMap f kindMap
 
-  -- sem resolveTyHelper : ResolveStaticEnv -> ResolveQualifiedNameEnv -> [(Name, Kind)] -> Type -> ([(Name, Kind)], Type)
-  -- sem resolveTyHelper staticEnv accEnv acc = 
-  -- | TyQualifiedName t & ty ->
-  --   let env : ResolveLangEnv = mapLookupOrElse 
-  --     (lam. errorSingle [t.info] " * Langauge on lhs does not exist!") 
-  --     t.lhs 
-  --     accEnv.langEnvs
-  --   in
-  --   let tydeps = match mapLookup t.rhs staticEnv.tydeps with Some tydeps then tydeps
-  --                else errorSingle [t.info] (join [
-  --                 " * Unknown rhs '",
-  --                 nameGetStr t.rhs,
-  --                 "' of qualified type!"
-  --                ]) in 
+  sem resolveTyHelper : ResolveStaticEnv -> ResolveQualifiedNameEnv -> [(Name, Kind)] -> Type -> ([(Name, Kind)], Type)
+  sem resolveTyHelper staticEnv accEnv acc = 
+  | TyQualifiedName t & ty ->
+    let tydeps = match mapLookup t.rhs staticEnv.tydeps with Some tydeps then tydeps
+                 else errorSingle [t.info] (join [
+                   " * Unknown rhs '",
+                   nameGetStr t.rhs,
+                   "' of qualified type!"
+                 ]) in 
 
-  --   let folder = lam acc. lam dep.
-  --     match _identToBound env t.info dep with Some bound
-  --     then mapInsert dep bound acc
-  --     else acc 
-  --   in 
-  --   let kindMap = setFold folder (mapEmpty nameCmp) tydeps in
+    let env = mapLookupOrElse 
+      (lam. errorSingle [t.info] " * Langauge on lhs does not exist!") 
+      t.lhs 
+      accEnv.langEnvs
+    in
 
-  --   let kindMap = if t.pos then kindMap 
-  --                          else _negate kindMap in 
+    let folder = lam acc. lam dep.
+      match _identToBound env t.info dep with Some bound
+      then mapInsert dep bound acc
+      else acc 
+    in 
+    let kindMap = setFold folder (mapEmpty nameCmp) tydeps in
 
-  --   let kind = Data {types = kindMap} in 
-  --   let ident = nameSym "ss" in 
-  --   let tyvar = ntyvar_ ident in 
+    let kindMap = if t.pos then kindMap else _negate kindMap in 
+    let kind = Data {types = kindMap} in 
 
-  --   let newTy = match mapLookup (nameRemoveSym t.rhs) env.prodFields with Some _
-  --               then TyExtRec {info = t.info, ident = t.rhs, ty = tyvar} 
-  --               else match mapLookup (nameRemoveSym t.rhs) env.sumFields with Some _
-  --               then TyApp {lhs = TyCon {ident = t.rhs, info = t.info, data = tyvar},
-  --                           rhs = tyvar,
-  --                           info = t.info}
-  --               else error "Illegal state! Should either be sum or product type!"
-  --   in
+    let ident = nameSym "ss" in 
+    let tyvar = TyVar {info = t.info, ident = ident} in 
 
-  --   let tyAlias = TyAlias {display = ty, content = newTy} in 
+    let newTy = match mapLookup (nameRemoveSym t.rhs) env.prodFields with Some _
+                then TyExtRec {info = t.info, ident = t.rhs, ty = tyvar} 
+                else match mapLookup (nameRemoveSym t.rhs) env.sumFields with Some _
+                then TyApp {lhs = TyCon {ident = t.rhs, info = t.info, data = tyvar},
+                            rhs = tyvar,
+                            info = t.info}
+                else error "Illegal state! Should either be sum or product type!"
+    in
 
-  --   (cons (ident, kind) acc, tyAlias) 
-  -- | ty -> 
-  --   smapAccumL_Type_Type (resolveTyHelper staticEnv accEnv) acc ty 
+    (cons (ident, kind) acc, TyAlias {display = ty, content = newTy})
+  | ty -> 
+    smapAccumL_Type_Type (resolveTyHelper staticEnv accEnv) acc ty 
 end

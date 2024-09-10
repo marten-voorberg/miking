@@ -99,7 +99,7 @@ lang BigPipeline = BigIncludeHandler +
     let mlangTyDeps = getProgTyDeps compositionCheckEnv.baseMap2 p in  
     -- printLn (dumpTyDeps mlangTyDeps) ;
 
-    -- let p = resolveQualifiedNameProgram tyDeps p in 
+    let p = resolveQualifiedNameProgram mlangTyDeps p in 
     let langEnvs = gatherLangEnvs mlangTyDeps p in 
 
     -- printLn (mlang2str p);
@@ -110,7 +110,7 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    printLn (expr2str expr);
+    -- printLn (expr2str expr);
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 
@@ -127,9 +127,7 @@ lang BigPipeline = BigIncludeHandler +
       disableConstructorTypes = false, 
       extRecordType = {defs = defs, 
                        tyDeps = tyDeps,
-                       mlangTyDeps = mlangTyDeps,
-                       labelTyDeps = labelTyDeps,
-                       langEnvs = langEnvs}} in 
+                       labelTyDeps = labelTyDeps}} in 
 
     let expr = typeCheckExpr tcEnv expr in 
 
