@@ -441,8 +441,8 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
         match pair with (ident, c) in
 
         match mapLookup c.orig ctx.compositionCheckEnv.semArgsMap with Some (Some origArgs) in 
-        let pairs = join [zip origArgs argsIdents] in 
-
+        let pairs = join [zip origArgs argsIdents,
+                          createPairsForSubst ctx c.orig.0 langStr] in 
         let subst = mapFromSeq nameCmp pairs in
         let thn = substituteIdentifiersExpr subst c.thn in 
         bind_ (nulet_ ident thn) acc in 

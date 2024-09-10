@@ -410,7 +410,9 @@ lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrett
                            Result CompositionWarning CompositionError CompositionCheckEnv
   sem validateSynSemBase langStr env =
   | DeclCosem s -> 
-    let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair} in
+    let env = {env with symToPair = mapInsert s.ident (langStr, nameGetStr s.ident) env.symToPair,
+                        langToSems = mapInsert langStr (cons s.ident (mapLookupOrElse (lam. []) langStr env.langToSems)) env.langToSems
+    } in
 
     match s.includes with [] then 
       if s.isBase then 
