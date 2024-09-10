@@ -134,11 +134,14 @@ lang BigPipeline = BigIncludeHandler +
     printLn (strJoin "\n" (dumpTypes [] expr));
     -- printLn (expr2str expr);
 
+    -- iter (lam n. printLn (nameGetStr n)) (setToSeq (deref tcEnv.extPatNames)) ;
+    let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
+
     expr
 
   sem runIt =| filepath ->
-    let p = doIt filepath in 
-    let result = eval (evalCtxEmpty ()) p.expr in 
+    let expr = doIt filepath in 
+    let result = eval (evalCtxEmpty ()) expr in 
     printLn (expr2str result);
     result
 
@@ -171,7 +174,7 @@ use BigPipeline in
 -- let p = doIt "temp/basic.mc" in 
 -- let p = doIt "temp/constructor-types.mc" in 
 -- let p = doIt "temp/point.mc" in 
-let p = doIt (last argv) in 
+let p = runIt (last argv) in 
 
 -- let p = doIt "example.mc" in 
 -- let p = doIt "symbolize-example/simple-sym.mc" in 

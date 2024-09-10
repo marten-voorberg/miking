@@ -57,6 +57,7 @@ type TCEnv = {
   currentLvl : Level, -- The current nesting level of binder bodies
   disableRecordPolymorphism : Bool,
   disableConstructorTypes : Bool,
+  extPatNames : Ref (Set Name),
 
   extRecordType : ExtRecEnvType,
 
@@ -94,6 +95,7 @@ let typcheckEnvEmpty : TCEnv = {
   currentLvl = 0,
   disableRecordPolymorphism = true,
   disableConstructorTypes = true,
+  extPatNames = ref (setEmpty nameCmp),
   reptypes = {
     delayedReprUnifications = ref [],
     opNamesInScope = mapEmpty nameCmp,
