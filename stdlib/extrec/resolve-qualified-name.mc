@@ -108,6 +108,24 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     accEnv
   
   sem resolveQualifiedNamesWithinLang langIdent staticEnv accEnv = 
+  | DeclCosyn d & decl ->
+    let ident = nameRemoveSym d.ident in 
+
+    match d.ty with TyRecord r in 
+    match mapLookup langIdent accEnv.langEnvs with Some innerEnv in 
+
+    let labels : [SID] = mapKeys r.fields in 
+    let labels : [Name] = map (lam sid. nameNoSym (sidToString sid)) labels in 
+    
+    let oldSet = mapLookupOr
+      (mapEmpty nameCmp) 
+      ident
+      innerEnv.prodFields in 
+    let newSet = foldr setInsert oldSet labels in 
+    let innerEnv = {innerEnv with prodFields = mapInsert ident newSet innerEnv.prodFields} in 
+  
+    let accEnv = {accEnv with langEnvs = mapInsert langIdent innerEnv accEnv.langEnvs} in 
+    (accEnv, decl)
   | DeclSyn d & decl -> 
     match mapLookup langIdent accEnv.langEnvs with Some innerEnv in 
 
@@ -169,7 +187,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
   sem resolveTyHelper : ResolveStaticEnv -> ResolveQualifiedNameEnv -> [(Name, Kind)] -> Type -> ([(Name, Kind)], Type)
   sem resolveTyHelper staticEnv accEnv acc = 
   | TyQualifiedName t & ty ->
-    let tydeps = match mapLookup t.rhs staticEnv.tydeps with Some tydeps then tydeps
+    let tydeps = match mapLookup (nameRemoveSym t.rhs) staticEnv.tydeps with Some tydeps then tydeps
                  else errorSingle [t.info] (join [
                    " * Unknown rhs '",
                    nameGetStr t.rhs,
@@ -203,7 +221,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
                             info = t.info}
                 else error "Illegal state! Should either be sum or product type!"
     in
-
+    printLn (kind2str kind);
     (cons (ident, kind) acc, TyAlias {display = ty, content = newTy})
   | ty -> 
     smapAccumL_Type_Type (resolveTyHelper staticEnv accEnv) acc ty 

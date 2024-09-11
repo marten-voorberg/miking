@@ -106,6 +106,11 @@ let ntycon_ = lam n.
 let tycon_ = lam s.
   ntycon_ (nameNoSym s)
 
+let intyvar_ = use VarTypeAst in
+  lam i. lam n.
+    TyVar {ident = n,
+           info = i}
+
 let ntyvar_ = use VarTypeAst in
   lam n.
   TyVar {ident = n, info = NoInfo ()}

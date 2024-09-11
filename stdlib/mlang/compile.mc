@@ -288,8 +288,8 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
   sem _insertImplicitTyVars ctx =
   | TyCon t & ty -> 
     if setMem t.ident ctx.allBaseSyns then
-      TyApp {lhs = TyCon {t with data = ntyvar_ mapParamIdent}, 
-             rhs = ntyvar_ mapParamIdent, info = t.info}
+      TyApp {lhs = TyCon {t with data = intyvar_ t.info mapParamIdent}, 
+             rhs = intyvar_ t.info mapParamIdent, info = t.info}
     else
       ty
   | ty -> smap_Type_Type (_insertImplicitTyVars ctx) ty
@@ -308,7 +308,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
         ty
     in 
     let forallWrapper = makeForallWrapper params in 
-    let tyconApp = foldl (lam acc. lam n. tyapp_ acc (ntyvar_ n)) (ntycon_ baseIdent) params in 
+    let tyconApp = foldl (lam acc. lam n. tyapp_ acc (intyvar_ s.info n)) (ntycon_ baseIdent) params in 
     let compileDef = lam ctx. lam def : {ident : Name, tyIdent : Type}.
       match def.tyIdent with TyRecord _ then
         let tyIdent = mergeRecordTypes 
@@ -336,7 +336,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
         let ctx = mapFoldWithKey work ctx rec.fields in 
         let lhs = TyExtRec {info = infoTy def.tyIdent,
                                    ident = recIdent,
-                                   ty = ntyvar_ mapParamIdent} in 
+                                   ty = intyvar_ s.info mapParamIdent} in 
         withExpr ctx (TmConDef {ident = def.ident,
                                 tyIdent = forallWrapper (tyarrow_ lhs tyconApp),
                                 inexpr = uunit_,

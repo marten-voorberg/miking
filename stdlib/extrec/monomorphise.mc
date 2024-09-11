@@ -104,7 +104,7 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst
   sem removeExtRecTypes_Type env = 
   | TyExtRec t -> 
     TyApp {lhs = TyCon {ident = t.ident, info = t.info, data = tyunknown_},
-           rhs = ntyvar_ mapParamIdent, 
+           rhs = intyvar_ t.info mapParamIdent, 
            info = t.info}
     
   | TyAll t & ty ->

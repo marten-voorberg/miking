@@ -149,7 +149,14 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
       let expr = typeCheckExpr env expr in 
 
       let tyAbs = match mapLookup label labelToType with Some ty then ty.1
-                  else error "Illegal label!" in 
+                  else errorSingle [t.info] (join [
+                    " * The label '",
+                    label, 
+                    "' is not defined on the\n",
+                    " * extensible record type '",
+                    nameGetStr t.ident,
+                    "'!"
+                  ]) in 
       let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = r}) in
       let expectedTy = resolveType t.info env false expectedTy in 
 

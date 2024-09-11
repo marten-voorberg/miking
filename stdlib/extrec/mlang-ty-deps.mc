@@ -41,6 +41,11 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
     let typeIdents = map (lam def. nameNoSym (concat (nameGetStr def.ident) "Type")) d.defs in 
 
     {env with allSynTypes = foldr setInsert env.allSynTypes typeIdents}
+  | DeclCosyn d ->
+    if d.isBase then
+      {env with allSynTypes = setInsert (nameRemoveSym d.ident) env.allSynTypes}
+    else 
+      env
   | SynDeclProdExt d -> 
     match d.globalExt with Some globalExt then 
       match mapLookup d.ident env.baseMap with Some baseIdent in 
@@ -58,6 +63,8 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
   sem _gatherDeps env acc = 
   | TyCon t -> 
     if setMem t.ident env.allBaseSyns then
+      setInsert t.ident acc 
+    else if setMem (nameRemoveSym t.ident) env.allSynTypes then 
       setInsert t.ident acc 
     else 
       acc
@@ -83,6 +90,11 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
   sem _establishDepGraph env =
   | DeclLang d -> 
     foldl _establishDepGraph env d.decls 
+  | DeclCosyn d ->
+    let ident = nameRemoveSym d.ident in 
+    printLn "here!";
+    let deps = _gatherDeps env (setEmpty nameCmp) d.ty in 
+    {env with depGraph = setFold (lam g. lam dep. digraphMaybeAddEdge ident dep () g) env.depGraph deps}
   | DeclSyn d -> 
     match mapLookup d.ident env.baseMap with Some baseIdent in 
 
