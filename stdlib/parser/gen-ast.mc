@@ -636,7 +636,7 @@ lang CarriedTypeGenerate = CarriedTypeHelpers + LangDeclAst + TypeDeclAst + SynD
         , decls =
           join
             [ [ DeclType {ident = recordTyName, params = [], tyIdent = carriedRepr carried, info = NoInfo ()}
-              , DeclSyn {ident = synType, includes = [], declKind = BaseKind (), params = [], defs = [{ident = name, tyIdent = ntycon_ recordTyName}], info = NoInfo ()}
+              , DeclSyn {ident = synType, includes = [], declKind = BaseKind (), params = [], defs = [{ident = name, tyIdent = ntycon_ recordTyName, tyName = nameNoSym (concat (nameGetStr name) "Type")}], info = NoInfo ()}
               ]
             , sfunctions
             , join accessors

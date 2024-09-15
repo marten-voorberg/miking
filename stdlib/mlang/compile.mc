@@ -309,14 +309,14 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     in 
     let forallWrapper = makeForallWrapper params in 
     let tyconApp = foldl (lam acc. lam n. tyapp_ acc (intyvar_ s.info n)) (ntycon_ baseIdent) params in 
-    let compileDef = lam ctx. lam def : {ident : Name, tyIdent : Type}.
+    let compileDef = lam ctx. lam def : {ident : Name, tyIdent : Type, tyName : Name}.
       match def.tyIdent with TyRecord _ then
         let tyIdent = mergeRecordTypes 
           def.tyIdent
           (mapLookupOrElse (lam. tyrecord_ []) baseIdent ctx.globalFields) in 
         match tyIdent with TyRecord rec in 
         -- TODO: Determine the proper symbol for this type.
-        let recIdent = nameNoSym (concat (nameGetStr def.ident) "Type") in
+        let recIdent = def.tyName in
         -- let recIdent = nameSym (concat (nameGetStr def.ident) "Type") in 
         let ctx = {ctx with conToExtType = mapInsert def.ident recIdent ctx.conToExtType} in 
         let ctx = withExpr ctx (TmRecType {ident = recIdent,

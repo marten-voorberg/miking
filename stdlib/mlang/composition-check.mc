@@ -141,6 +141,8 @@ let insertSemPatMap = lam env. lam k. lam v.
 
 -- TODO(voorberg, 09/09/2024): Refactor to avoid code duplication between syn, sem and cosyn. 
 -- E.g. checking the params and base is identical for cosyn and syn.
+-- TODO(voorberg, 15/09/202): A composition check should be added that ensures
+-- that the labels in a constructor's type are disjoint under product extension.
 lang MLangCompositionCheck = MLangAst + MExprPatAnalysis + MExprAst + MExprPrettyPrint + RecordCopatAst
   syn CompositionError =
   | DifferentBaseSyn {

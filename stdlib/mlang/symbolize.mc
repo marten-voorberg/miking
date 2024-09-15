@@ -175,6 +175,9 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
   | RecordCopat c ->
     RecordCopat {c with ident = getSymbol {kind = "type", info = [c.info], allowFree = false} env.currentEnv.tyConEnv c.ident}
 
+  -- TODO(25-09-2024, voorberg): A bunch of symbols are created manually
+  -- through `nameSym`. These should probably be replaced with calls to 
+  -- `setSymbol` to detect duplicates and provide standardized error messages.
   sem symbolizeDecl env = 
   | DeclLang t -> 
     -- Symbolize the name of the language
@@ -293,7 +296,7 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     let symbDef = lam synIdent : Name.
                   lam params : [Name]. 
                   lam langEnv : NameEnv. 
-                  lam def : {ident : Name, tyIdent : Type}. 
+                  lam def : {ident : Name, tyIdent : Type, tyName : Name}. 
       match setSymbol langEnv.conEnv def.ident with (conEnv, ident) in 
 
       let updater = lam prev. 
@@ -304,11 +307,8 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
       in 
       let extensionEnv = mapUpdate (nameRemoveSym synIdent) updater langEnv.extensionEnv in 
       
-      -- Todo: ensure that the type is symbolized and that this symbol is stored
-      -- such that it can be used during compilation.
-      let tyIdentStr = concat (nameGetStr def.ident) "Type" in 
-      let tyConEnv = mapInsert tyIdentStr (nameNoSym tyIdentStr) langEnv.tyConEnv in 
-
+      match setSymbol langEnv.tyConEnv def.tyName with (tyConEnv, tyName) in 
+      
       let langEnv = {langEnv with conEnv = conEnv,
                                   extensionEnv = extensionEnv,
                                   tyConEnv = tyConEnv} in 
@@ -323,7 +323,9 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
 
       let tyIdent = symbolizeType env def.tyIdent in
 
-      (langEnv, {ident = ident, tyIdent = tyIdent})
+
+
+      (langEnv, {ident = ident, tyIdent = tyIdent, tyName = tyName})
     in
     let symbSynConstructors = lam langEnv. lam synDecl. 
       match synDecl with DeclSyn s in 
@@ -353,7 +355,7 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
     match mapAccumL symbCosynStep2 langEnv cosynDecls with (langEnv, cosynDecls) in 
 
     -- 3.5 Symbolize product extension
-    let symbDef = lam params : [Name]. lam langEnv : NameEnv. lam def : {ident : Name, tyIdent : Type}. 
+    let symbDef = lam params : [Name]. lam langEnv : NameEnv. lam def : {ident : Name, tyIdent : Type, tyName : Name}. 
       let ident = getSymbol 
         {kind = "Syn Type", info = [NoInfo ()], allowFree = false}
         langEnv.conEnv
@@ -363,13 +365,19 @@ lang DeclLangSym = DeclSym + LangDeclAst + TypeDeclAst + SemDeclAst +
       let paramPairs = map (lam p. (nameGetStr p, p)) params in 
       let paramMap = mapFromSeq cmpString paramPairs in 
 
+      -- Find the name of the associated extensible product type
+      let tyName = getSymbol 
+        {kind = "Type Constructor", info = [NoInfo ()], allowFree = false}
+        langEnv.tyConEnv
+        def.tyName in 
+
       let env = updateEnv env langEnv in 
       let m = mapUnion env.currentEnv.tyVarEnv paramMap in 
       let env = symbolizeUpdateTyVarEnv env m in 
 
       let tyIdent = symbolizeType env def.tyIdent in
 
-      (langEnv, {ident = ident, tyIdent = tyIdent})
+      (langEnv, {ident = ident, tyIdent = tyIdent, tyName = tyName})
     in
     let symbSynConstructors = lam langEnv. lam synDecl. 
       match synDecl with SynDeclProdExt s in 

@@ -116,7 +116,7 @@ lang BigPipeline = BigIncludeHandler +
         let ctx = _emptyCompilationContext env in 
 
         let mlangTyDeps = getProgTyDeps env.baseMap2 p in  
-        let p = resolveQualifiedNameProgram mlangTyDeps p in 
+        let p = resolveQualifiedNameProgram mlangTyDeps env.baseMap2 p in 
         let compilationCtx = _emptyCompilationContext env in 
         let compilationCtx = {compilationCtx with baseMap = env.baseMap2} in 
 
@@ -178,8 +178,8 @@ lang BigPipeline = BigIncludeHandler +
     let mlangTyDeps = getProgTyDeps compositionCheckEnv.baseMap2 p in  
     -- printLn (dumpTyDeps mlangTyDeps) ;
 
-    let p = resolveQualifiedNameProgram mlangTyDeps p in 
-    let langEnvs = gatherLangEnvs mlangTyDeps p in 
+    let p = resolveQualifiedNameProgram mlangTyDeps compositionCheckEnv.baseMap2 p in 
+    -- let langEnvs = gatherLangEnvs mlangTyDeps p compositionCheckEnv.baseMap2 in 
 
     -- printLn (mlang2str p);
 

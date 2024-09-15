@@ -120,7 +120,7 @@ lang SynDeclAst = DeclAst
   syn Decl =
   | DeclSyn {ident : Name,
              params : [Name],
-             defs : [{ident : Name, tyIdent : Type}],
+             defs : [{ident : Name, tyIdent : Type, tyName : Name}],
              -- The list of syns whose constructors should be included.
              -- The first string identifies the langauge of the include
              -- and the second string identifies the name.
@@ -145,7 +145,7 @@ lang SynProdExtDeclAst = DeclAst
   | SynDeclProdExt {ident : Name,
                     params : [Name],
                     globalExt : Option Type, 
-                    individualExts : [{ident : Name, tyIdent : Type}],
+                    individualExts : [{ident : Name, tyIdent : Type, tyName : Name}],
                     includes : [(String, String)],
                     info : Info}
 

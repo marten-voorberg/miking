@@ -6,7 +6,8 @@ include "digraph.mc"
 include "set.mc"
 
 type ResolveStaticEnv = {
-  tydeps : Map Name (Set Name)
+  tydeps : Map Name (Set Name),
+  baseMap : Map Name Name
 }
 type ResolveLangEnv = {
   prodFields : Map Name (Set Name),
@@ -23,9 +24,9 @@ type ResolveQualifiedNameEnv = {
 lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst + 
                             MLangPrettyPrint + ExtRecordTypeAst
                             
-  sem resolveQualifiedNameProgram tydeps = 
+  sem resolveQualifiedNameProgram tydeps baseMap = 
   | prog -> 
-    let staticEnv = {tydeps = tydeps} in 
+    let staticEnv = {tydeps = tydeps, baseMap = baseMap} in 
     let accEnv = {langEnvs = mapEmpty nameCmp} in 
 
     match smap_Prog_Decl (resolveQualifiedNames staticEnv) accEnv prog
@@ -39,9 +40,9 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
 
     {prog with expr = worker prog.expr}
 
-  sem gatherLangEnvs tydeps =
+  sem gatherLangEnvs tydeps baseMap=
   | prog -> 
-    let staticEnv = {tydeps = tydeps} in 
+    let staticEnv = {tydeps = tydeps, baseMap = baseMap} in 
     let accEnv = {langEnvs = mapEmpty nameCmp} in 
 
     match smap_Prog_Decl (resolveQualifiedNames staticEnv) accEnv prog 
@@ -88,20 +89,17 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     (accEnv, other)
 
   sem _updateProdFields langIdent accEnv =
-  | {ident = ident, tyIdent = TyRecord r} -> 
+  | {ident = ident, tyIdent = TyRecord r, tyName = tyName} -> 
     match mapLookup langIdent accEnv.langEnvs with Some innerEnv in 
 
-    let ident = nameNoSym (concat (nameGetStr ident) "Type") in 
+    let ident = tyName in 
 
     let labels : [SID] = mapKeys r.fields in 
     let labels : [Name] = map (lam sid. nameNoSym (sidToString sid)) labels in 
     
-    let oldSet = mapLookupOr
-      (mapEmpty nameCmp) 
-      (nameRemoveSym ident)
-      innerEnv.prodFields in 
+    let oldSet = mapLookupOr (mapEmpty nameCmp) tyName innerEnv.prodFields in 
     let newSet = foldr setInsert oldSet labels in 
-    let innerEnv = {innerEnv with prodFields = mapInsert (nameRemoveSym ident) newSet innerEnv.prodFields} in 
+    let innerEnv = {innerEnv with prodFields = mapInsert tyName newSet innerEnv.prodFields} in 
   
     {accEnv with langEnvs = mapInsert langIdent innerEnv accEnv.langEnvs}
   | other -> 
@@ -109,7 +107,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
   
   sem resolveQualifiedNamesWithinLang langIdent staticEnv accEnv = 
   | DeclCosyn d & decl ->
-    let ident = nameRemoveSym d.ident in 
+    let ident = d.ident in 
 
     match d.ty with TyRecord r in 
     match mapLookup langIdent accEnv.langEnvs with Some innerEnv in 
@@ -129,14 +127,13 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
   | DeclSyn d & decl -> 
     match mapLookup langIdent accEnv.langEnvs with Some innerEnv in 
 
-    let s = mapLookupOr
-      (setEmpty nameCmp)
-      (nameRemoveSym d.ident)
-      innerEnv.sumFields in 
+    match mapLookup d.ident staticEnv.baseMap with Some baseIdent in 
+
+    let s = mapLookupOr (setEmpty nameCmp) baseIdent innerEnv.sumFields in 
     let addedConstructors = map (lam d. d.ident) d.defs in
     let newS = foldr setInsert s addedConstructors in 
 
-    let innerEnv = {innerEnv with sumFields = mapInsert (nameRemoveSym d.ident) newS innerEnv.sumFields} in 
+    let innerEnv = {innerEnv with sumFields = mapInsert baseIdent newS innerEnv.sumFields} in 
     let accEnv = {accEnv with langEnvs = mapInsert langIdent innerEnv accEnv.langEnvs} in 
 
     let accEnv = foldl (_updateProdFields langIdent) accEnv d.defs in 
@@ -166,7 +163,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
   | ident ->
     match mapLookup ident env.prodFields with Some fields then
       Some {lower = fields, upper = None ()}
-    else match mapLookup (nameRemoveSym ident) env.sumFields with Some fields then
+    else match mapLookup ident env.sumFields with Some fields then
       Some {lower = setEmpty nameCmp, upper = Some fields}
     else
       None ()
@@ -187,7 +184,8 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
   sem resolveTyHelper : ResolveStaticEnv -> ResolveQualifiedNameEnv -> [(Name, Kind)] -> Type -> ([(Name, Kind)], Type)
   sem resolveTyHelper staticEnv accEnv acc = 
   | TyQualifiedName t & ty ->
-    let tydeps = match mapLookup (nameRemoveSym t.rhs) staticEnv.tydeps with Some tydeps then tydeps
+    let ident = t.rhs in 
+    let tydeps = match mapLookup ident staticEnv.tydeps with Some tydeps then tydeps
                  else errorSingle [t.info] (join [
                    " * Unknown rhs '",
                    nameGetStr t.rhs,
@@ -210,19 +208,29 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     let kindMap = if t.pos then kindMap else _negate kindMap in 
     let kind = Data {types = kindMap} in 
 
-    let ident = nameSym "ss" in 
-    let tyvar = TyVar {info = t.info, ident = ident} in 
+    let tyvarIdent = nameSym "ss" in 
+    let tyvar = TyVar {info = t.info, ident = tyvarIdent} in 
 
-    let newTy = match mapLookup (nameRemoveSym t.rhs) env.prodFields with Some _
-                then TyExtRec {info = t.info, ident = t.rhs, ty = tyvar} 
-                else match mapLookup (nameRemoveSym t.rhs) env.sumFields with Some _
-                then TyApp {lhs = TyCon {ident = t.rhs, info = t.info, data = tyvar},
-                            rhs = tyvar,
-                            info = t.info}
-                else error "Illegal state! Should either be sum or product type!"
+    let ident = mapLookupOr ident ident staticEnv.baseMap in 
+
+    let newTy = match mapLookup ident env.prodFields with Some _
+                  then TyExtRec {info = t.info, ident = ident, ty = tyvar} 
+                else match mapLookup ident env.sumFields with Some _
+                  then TyApp {lhs = TyCon {ident = ident, info = t.info, data = tyvar},
+                              rhs = tyvar,
+                              info = t.info}
+                else errorSingle [t.info] (join [
+                  " * Illegal state! The right-hand side '",
+                  nameGetStr ident,
+                  "' (",
+                  if nameHasSym ident then "symbolized" else "not symbolized",
+                  ") of this qualified name\n",
+                  " * is neither a sum or product type. This should be impossible!"
+                ])
     in
+    printLn (type2str ty);
     printLn (kind2str kind);
-    (cons (ident, kind) acc, TyAlias {display = ty, content = newTy})
+    (cons (tyvarIdent, kind) acc, TyAlias {display = ty, content = newTy})
   | ty -> 
     smapAccumL_Type_Type (resolveTyHelper staticEnv accEnv) acc ty 
 end

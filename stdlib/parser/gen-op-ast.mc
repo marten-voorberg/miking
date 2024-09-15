@@ -417,7 +417,7 @@ lang GenOpAstLang = SynDeclAst + SemDeclAst + LangDeclAst
         { ident = synName
         , params = [nameNoSym "lstyle", nameNoSym "rstyle"]
         , includes = [], declKind = BaseKind ()
-        , defs = [{ident = conName, tyIdent = op.carried}]
+        , defs = [{ident = conName, tyIdent = op.carried, tyName = nameNoSym (concat (nameGetStr conName) "Type")}]
         , info = NoInfo ()
         }
       , getInfo

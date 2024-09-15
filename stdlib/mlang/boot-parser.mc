@@ -103,7 +103,8 @@ lang BootParserMLang = BootParser + MLangAst
     let parseCon = lam i. 
       let ident = gname d (addi i 1) in 
       let ty = gtype d i in 
-      {ident = ident, tyIdent = ty}
+      let tyName = nameNoSym (concat (gstr d (addi i 1)) "Type") in 
+      {ident = ident, tyIdent = ty, tyName = tyName}
     in 
 
     let kind = switch gint d 0 
@@ -156,7 +157,8 @@ lang BootParserMLang = BootParser + MLangAst
     let parseCon = lam i. 
       let ident = gname d (addi i 1) in 
       let ty = gtype d (addi i 1) in 
-      {ident = ident, tyIdent = ty}
+      let tyName = nameNoSym (concat (gstr d (addi i 1)) "Type") in 
+      {ident = ident, tyIdent = ty, tyName = tyName}
     in 
 
     -- When no global extension is given, boot will parse this as a unit type
