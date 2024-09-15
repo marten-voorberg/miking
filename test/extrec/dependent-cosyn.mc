@@ -3,8 +3,8 @@ lang L0
 
   cosyn BarType = {a : Int, foos : [extrec {FooType of m}]} 
 
-  -- sem sum : all m. extrec {BarType of m} -> Int
-  sem sum : < L0::BarType -> Int
+  sem sum : extrec {BarType of Unknown} -> Int
+  -- sem sum : < L0::BarType -> Int
   sem sum =
   | b -> 
     let foos = b.foos in 

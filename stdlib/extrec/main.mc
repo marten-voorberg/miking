@@ -189,7 +189,8 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    -- printLn (expr2str expr);
+    printLn " === POST COMPILATION === ";
+    printLn (expr2str expr);
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 
@@ -217,6 +218,7 @@ lang BigPipeline = BigIncludeHandler +
     let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
     let expr = removeExtRecTypes_Expr () expr in 
 
+    printLn " === POST MONOMORPHISATION === ";
     printLn (expr2str expr);
     expr
 

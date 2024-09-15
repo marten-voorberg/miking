@@ -27,7 +27,8 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst
     in 
 
     TmType {ident = t.ident,
-            params = cons mapParamIdent t.params,
+            -- params = cons mapParamIdent t.params,
+            params = t.params,
             tyIdent = TyRecord {info = NoInfo (), fields = fields},
             inexpr = monomorphiseExpr env names t.inexpr,
             ty = t.ty,
@@ -102,14 +103,26 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst
     smap_Expr_Expr (removeExtRecTypes_Expr env) expr
     
   sem removeExtRecTypes_Type env = 
+  | TyCon t -> TyCon {t with data = tyunknown_}
+  | TyApp {rhs = TyVar tyVar} & TyApp t ->
+    if nameEq tyVar.ident mapParamIdent then 
+      removeExtRecTypes_Type env t.lhs 
+    else 
+      TyApp {t with lhs = removeExtRecTypes_Type env t.lhs,
+                    rhs = removeExtRecTypes_Type env t.rhs}
   | TyExtRec t -> 
-    TyApp {lhs = TyCon {ident = t.ident, info = t.info, data = tyunknown_},
-           rhs = intyvar_ t.info mapParamIdent, 
-           info = t.info}
-    
+    TyCon {ident = t.ident, info = t.info, data = tyunknown_}
+    -- TyApp {lhs = TyCon {ident = t.ident, info = t.info, data = tyunknown_},
+    --        rhs = intyvar_ t.info mapParamIdent, 
+    --        info = t.info}
   | TyAll t & ty ->
-    TyAll {t with kind = removeExtRecTypes_Kind env t.kind,
-                  ty = removeExtRecTypes_Type env t.ty}
+    match t.kind with Data _ then
+      removeExtRecTypes_Type env t.ty
+    else if nameEq t.ident mapParamIdent then
+      removeExtRecTypes_Type env t.ty
+    else 
+      TyAll {t with ty = removeExtRecTypes_Type env t.ty,
+                    kind = removeExtRecTypes_Kind env t.kind}
   | ty -> 
     smap_Type_Type (removeExtRecTypes_Type env) ty 
 
