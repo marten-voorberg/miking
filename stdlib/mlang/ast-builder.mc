@@ -92,7 +92,7 @@ let decl_lang_ = use MLangAst in
 let decl_nsynn_ = use MLangAst in
   lam n. lam ndefs: [(Name, Type)].
   DeclSyn {ident = n,
-           defs = map (lam t. {ident = t.0, tyIdent = t.1}) ndefs,
+           defs = map (lam t. {ident = t.0, tyIdent = t.1, tyName = nameNoSym (concat (nameGetStr t.0) "Type")}) ndefs,
            params = [],
            includes = [],
            info = NoInfo {},
@@ -124,7 +124,9 @@ let decl_syn_prodext_ = use MLangAst in
 let decl_syn_params_ = use MLangAst in 
   lam s : String. lam ss : [String]. lam defs : [(String, Type)].
   DeclSyn {ident = nameNoSym s,
-           defs = map (lam t. {ident = nameNoSym t.0, tyIdent = t.1}) defs,
+           defs = map (lam t. {ident = nameNoSym t.0, 
+                               tyIdent = t.1,
+                               tyName = nameNoSym (concat s "Type")}) defs,
            params = map nameNoSym ss,
            includes = [],
            info = NoInfo {},

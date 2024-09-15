@@ -145,8 +145,6 @@ lang BigPipeline = BigIncludeHandler +
         let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
         let expr = removeExtRecTypes_Expr () expr in 
 
-        printLn (expr2str expr);
-
         let expr = postprocess env.semSymMap expr in 
         endPhaseStats log "postprocess" expr;
 

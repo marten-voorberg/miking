@@ -97,15 +97,24 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst
 
 
   sem removeExtRecTypes_Expr env = 
+  | TmType t ->
+    TmType {t with params = filter (lam n. not (nameEq mapParamIdent n)) t.params,
+                   tyIdent = removeExtRecTypes_Type env t.tyIdent,
+                   ty = removeExtRecTypes_Type env t.ty,
+                   inexpr = removeExtRecTypes_Expr env t.inexpr}
   | expr -> 
     let expr = smap_Expr_Type (removeExtRecTypes_Type env) expr in  
     let expr = smap_Expr_TypeLabel (removeExtRecTypes_Type env) expr in 
     smap_Expr_Expr (removeExtRecTypes_Expr env) expr
     
   sem removeExtRecTypes_Type env = 
+  | TyQualifiedName t -> 
+    TyCon {ident = t.rhs, info = t.info, data = tyunknown_}
   | TyCon t -> TyCon {t with data = tyunknown_}
   | TyApp {rhs = TyVar tyVar} & TyApp t ->
     if nameEq tyVar.ident mapParamIdent then 
+      removeExtRecTypes_Type env t.lhs 
+    else if eqString (nameGetStr tyVar.ident) "ss" then
       removeExtRecTypes_Type env t.lhs 
     else 
       TyApp {t with lhs = removeExtRecTypes_Type env t.lhs,
