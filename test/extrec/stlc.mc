@@ -5,15 +5,48 @@ let and = lam b1. lam b2.
 
 lang LC 
   syn Ty = 
+
   syn Term = 
   | TmApp {lhs : Term, rhs : Term}
   | TmAbs {ident : String, body : Term}
   | TmVar {ident : String}
+
+  sem eval = 
+  | TmApp outer -> 
+    match outer.lhs with TmAbs t then
+      eval (subst t.ident outer.rhs t.body)
+    else 
+      eval (TmApp {TmAppType of lhs = eval outer.lhs, rhs = outer.rhs})
+
+  sem subst ident term =
+  | TmVar t -> if eqString ident t.ident then term else TmVar t
+  | TmApp t -> TmApp {TmAppType of lhs = subst ident term t.lhs, 
+                                   rhs = subst ident term t.rhs}
+  | TmAbs t -> if eqString ident t.ident then TmAbs t 
+               else TmAbs {TmAbsType of ident = t.ident, 
+                                        body = subst ident term t.body}
 end
+
 lang IntArith = LC
   syn Term += 
   | TmAdd {lhs : Term, rhs : Term}
   | TmInt {val : Int}
+
+  sem eval +=
+  | TmInt t -> TmInt t 
+  | TmAdd t -> 
+    match eval t.lhs with TmInt l then 
+      match eval t.rhs with TmInt r then
+        TmInt {TmIntType of val = addi l.val r.val}
+      else 
+        error "..."
+    else 
+      error "..."
+
+  sem subst ident tm +=
+  | TmInt t -> TmInt t
+  | TmAdd t -> TmAdd {TmAddType of lhs = subst ident tm t.lhs, 
+                                   rhs = subst ident tm t.rhs}
 end
 
 lang STLC = LC + IntArith
@@ -61,6 +94,13 @@ let add1 = TmAbs {TmAbsType of ident = "x", tyAnnot = tyInt, body = add} in
 let actualTy = typeCheck [] add1 in 
 let expectedType = TyArrow {TyArrowType of lhs = tyInt, rhs = tyInt} in 
 utest actualTy with expectedType using (lam l. lam r. eqType (l, r)) in 
+
+let expr = TmApp {TmAppType of lhs = add1, rhs = TmInt {TmIntType of val = 22}} in
+let result = eval expr in 
+(match result with TmInt t then
+  (utest t.val with 23 in ())
+else 
+  error "Test failed, result is not int!");
 
 -- (match actualTy with TyArrow t then  
 --   print ".";
