@@ -370,6 +370,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
       match tyIdent with TyRecord rec in 
       let work = lam acc. lam sid. lam ty. 
           let label = sidToString sid in 
+          let ty = _insertImplicitTyVars ctx ty in 
           let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
           withExpr acc (TmRecField {label = label,
                                     tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
