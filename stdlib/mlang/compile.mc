@@ -499,7 +499,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
         -- else (error_ (str_ "Inexhaustive match!"))
         else 
           let s = join ["Inexhaustive match in ", langStr, ".", nameGetStr d.ident, "!\n"] in 
-          semi_ (print_ (str_ s)) never_
+          (error_ (str_ s))
     in 
     let cases = match mapLookup (langStr, nameGetStr d.ident) ctx.compositionCheckEnv.semPatMap 
                 with Some x then x
@@ -570,7 +570,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
       {ident = d.ident,
       tyAnnot = tyAnnot,
       tyBody = tyunknown_,
-      body = (nulam_ (nameSym "") (semi_ (print_ (str_ (join ["Semantic function without cases!: ", langStr, ".", nameGetStr d.ident]))) never_)),
+      body = (nulam_ (nameSym "") (error_ (str_ (join ["Semantic function without cases!: ", langStr, ".", nameGetStr d.ident])))),
       info = d.info}
 end 
 
