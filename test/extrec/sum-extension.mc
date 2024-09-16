@@ -14,11 +14,11 @@ lang ArithLang = BaseLang
   | TmAdd t -> addi (eval t.lhs) (eval t.rhs)
 end
 
-lang ConditionalLang = BaseLang
+lang ConditionalLang = ArithLang
   syn Expr +=
   | TmIfThenElse {cond : Expr, thn : Expr, els : Expr}
 
-  -- sem eval : < ConditionalLang::Expr -> Int
+  sem eval : < ConditionalLang::Expr -> Int
   sem eval += 
   | TmIfThenElse t ->
     if eqi (eval t.cond) 0 then
@@ -27,10 +27,8 @@ lang ConditionalLang = BaseLang
       eval t.els
 end 
 
-lang BigLang = ConditionalLang + ArithLang end
-
 mexpr
-use BigLang in 
+use ConditionalLang in 
 let e0 = TmInt {TmIntType of val = 0} in 
 let e1 = TmInt {TmIntType of val = 1} in 
 let e42 = TmInt {TmIntType of val = 42} in 

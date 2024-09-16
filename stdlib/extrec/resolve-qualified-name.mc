@@ -103,7 +103,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
   
     {accEnv with langEnvs = mapInsert langIdent innerEnv accEnv.langEnvs}
   | other -> 
-    accEnv
+    never
   
   sem resolveQualifiedNamesWithinLang langIdent staticEnv accEnv = 
   | DeclCosyn d & decl ->
@@ -199,6 +199,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     in
 
     let folder = lam acc. lam dep.
+      let dep = mapLookupOr dep dep staticEnv.baseMap in 
       match _identToBound env t.info dep with Some bound
       then mapInsert dep bound acc
       else acc 

@@ -187,8 +187,8 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    printLn " === POST COMPILATION === ";
-    printLn (expr2str expr);
+    -- printLn " === POST COMPILATION === ";
+    -- printLn (expr2str expr);
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 
