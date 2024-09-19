@@ -85,20 +85,34 @@ lang AssignTy = LCArith
       getFromEnv ident t
   | [] -> error "Ident not found in env!"
 
+  sem stripTyAnnot =
+  | TyInt _ -> TyInt {TyIntType of dummy = ()}
+  | TyArrow t -> 
+    let lhs = stripTyAnnot t.lhs in 
+    let rhs = stripTyAnnot t.rhs in 
+    TyArrow {TyArrowType of lhs = lhs, rhs = rhs}
+
   sem assignTy env = 
   | TmVar t -> 
     let foundType = getFromEnv t.ident env in 
     TmVar {TmVarType of ident = t.ident, ty = foundType}
   | TmAbs t ->
-    let tyAnnot = t.tyAnnot in 
+    -- TODO: handle this by projecting!
+    -- let tyAnnot = TyInt {TyIntType of dummy = ()} in 
+    let tyAnnot = stripTyAnnot t.tyAnnot in 
+
     let body = t.body in 
+    let ident = t.ident in 
 
     let newEnv = cons (t.ident, tyAnnot) env in 
     let newBody = assignTy newEnv body in 
     let tyBody = tyTm newBody in 
 
     let ty = TyArrow {TyArrowType of lhs = tyAnnot, rhs = tyBody} in 
-    TmAbs {TmAbsType of ident = t.ident, tyAnnot = tyAnnot, ty = ty, body = newBody}
+    TmAbs {TmAbsType of tyAnnot = tyAnnot, 
+                        ty = ty,
+                        body = newBody,
+                        ident = ident}
   | TmApp t ->
     let lhs = t.lhs in 
     let rhs = t.rhs in
@@ -136,8 +150,8 @@ mexpr
 print "\n\n\nTESTS\n\n\n";
 use AssignTy in 
 let tyInt = TyInt {TyIntType of dummy = ()} in 
-let one = TmInt {TmIntType of val = 1, ty = tyInt} in 
-let five = TmInt {TmIntType of val = 5, ty = tyInt} in 
+let one = TmInt {TmIntType of val = 1} in 
+let five = TmInt {TmIntType of val = 5} in 
 
 let typedOne = assignTy [] one in 
 let typedFive = assignTy [] five in 
@@ -146,20 +160,17 @@ utest tyTm typedFive with tyInt using (lam l. lam r. eqType (l, r)) in
 
 
 let addOneFive = TmAdd {TmAddType of lhs = five, 
-                                     rhs = one,
-                                     ty = tyInt} in 
+                                     rhs = one} in 
 let typedAdd = assignTy [] addOneFive in 
 utest tyTm typedAdd with tyInt using (lam l. lam r. eqType (l, r)) in 
 
+let add = TmAdd {TmAddType of lhs = TmVar {TmVarType of ident = "x"}, 
+                              rhs = TmInt {TmIntType of val = 1}} in 
+let add1 = TmAbs {TmAbsType of ident = "x", tyAnnot = tyInt, body = add} in 
 
-
--- let add1Ty = assignTy [] one in
-
--- let add = TmAdd {TmAddType of lhs = TmVar {TmVarType of ident = "x"}, 
-                              -- rhs = TmInt {TmIntType of val = 1}} in 
--- let add1 = TmAbs {TmAbsType of ident = "x", tyAnnot = tyInt, body = add} in 
--- let actualTy = tyTm add1Ty in 
--- let expectedType = TyArrow {TyArrowType of lhs = tyInt, rhs = tyInt} in 
--- utest actualTy with expectedType using (lam l. lam r. eqType (l, r)) in 
+let add1Ty = assignTy [] add1 in 
+let actualTy = tyTm add1Ty in 
+let expectedType = TyArrow {TyArrowType of lhs = tyInt, rhs = tyInt} in 
+utest actualTy with expectedType using (lam l. lam r. eqType (l, r)) in 
 
 ()
