@@ -48,4 +48,9 @@ case $1 in
     ;;
   run-all)
     run_all
+    ;;
+  *)
+    echo "Unknown command! Use 'run-all' or 'run-test <filename>'!"
+    exit 1
+    ;;
 esac
