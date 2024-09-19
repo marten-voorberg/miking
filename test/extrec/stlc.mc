@@ -101,18 +101,4 @@ let result = eval expr in
   (utest t.val with 23 in ())
 else 
   error "Test failed, result is not int!");
-
--- (match actualTy with TyArrow t then  
---   print ".";
---   match t.lhs with TyInt _ then
---     print ".";
---     match t.rhs with TyInt _ then 
---       print "."
---     else
---       error "Failure, expected int type"
---   else 
---     error "Failure, expected int type"
--- else 
---   error "Failure, expected arrow type!" ); 
--- ()
 ()
