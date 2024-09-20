@@ -8,7 +8,10 @@ include "map.mc"
 include "stringid.mc"
 include "set.mc"
 
-lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst + MExprAst + MExprPrettyPrint + TypeAbsAst
+lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + 
+                          ExtRecordTypeAst + MExprAst + MExprPrettyPrint +
+                          TypeAbsAst
+
   sem monomorphiseExpr : ExtRecEnvType -> Set Name -> Expr -> Expr
   sem monomorphiseExpr env names = 
   | TmRecType t -> 
@@ -27,13 +30,19 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + ExtRecordTypeAst
     in 
 
     TmType {ident = t.ident,
-            -- params = cons mapParamIdent t.params,
+             -- params = cons mapParamIdent t.params,
             params = t.params,
             tyIdent = TyRecord {info = NoInfo (), fields = fields},
             inexpr = monomorphiseExpr env names t.inexpr,
             ty = t.ty,
             info = t.info}
   | TmRecField t -> monomorphiseExpr env names t.inexpr 
+  | TmRecordUpdate t & tm -> 
+    match tyTm t.rec with TyExtRec extRec then 
+      TmRecordUpdate {t with value = nulam_ (nameNoSym "") t.value,
+                             rec = monomorphiseExpr env names t.rec}
+    else 
+      tm 
   | TmExtRecord t -> 
     match mapLookup t.ident env.defs with Some labelToType in 
 
