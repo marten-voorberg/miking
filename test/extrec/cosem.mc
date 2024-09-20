@@ -7,6 +7,8 @@ lang CosemExample
   cosem defaultEnv param param2 = 
   | {MyEnv of x, y} <-
     {x = subi 100 param, y = param}
+  | {MyEnv of z} <-
+    {z = param2}
   | {MyEnv of s} <-
     {s = "abcd"}
 end
@@ -15,7 +17,8 @@ lang SomeExtensionLang = CosemExample
   cosyn MyEnv *= {abcd : String}
 
   cosem defaultEnv param param2 *= 
-  | {MyEnv of z} <- {z = param2}
+  | {MyEnv of abcd} <-
+    {abcd = "something else"}
 end
 
 mexpr 
