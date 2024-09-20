@@ -101,7 +101,7 @@ lang FullSym = ExtendedSym + SimpleSym
 end
 
 mexpr
-use ExtendedSym in 
+use FullSym in 
 let env = {SymEnv of varEnv = [], conEnv = [], nextVal = 0} in 
 symbolizeExpr env (TmInt {TmIntType of val = 1});
 ()
