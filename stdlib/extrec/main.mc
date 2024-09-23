@@ -82,6 +82,28 @@ lang BigPipeline = BigIncludeHandler +
   | expr ->
     sfold_Expr_Expr dumpTypes acc expr
 
+  sem dumpName =
+  | name ->
+    printLn (join [nameGetStr name, " ", int2string (sym2hash name.1)])
+
+
+  sem dumpTyVars_Expr = 
+  | expr ->
+    smap_Expr_Type dumpTyVars_Type expr ; 
+    smap_Expr_Expr dumpTyVars_Expr expr ;
+    expr
+
+  sem dumpTyVars_Type = 
+  | TyAll t & ty -> 
+    dumpName t.ident ;
+    dumpTyVars_Type t.ty ;
+    ty
+  | TyVar t & ty -> 
+    dumpName t.ident ; 
+    ty
+  | ty -> 
+    smap_Type_Type dumpTyVars_Type ty
+
   sem stripTypes = 
   | e ->
     let e = smap_Expr_Type (lam. tyunknown_) e in 
@@ -123,6 +145,8 @@ lang BigPipeline = BigIncludeHandler +
         let res = result.consume (compile compilationCtx p) in 
 
         match res with (_, Right expr) in 
+
+        endPhaseStats log "mlang-to-mexpr-compilation" uunit_;
 
         let accEnv = collectEnv _emptyAccEnv expr in 
         let defs = accEnv.defs in 
@@ -187,8 +211,9 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    -- printLn " === POST COMPILATION === ";
-    -- printLn (expr2str expr);
+    printLn " === POST COMPILATION === ";
+    printLn (expr2str expr);
+    dumpTyVars_Expr expr;
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 

@@ -81,6 +81,7 @@ let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam e
 }
 
 let mapParamIdent = nameNoSym "m"
+-- let mapParamIdent = nameSym "m"
 let baseExtIdent = nameSym "BaseExt"
 
 
@@ -243,9 +244,14 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     match mapLookup (langStr, nameGetStr s.ident) ctx.compositionCheckEnv.baseMap 
     with Some baseIdent in 
 
+    match find (lam n. eqString "m" (nameGetStr n)) s.params with Some implicitParam in 
+
+    let remainingParams = filter (lam n. not (nameEq implicitParam n)) s.params in 
+
+
     let ctx = if s.isBase 
               then withExpr ctx (TmRecType {ident = s.ident,
-                                            params = s.params,
+                                            params = remainingParams,
                                             info = s.info,
                                             ty = tyunknown_,
                                             inexpr = uunit_}) 
@@ -254,7 +260,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let compileField = lam ctx. lam sid. lam ty.
       let tyIdent = tyarrow_ (ntycon_ baseIdent) ty in  
       withExpr ctx (TmRecField {label = sidToString sid,
-                                tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
+                                tyIdent = nstyall_ implicitParam (Poly ()) tyIdent,
                                 inexpr = uunit_,
                                 ty = tyunknown_,
                                 info = s.info}) in 

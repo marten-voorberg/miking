@@ -10,8 +10,6 @@ lang ExtRecordSym = Sym + ExtRecordAst + ExtRecordTypeAst
     let ident = getSymbol {kind = "type constructor", 
                            info = [t.info],
                            allowFree = env.allowFree} env.currentEnv.tyConEnv t.ident in 
-    let tyVarEnv = mapInsert "m" (nameNoSym "m") env.currentEnv.tyVarEnv in 
-    let env = symbolizeUpdateTyVarEnv env tyVarEnv in 
     let ty = symbolizeType env t.ty in 
     TyExtRec {t with ident = ident, ty = ty}
 
