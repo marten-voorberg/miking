@@ -19,7 +19,7 @@ run_test() {
   if [ $? -eq 0 ] 
   then
     printf "${GREEN}Compilation successful!\n${NC}"
-    ./$OUTPUT_LOCATION/$file_prefix
+    ./$OUTPUT_LOCATION/$file_prefix > /dev/null
     if [ $? -eq 0 ] 
     then 
       printf  "${GREEN}Test Passed}!\n${NC}"
@@ -50,7 +50,7 @@ run_illtyped_test() {
   set +e
 
   echo "--- $input_file ---"
-  $COMPILE_EXTREC --output $OUTPUT_LOCATION/$file_prefix $TYPE_TEST_LOCATION$input_file > /dev/null
+  $COMPILE_EXTREC --output $OUTPUT_LOCATION/$file_prefix $TYPE_TEST_LOCATION$input_file 2> /dev/null
   if [ $? -ne 0 ] 
   then
     printf "${GREEN}Type checking fialed as expected!\n${NC}"
