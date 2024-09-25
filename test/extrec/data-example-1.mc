@@ -4,7 +4,7 @@ recfield x : all m. Foo -> Int in
 recfield y : all m. Foo -> Int in 
 recfield z : all m. Foo -> Int in 
 
-let addXY : all m :: {Foo [> #con"x" #con"y"]}.
+let addXY : all m :: {Foo [> x y]}.
           extrec {Foo of m} -> Int = 
   lam r. addi r.x r.y in
 

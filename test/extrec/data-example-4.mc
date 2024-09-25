@@ -4,8 +4,8 @@ lang ArithLang
   | TmAdd {lhs: Expr, rhs: Expr}
 
   sem eval : all m :: {Expr [< TmAdd TmInt], 
-                       TmIntType [> #con"val"], 
-                       TmAddType [> #con"lhs" #con"rhs"]}.
+                       TmIntType [> val], 
+                       TmAddType [> lhs rhs]}.
              Expr{m} m -> Int
   sem eval = 
   | TmInt t -> t.val

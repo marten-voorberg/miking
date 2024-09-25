@@ -4,7 +4,7 @@ recfield x : all m. Foo -> Int in
 recfield y : all m. Foo -> Int in 
 recfield z : all m. Foo -> Int in 
 
-let f : all m :: {Foo [< #con"x" #con"y" #con"z"]}.
+let f : all m :: {Foo [< x y z]}.
         Int -> extrec {Foo of m} = 
   lam arg. {Foo of x = 0, y = arg, z = subi 100 arg} in 
 

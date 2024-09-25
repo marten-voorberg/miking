@@ -763,6 +763,8 @@ type_with_cons:
     { ($1.v, $6, Some $4) }
 
 con_list:
+  | var_ident con_list
+    { $1.v :: $2 }
   | con_ident con_list
     { $1.v :: $2 }
   |
