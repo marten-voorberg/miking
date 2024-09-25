@@ -123,6 +123,8 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst +
   | TyApp {rhs = TyVar tyVar} & TyApp t ->
     if nameEq tyVar.ident mapParamIdent then 
       removeExtRecTypes_Type env t.lhs 
+    else if eqString (nameGetStr tyVar.ident) "m" then
+      removeExtRecTypes_Type env t.lhs 
     else if eqString (nameGetStr tyVar.ident) "ss" then
       removeExtRecTypes_Type env t.lhs 
     else 

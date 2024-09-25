@@ -24,7 +24,6 @@ end
 
 mexpr
 use SugarArith in 
--- use BaseArith in 
 let expr = TmInt {TmIntType of val = 42} in
 eval expr ;
 utest eval expr with 42 using eqi in 
@@ -33,7 +32,5 @@ let expr2 = TmAdd {TmAddType of lhs = TmInt {TmIntType of val = 23},
 eval expr2 ;
 utest eval expr2 with 65 using eqi in 
 let expr3 = TmIncr {TmIncrType of e = expr} in 
--- eval expr3;
--- eval (desugar expr3);
 utest eval (desugar expr3) with 43 using eqi in 
 ()

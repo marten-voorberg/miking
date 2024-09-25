@@ -9,6 +9,67 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
+run_test_csv() {
+  input_file=$1
+  file_prefix=${input_file%.*}
+  set +e
+
+  echo -n "$input_file,"
+  $COMPILE_EXTREC --output $OUTPUT_LOCATION/$file_prefix $TEST_LOCATION$input_file 2> /dev/null > /dev/null
+  if [ $? -eq 0 ] 
+  then
+    echo -n "\testpass,"
+    ./$OUTPUT_LOCATION/$file_prefix > /dev/null 2> /dev/null
+    if [ $? -eq 0 ] 
+    then 
+      echo "\testpass"
+    else 
+      echo "\testfail"
+    fi
+    rm ./$OUTPUT_LOCATION/$file_prefix
+  else
+    echo "\testfail,\testunknown"
+  fi
+  set -e
+}
+
+all_csv() {
+  echo "filename,compilation,evaluation"
+  
+  for test_file in $TEST_LOCATION*.mc 
+  do
+    relative_path=$(basename $test_file)
+    run_test_csv $relative_path
+  done
+}
+
+run_illtyped_test_csv() {
+  input_file=$1
+  file_prefix=${input_file%.*}
+  set +e
+
+  echo -n "$input_file,"
+  $COMPILE_EXTREC --output $OUTPUT_LOCATION/$file_prefix $TYPE_TEST_LOCATION$input_file 2> /dev/null > /dev/null
+  if [ $? -ne 0 ] 
+  then
+    echo "\testpass"
+  else
+    echo "\testfail"
+  fi
+  set -e
+  rm -f ./$OUTPUT_LOCATION/$file_prefix
+}
+
+ill_typed_csv() {
+  echo "filename,typeerror"
+
+  for test_file in $TYPE_TEST_LOCATION*.mc 
+  do
+    relative_path=$(basename $test_file)
+    run_illtyped_test_csv $relative_path
+  done
+}
+
 run_test() {
   input_file=$1
   file_prefix=${input_file%.*}
@@ -65,8 +126,6 @@ run_all_illtyped() {
     for test_file in $TYPE_TEST_LOCATION*.mc 
   do
     relative_path=$(basename $test_file)
-    # echo "$relative_path"
-    # echo "$test_file"
     run_illtyped_test $relative_path
   done
 }
@@ -84,6 +143,12 @@ case $1 in
     ;;
   run-all-type)
     run_all_illtyped
+    ;;
+  all-csv)
+    all_csv
+    ;;
+  type-csv)
+    ill_typed_csv
     ;;
   *)
     echo "Unknown command! Use 'run-all' or 'run-test <filename>'!"

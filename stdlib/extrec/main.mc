@@ -166,8 +166,17 @@ lang BigPipeline = BigIncludeHandler +
                           labelTyDeps = labelTyDeps}} in 
         
         let expr = typeCheckExpr tcEnv expr in 
+        endPhaseStats log "extrec-type-check" expr;
+
         let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
         let expr = removeExtRecTypes_Expr () expr in 
+        endPhaseStats log "monomorphise" expr;
+
+
+        endPhaseStats log "postprocess" expr;
+
+        printLn " === Monomorphised result: ===" ; 
+        printLn (expr2str expr);
 
         let expr = postprocess env.semSymMap expr in 
         endPhaseStats log "postprocess" expr;
