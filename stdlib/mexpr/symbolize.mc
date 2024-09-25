@@ -482,7 +482,11 @@ lang DataKindSym = Sym + DataKindAst
     let symbolizeCons = lam cons.
       setFold
         (lam ks. lam k.
-          setInsert
+          let str = nameGetStr k in 
+          if isLowerAlpha (head str) then 
+            setInsert k ks
+          else 
+            setInsert
             (getSymbol {kind = "constructor",
                         info = [info],
                         allowFree = env.allowFree}
