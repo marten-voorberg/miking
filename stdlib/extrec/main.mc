@@ -175,8 +175,12 @@ lang BigPipeline = BigIncludeHandler +
 
         endPhaseStats log "postprocess" expr;
 
-        printLn " === Monomorphised result: ===" ; 
-        printLn (expr2str expr);
+        -- TODO: replace this by its own dedicated debug flag
+        (if options.debugParse then 
+          printLn " === Monomorphised result: ===" ; 
+          printLn (expr2str expr)
+        else
+          ());
 
         let expr = postprocess env.semSymMap expr in 
         endPhaseStats log "postprocess" expr;
