@@ -231,6 +231,11 @@ lang ConTagTypeAst = TyConst + ConTagAst
   | CConstructorTag _ -> mktyall_ "a" (lam a. tyarrow_ a tyint_)
 end
 
+lang TypeOpTypeAst = TyConst + TypeOpAst
+  sem tyConstBase d =
+  | CTypeOf _ -> mktyall_ "a" (lam a. tyarrow_ a tystr_)
+end
+
 lang TensorOpTypeAst = TyConst + TensorOpAst
   sem tyConstBase d =
   | CTensorCreateUninitInt _ -> tytensorcreateuninitint_
@@ -305,5 +310,5 @@ lang MExprConstType =
   SymbTypeAst + CmpSymbTypeAst + SeqOpTypeAst + FileOpTypeAst + IOTypeAst +
   RandomNumberGeneratorTypeAst + SysTypeAst + FloatIntConversionTypeAst +
   FloatStringConversionTypeAst + TimeTypeAst + RefOpTypeAst + ConTagTypeAst +
-  TensorOpTypeAst + BootParserTypeAst + UnsafeCoerceTypeAst
+  TensorOpTypeAst + BootParserTypeAst + UnsafeCoerceTypeAst + TypeOpTypeAst
 end

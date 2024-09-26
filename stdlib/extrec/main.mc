@@ -64,6 +64,37 @@ lang BigPipeline = BigIncludeHandler +
                    PhaseStats +
                    PostProcess
 
+  sem dumpKinds acc = 
+  -- | TyVar t -> cons (nameGetStr t.ident) acc
+  | TyMetaVar t & ty -> 
+    switch deref t.contents
+      case Unbound t then cons (nameGetStr t.ident, kind2str (t.kind)) acc
+      case Link ty then dumpKinds acc ty
+    end
+  | other -> 
+    sfold_Type_Type dumpKinds acc other
+
+
+  sem type2strWithKind = 
+  | ty -> 
+    let tyStr = type2str ty in 
+
+    let kinds = sfold_Type_Type dumpKinds [] ty in 
+    let kinds = map (lam p. join ["\t", p.0, " :: ", p.1]) kinds in 
+
+    if null kinds then 
+      tyStr 
+    else 
+      join [tyStr, " where\n", (strJoin "\n" kinds)]
+
+  sem handleTypeOf = 
+  | TmApp {lhs = TmConst {val = CTypeOf _}, rhs = target} ->
+    let ty = tyTm target in 
+
+    str_ (type2strWithKind (tyTm  target))
+  | expr -> 
+    smap_Expr_Expr handleTypeOf expr
+
   -- For some reason, this is missing some function definitions, but
   -- I can not figure out why. 
   sem dumpTypes : [String] -> Expr -> [String]
@@ -168,6 +199,9 @@ lang BigPipeline = BigIncludeHandler +
         let expr = typeCheckExpr tcEnv expr in 
         endPhaseStats log "extrec-type-check" expr;
 
+        let expr = handleTypeOf expr in 
+        endPhaseStats log "handle-typeof" expr;
+
         let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
         let expr = removeExtRecTypes_Expr () expr in 
         endPhaseStats log "monomorphise" expr;
@@ -224,9 +258,9 @@ lang BigPipeline = BigIncludeHandler +
 
     match res with (_, Right expr) in 
 
-    printLn " === POST COMPILATION === ";
-    printLn (expr2str expr);
-    dumpTyVars_Expr expr;
+    -- printLn " === POST COMPILATION === ";
+    -- printLn (expr2str expr);
+    -- dumpTyVars_Expr expr;
 
     let accEnv = collectEnv _emptyAccEnv expr in 
     let defs = accEnv.defs in 
@@ -247,6 +281,9 @@ lang BigPipeline = BigIncludeHandler +
 
     let expr = typeCheckExpr tcEnv expr in 
 
+    let expr = handleTypeOf expr in 
+
+
     -- printLn (strJoin "\n" (dumpTypes [] expr));
     -- printLn (expr2str expr);
 
@@ -254,8 +291,8 @@ lang BigPipeline = BigIncludeHandler +
     let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
     let expr = removeExtRecTypes_Expr () expr in 
 
-    printLn " === POST MONOMORPHISATION === ";
-    printLn (expr2str expr);
+    -- printLn " === POST MONOMORPHISATION === ";
+    -- printLn (expr2str expr);
     expr
 
   sem runIt =| filepath ->

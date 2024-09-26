@@ -189,7 +189,7 @@ lang MExprIdentifierPrettyPrint = IdentifierPrettyPrint
     (lam str. if forAll isDigit str then true else _isValidLowerIdent str)
 end
 
-lang PrettyPrint = IdentifierPrettyPrint
+lang PrettyPrint = IdentifierPrettyPrint + MExprAst
   sem isAtomic =
   -- Intentionally left blank
   sem patPrecedence =
@@ -233,7 +233,7 @@ lang PrettyPrint = IdentifierPrettyPrint
 
   sem type2str =
   | ty -> typeToString pprintEnvEmpty ty
-
+  
   sem kind2str = 
   | kind -> kindToString pprintEnvEmpty kind
 
@@ -869,6 +869,11 @@ lang ConTagPrettyPrint = ConTagAst + ConstPrettyPrint
   | CConstructorTag _ -> "constructorTag"
 end
 
+lang TypeOfPrettyPrint = TypeOpAst + ConstPrettyPrint 
+  sem getConstStringCode indent =
+  | CTypeOf _ -> "typeof"
+end
+
 lang TensorOpPrettyPrint = TensorOpAst + ConstPrettyPrint
   sem getConstStringCode (indent : Int) =
   | CTensorCreateUninitInt _ -> "tensorCreateUninitInt"
@@ -1394,7 +1399,7 @@ lang MExprPrettyPrint =
   SeqOpPrettyPrint + FileOpPrettyPrint + IOPrettyPrint +
   RandomNumberGeneratorPrettyPrint + SysPrettyPrint + TimePrettyPrint +
   ConTagPrettyPrint + RefOpPrettyPrint + TensorOpPrettyPrint +
-  BootParserPrettyPrint + UnsafeCoercePrettyPrint +
+  BootParserPrettyPrint + UnsafeCoercePrettyPrint + TypeOfPrettyPrint + 
 
   -- Patterns
   NamedPatPrettyPrint + SeqTotPatPrettyPrint + SeqEdgePatPrettyPrint +

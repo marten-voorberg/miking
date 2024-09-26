@@ -62,6 +62,7 @@ end
 
 lang ConstSideEffect = ConstSideEffectBase + MExprAst
   sem constHasSideEffect =
+  | CTypeOf _ -> false
   | CInt _ | CFloat _ | CBool _ | CChar _ -> false
   | CAddi _ | CSubi _ | CMuli _ | CDivi _ | CNegi _ | CModi _ -> false
   | CSlli _ | CSrli _ | CSrai _ -> false
