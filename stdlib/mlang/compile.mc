@@ -495,8 +495,6 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let targetName = nameSym "target" in 
     let target = nvar_ targetName in 
 
-    -- OPT(voorberg, 23-04-2024): The implementation of compileBody and
-    --                            compileArgs can be made tail-recursive.
     recursive 
       let compileBody = lam cases : [{pat : Pat, thn : Expr}]. 
         match cases with [h] ++ t then
@@ -509,8 +507,14 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
         -- else (error_ (str_ "Inexhaustive match!"))
         else 
           let s = join ["Inexhaustive match in ", langStr, ".", nameGetStr d.ident, "!\n"] in 
-          (error_ (str_ s))
+          semi_ (print_ (str_ s)) never_
     in 
+    let compileBodyHelper = lam cases : [{pat : Pat, thn : Expr}]. 
+      if null cases then 
+        error_ (str_ (join ["Semantic function without cases: ", langStr, ".", nameGetStr d.ident, "!\n"]))
+      else
+        compileBody cases 
+    in
     let cases = match mapLookup (langStr, nameGetStr d.ident) ctx.compositionCheckEnv.semPatMap 
                 with Some x then x
                 else error "CompositionCheckEnv must contain the ordered cases for all semantic functions!"
@@ -552,7 +556,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     let cases = map work cases in
 
     let cases = map (lam c. {thn = c.thn, pat = c.pat}) cases in
-    let body = compileBody cases in 
+    let body = compileBodyHelper cases in 
     recursive let compileArgs = lam args. 
           match args with [h] ++ t then
             TmLam {ident = h.ident,

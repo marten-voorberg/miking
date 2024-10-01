@@ -179,6 +179,13 @@ lang BigPipeline = BigIncludeHandler +
 
         endPhaseStats log "mlang-to-mexpr-compilation" uunit_;
 
+        (if options.debugGenerate then 
+          printLn " === MLang -> MExpr Result : ===" ; 
+          printLn (expr2str expr)
+        else
+          ());
+
+
         let accEnv = collectEnv _emptyAccEnv expr in 
         let defs = accEnv.defs in 
 
