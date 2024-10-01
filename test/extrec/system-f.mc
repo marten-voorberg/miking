@@ -24,8 +24,8 @@ lang LC = Base
   | TmVar {ident : String}
 
   sem eval += 
-  -- | TmVar t -> TmVar t
-  -- | TmAbs t -> TmAbs t
+  | TmVar t -> TmVar t
+  | TmAbs t -> TmAbs t
   | TmApp outer -> 
     match outer.lhs with TmAbs t then
       eval (subst t.ident outer.rhs t.body)
