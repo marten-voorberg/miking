@@ -1,6 +1,8 @@
 COMPILE_EXTREC="./build/mi-tmp compile --test --experimental-records"
 
 TEST_LOCATION="test/extrec/"
+TYPELOG_LOCATION="test/extrec/typelog/"
+
 TYPE_TEST_LOCATION="test/extrec/ill-typed/"
 
 OUTPUT_LOCATION="test/extrec/out"
@@ -130,6 +132,16 @@ run_all_illtyped() {
   done
 }
 
+generate_type_log() {
+  for test_file in $TYPELOG_LOCATION*.mc 
+  do 
+    echo "=== $test_file ==="
+    $COMPILE_EXTREC --output typelog $test_file 2> /dev/null > /dev/null
+    ./typelog
+    rm -f typelog
+  done
+}
+
 case $1 in 
   run-test)
     run_test "$2"
@@ -149,6 +161,9 @@ case $1 in
     ;;
   type-csv)
     ill_typed_csv
+    ;;
+  type-log)
+    generate_type_log "$2"
     ;;
   *)
     echo "Unknown command! Use 'run-all' or 'run-test <filename>'!"
