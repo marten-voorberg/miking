@@ -25,6 +25,7 @@ include "mlang/const-transformer.mc"
 include "mlang/language-composer.mc"
 include "mlang/composition-check.mc"
 include "mlang/postprocess.mc"
+include "mlang/prune-unused-langs.mc"
 include "mlang/compile.mc"
 
 include "mexpr/type-check.mc"
@@ -62,7 +63,8 @@ lang BigPipeline = BigIncludeHandler +
                    ResolveQualifiedName + 
                    ComputeMLangTyDeps +
                    PhaseStats +
-                   PostProcess
+                   PostProcess + 
+                   PruneUnusedLangs 
 
   sem dumpKinds acc = 
   -- | TyVar t -> cons (nameGetStr t.ident) acc
@@ -152,6 +154,9 @@ lang BigPipeline = BigIncludeHandler +
     let p = composeProgram p in 
     endPhaseStats log "language-inclusion-generation" uunit_;
 
+    let usedLangs = collectUsedLangs_Prog p in 
+    endPhaseStats log "collect-used-langs" uunit_;
+
     match symbolizeMLang symEnvDefault p with (_, p) in 
     endPhaseStats log "symbolization" uunit_;
 
@@ -160,6 +165,9 @@ lang BigPipeline = BigIncludeHandler +
 
     match result.consume (checkCompositionWithOptions checkOptions p) with (_, res) in 
     endPhaseStats log "composition-check" uunit_; 
+
+    let p = pruneProgram usedLangs p in 
+    endPhaseStats log "prune-unused-langs" uunit_;
 
     switch res 
       case Left errs then 
@@ -240,6 +248,8 @@ lang BigPipeline = BigIncludeHandler +
 
     -- printLn (mlang2str p);
 
+    let usedLangs = collectUsedLangs_Prog p in 
+
     match symbolizeMLang symEnvDefault p with (_, p) in 
 
 
@@ -250,6 +260,8 @@ lang BigPipeline = BigIncludeHandler +
         case (_, Left errs) then iter raiseError errs; never
       end
     in
+
+    let p = pruneProgram usedLangs p in 
 
     let mlangTyDeps = getProgTyDeps compositionCheckEnv.baseMap2 p in  
     -- printLn (dumpTyDeps mlangTyDeps) ;
