@@ -146,28 +146,29 @@ lang BigPipeline = BigIncludeHandler +
     let log = mkPhaseLogState options.debugPhases in
 
     let p = parseAndHandleIncludes filepath in 
-    endPhaseStats log "parsing-include-handling" uunit_;
+    endPhaseStatsProg log "parsing-include-handling" p;
 
     let p = constTransformProgram builtin p in
-    endPhaseStats log "const-transformation" uunit_;
+    endPhaseStatsProg log "const-transformation" p;
 
     let p = composeProgram p in 
-    endPhaseStats log "language-inclusion-generation" uunit_;
+    endPhaseStatsProg log "language-inclusion-generation" p;
 
     let usedLangs = collectUsedLangs_Prog p in 
-    endPhaseStats log "collect-used-langs" uunit_;
+    endPhaseStatsProg log "collect-used-langs" p;
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
-    endPhaseStats log "symbolization" uunit_;
+    endPhaseStatsProg log "symbolization" p;
 
     let checkOptions = {defaultCompositionCheckOptions with 
       disableStrictSumExtension = options.disableStrictSumExtension} in 
 
     match result.consume (checkCompositionWithOptions checkOptions p) with (_, res) in 
-    endPhaseStats log "composition-check" uunit_; 
+    endPhaseStatsProg log "composition-check" p; 
 
-    let p = pruneProgram usedLangs p in 
-    endPhaseStats log "prune-unused-langs" uunit_;
+    let p = if options.keepDeadCode then p 
+            else pruneProgram usedLangs p in 
+    endPhaseStatsProg log "prune-unused-langs" p;
 
     switch res 
       case Left errs then 
@@ -185,7 +186,7 @@ lang BigPipeline = BigIncludeHandler +
 
         match res with (_, Right expr) in 
 
-        endPhaseStats log "mlang-to-mexpr-compilation" uunit_;
+        endPhaseStatsExpr log "mlang-to-mexpr-compilation" uunit_;
 
         (if options.debugGenerate then 
           printLn " === MLang -> MExpr Result : ===" ; 
@@ -212,17 +213,17 @@ lang BigPipeline = BigIncludeHandler +
                           labelTyDeps = labelTyDeps}} in 
         
         let expr = typeCheckExpr tcEnv expr in 
-        endPhaseStats log "extrec-type-check" expr;
+        endPhaseStatsExpr log "extrec-type-check" expr;
 
         let expr = handleTypeOf expr in 
-        endPhaseStats log "handle-typeof" expr;
+        endPhaseStatsExpr log "handle-typeof" expr;
 
         let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
         let expr = removeExtRecTypes_Expr () expr in 
-        endPhaseStats log "monomorphise" expr;
+        endPhaseStatsExpr log "monomorphise" expr;
 
 
-        endPhaseStats log "postprocess" expr;
+        endPhaseStatsExpr log "postprocess" expr;
 
         -- TODO: replace this by its own dedicated debug flag
         (if options.debugParse then 
@@ -232,7 +233,7 @@ lang BigPipeline = BigIncludeHandler +
           ());
 
         let expr = postprocess env.semSymMap expr in 
-        endPhaseStats log "postprocess" expr;
+        endPhaseStatsExpr log "postprocess" expr;
 
         runner options filepath expr;
         ()

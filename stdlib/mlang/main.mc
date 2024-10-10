@@ -44,24 +44,24 @@ lang MLangPipeline = MLangCompiler + BootParserMLang +
     let log = mkPhaseLogState options.debugPhases in
 
     let p = parseAndHandleIncludes filepath in 
-    endPhaseStats log "parsing-include-handling" uunit_;
+    endPhaseStatsProg log "parsing-include-handling" p;
 
     let p = constTransformProgram builtin p in
-    endPhaseStats log "const-transformation" uunit_;
+    endPhaseStatsProg log "const-transformation" p;
 
     let p = composeProgram p in 
-    endPhaseStats log "language-inclusion-generation" uunit_;
+    endPhaseStatsProg log "language-inclusion-generation" p;
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
-    endPhaseStats log "symbolization" uunit_;
+    endPhaseStatsProg log "symbolization" p;
 
     let checkOptions = {defaultCompositionCheckOptions with 
       disableStrictSumExtension = options.disableStrictSumExtension} in 
     match result.consume (checkCompositionWithOptions checkOptions p) with (_, res) in 
-    endPhaseStats log "composition-check" uunit_;
+    endPhaseStatsExpr log "composition-check" uunit_;
 
     -- let p = typeCheckProgram p in 
-    -- endPhaseStats log "mlang-type-checking" uunit_;
+    -- endPhaseStatsExpr log "mlang-type-checking" uunit_;
 
     switch res 
       case Left errs then 
@@ -72,10 +72,10 @@ lang MLangPipeline = MLangCompiler + BootParserMLang +
         let res = result.consume (compile ctx p) in 
         match res with (_, rhs) in 
         match rhs with Right expr in
-        endPhaseStats log "mlang-mexpr-lower" expr;
+        endPhaseStatsExpr log "mlang-mexpr-lower" expr;
 
         let expr = postprocess env.semSymMap expr in 
-        endPhaseStats log "postprocess" expr;
+        endPhaseStatsExpr log "postprocess" expr;
 
         -- printLn (expr2str expr);
 

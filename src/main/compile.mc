@@ -71,10 +71,10 @@ let compileWithUtests = lam options : Options. lam sourcePath. lam ast.
       if options.debugProfile then instrumentProfiling ast
       else ast
     in
-    endPhaseStats log "instrument-profiling" ast;
+    endPhaseStatsExpr log "instrument-profiling" ast;
 
     let ast = symbolize ast in
-    endPhaseStats log "symbolize" ast;
+    endPhaseStatsExpr log "symbolize" ast;
 
     let ast =
       removeMetaVarExpr
@@ -83,10 +83,10 @@ let compileWithUtests = lam options : Options. lam sourcePath. lam ast.
             disableConstructorTypes = not options.enableConstructorTypes}
            ast)
     in
-    endPhaseStats log "type-check" ast;
+    endPhaseStatsExpr log "type-check" ast;
     (if options.debugTypeCheck then
        printLn (use TyAnnotFull in annotateMExpr ast);
-       endPhaseStats log "debug-type-check" ast
+       endPhaseStatsExpr log "debug-type-check" ast
      else ());
 
     let ast = compileSpecialize ast in
@@ -95,23 +95,23 @@ let compileWithUtests = lam options : Options. lam sourcePath. lam ast.
     -- the AST. This includes for example bounds checking on sequence
     -- operations.
     let ast = if options.runtimeChecks then injectRuntimeChecks ast else ast in
-    endPhaseStats log "runtime-checks" ast;
+    endPhaseStatsExpr log "runtime-checks" ast;
 
     -- If option --test, then generate utest runner calls. Otherwise strip away
     -- all utest nodes from the AST.
     let ast = generateUtest options.runTests ast in
-    endPhaseStats log "generate-utest" ast;
+    endPhaseStatsExpr log "generate-utest" ast;
 
     let ast =
       if and (options.enableConstantFold) (not options.disableOptimizations)
       then constantFold ast else ast
     in
-    endPhaseStats log "constant folding" ast;
+    endPhaseStatsExpr log "constant folding" ast;
     (if options.debugConstantFold then
       printLn (expr2str ast) else ());
 
     let ast = lowerAll ast in
-    endPhaseStats log "pattern-lowering" ast;
+    endPhaseStatsExpr log "pattern-lowering" ast;
     (if options.debugShallow then
       printLn (expr2str ast) else ());
 
@@ -130,7 +130,7 @@ let compileWithUtests = lam options : Options. lam sourcePath. lam ast.
         , postprocessOcamlTops = lam tops. if options.runtimeChecks then wrapInTryWith tops else tops
         , compileOcaml = ocamlCompile options sourcePath
         } in
-    endPhaseStats log "backend" ast;
+    endPhaseStatsExpr log "backend" ast;
     res
 
 -- Main function for compiling a program
@@ -159,9 +159,9 @@ let compile = lam files. lam options : Options. lam args.
         eliminateDeadCode = not options.keepDeadCode,
         keywords = mexprExtendedKeywords
       } file in
-      endPhaseStats log "parsing" ast;
+      endPhaseStatsExpr log "parsing" ast;
       let ast = makeKeywords ast in
-      endPhaseStats log "make-keywords" ast;
+      endPhaseStatsExpr log "make-keywords" ast;
 
       -- Applies static and dynamic checks on the accelerated expressions, to
       -- verify that the code within them are supported by the accelerate
@@ -176,11 +176,11 @@ let compile = lam files. lam options : Options. lam args.
           match checkWellFormedness options ast with (ast, _, _) in
           demoteParallel ast
         else demoteParallel ast in
-      endPhaseStats log "accelerate" ast;
+      endPhaseStatsExpr log "accelerate" ast;
 
       -- Insert tuned values, or use default values if no .tune file present
       let ast = insertTunedOrDefaults options ast file in
-      endPhaseStats log "tuning" ast;
+      endPhaseStatsExpr log "tuning" ast;
 
       -- If option --debug-parse, then pretty print the AST
       (if options.debugParse then printLn (expr2str ast) else ());

@@ -376,6 +376,21 @@ lang MLangTopLevel = DeclAst
     expr : Expr
   }
 
+  sem countProgNodes : MLangProgram -> Int
+  sem countProgNodes =
+  | prog -> 
+    let count = foldl countDeclNodes 0 prog.decls in
+    countExprNodes count prog.expr
+
+  -- Todo: Extend to also look at patterns.
+  sem countDeclNodes count = 
+  | decl ->
+    let count = addi count 1 in 
+    let count = sfold_Decl_Decl countDeclNodes count decl in 
+    let count = sfold_Decl_Type countTypeNodes count decl in 
+    let count = sfold_Decl_Expr countExprNodes count decl in 
+    count
+
   sem smap_Prog_Decl : all acc. (acc -> Decl -> (acc, Decl)) -> acc -> MLangProgram -> (acc, MLangProgram)
   sem smap_Prog_Decl f acc =
   | prog -> 
