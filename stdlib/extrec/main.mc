@@ -186,7 +186,7 @@ lang BigPipeline = BigIncludeHandler +
 
         match res with (_, Right expr) in 
 
-        endPhaseStatsExpr log "mlang-to-mexpr-compilation" uunit_;
+        endPhaseStatsExpr log "mlang-to-mexpr-compilation" expr;
 
         (if options.debugGenerate then 
           printLn " === MLang -> MExpr Result : ===" ; 
@@ -199,13 +199,12 @@ lang BigPipeline = BigIncludeHandler +
         let defs = accEnv.defs in 
 
         let depGraph = createDependencyGraph defs in 
-        -- printLn (dumpDependencyGraph depGraph) ;
 
         let tyDeps = computeTyDeps depGraph in 
-        -- printLn (dumpTyDeps tyDeps) ;
 
         let labelTyDeps = computeLabelTyDeps tyDeps defs in 
-
+        endPhaseStatsExpr log "dependency-analysis" expr ; 
+        
         let tcEnv = {typcheckEnvDefault with
           disableConstructorTypes = false, 
           extRecordType = {defs = defs, 
