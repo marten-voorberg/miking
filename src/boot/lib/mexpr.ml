@@ -89,8 +89,6 @@ let idTyAll = 213
 
 let idTyUse = 214
 
-let idTyExtRecord = 215
-
 let idTyQualifiedName = 216
 
 
@@ -330,8 +328,6 @@ let getData = function
       let labels, tms = r |> Record.bindings |> List.split in
       (idTmRecExtend, [fi], [List.length labels], [], e :: tms, labels, [], [], [], [], [], [], [])
   (* Types *)
-  | PTreeTy (TyExtRecord (fi, ident, ty)) -> 
-      (idTyExtRecord, [fi], [], [ty], [], [ident], [], [], [], [], [], [], [])
   | PTreeTy (TyQualifiedName (fi, pos, lhs, rhs)) -> 
       let posInt = if pos then 1 else 0 in 
       (idTyQualifiedName, [fi], [], [], [], [lhs ; rhs], [posInt], [], [], [], [], [], [])
