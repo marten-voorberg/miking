@@ -241,8 +241,6 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
   sem compileCosyn : String -> CompilationContext -> Decl -> CompilationContext
   sem compileCosyn langStr ctx = 
   | DeclCosyn s -> 
-    print "Compiling cosyn: ";
-    printLn (nameGetStr s.ident) ;
     match mapLookup (langStr, nameGetStr s.ident) ctx.compositionCheckEnv.baseMap 
     with Some baseIdent in 
 
@@ -250,8 +248,6 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
 
     let remainingParams = filter (lam n. not (nameEq implicitParam n)) s.params in 
 
-    print "Size of remaining params: ";
-    printLn (int2string (length remainingParams));
     let ctx = if s.isBase 
               then withExpr ctx (TmRecType {ident = s.ident,
                                             params = remainingParams,

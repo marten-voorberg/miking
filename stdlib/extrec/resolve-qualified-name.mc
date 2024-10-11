@@ -215,7 +215,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     let ident = mapLookupOr ident ident staticEnv.baseMap in 
 
     let newTy = match mapLookup ident env.prodFields with Some _
-                  then never 
+                  then TyCon {ident = ident, info = t.info, data = tyvar}
                 else match mapLookup ident env.sumFields with Some _
                   then TyApp {lhs = TyCon {ident = ident, info = t.info, data = tyvar},
                               rhs = tyvar,
@@ -229,9 +229,16 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
                   " * is neither a sum or product type. This should be impossible!"
                 ])
     in
-    printLn (type2str ty);
-    printLn (kind2str kind);
-    (cons (tyvarIdent, kind) acc, TyAlias {display = ty, content = newTy})
+    -- printLn (type2str ty);
+    -- printLn (kind2str kind);
+
+
+    -- TODO(11/10/2024, voorberg): There is a bug when we introduce syntactic 
+    -- sugar over cosyns relating to monomorphisation of the TyAlias.
+    match mapLookup ident env.prodFields with Some _ then 
+      (cons (tyvarIdent, kind) acc, newTy)
+    else
+      (cons (tyvarIdent, kind) acc, TyAlias {display = ty, content = newTy})
   | ty -> 
     smapAccumL_Type_Type (resolveTyHelper staticEnv accEnv) acc ty 
 end

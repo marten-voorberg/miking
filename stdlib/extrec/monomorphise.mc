@@ -144,11 +144,7 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst +
   sem removeExtRecTypes_Kind env = 
   sem removeExtRecTypes_Kind =
   | Data k & kind -> 
-    -- printLn (kind2str kind);
-    let pred = lam n. not (strEndsWith (nameGetStr n) "Type") in 
-    let kind = Data {k with types = mapFilterWithKey (lam k. lam. pred k) k.types} in 
-    -- printLn (kind2str kind);
-    kind
+    Poly ()
   | kind -> 
     smap_Kind_Type (removeExtRecTypes_Type env) kind
 
