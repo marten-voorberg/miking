@@ -69,7 +69,7 @@ lang TypeCheck = Base
   cosem emptyEnv arg = 
   | {Env of dummy} <- {dummy = ()}
 
-  sem typeCheck (env : extrec {Env of Unknown}) =
+  sem typeCheck (env : Env) =
 
   sem eqType =
 end
@@ -103,7 +103,7 @@ lang STLC = TypeCheck + LC + IntArith
 
   sem subst ident tm += 
 
-  sem typeCheck (env : extrec {Env of Unknown}) += 
+  sem typeCheck (env : Env) += 
   | TmVar t -> 
     let varMap = env.varMap in 
     getFromEnv t.ident varMap
@@ -170,7 +170,7 @@ lang SystemF = STLC + Base + TypeCheck
   cosem emptyEnv arg *=
   | {Env of tyvars} <- {tyvars = []}
 
-  sem typeCheck (env : extrec {Env of Unknown}) +=
+  sem typeCheck (env : Env) +=
   | TmTypeAbs t -> 
     let tyvars = env.tyvars in 
     let tyvars = cons t.ident tyvars in 

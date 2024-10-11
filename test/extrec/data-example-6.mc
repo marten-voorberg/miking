@@ -4,11 +4,11 @@ recfield x : all m. Foo -> Int in
 recfield y : all m. Foo -> Int in 
 
 rectype Bar in 
-recfield f1 : all m. Bar -> extrec {Foo of m} in 
-recfield f2 : all m. Bar -> extrec {Foo of m} in 
+recfield f1 : all m. Bar -> Foo{m} in 
+recfield f2 : all m. Bar -> Foo{m} in 
 
 let setX : all m :: {Bar [< f1 f2], Foo [< x]}. 
-            Int -> Int -> extrec {Bar of m}
+            Int -> Int -> Bar{m}
   = lam x1. lam x2. 
     {Bar of f1 = {Foo of x = x1}, f2 = {Foo of x = x2, y = 2}}
 in 

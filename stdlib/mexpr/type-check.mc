@@ -191,7 +191,8 @@ end
 -- TYPE UNIFICATION --
 ----------------------
 
-lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + PrettyPrint + Cmp + RepTypesHelpers + ExtRecordTypeAst + VarTypeAst
+lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + 
+               PrettyPrint + Cmp + RepTypesHelpers + VarTypeAst
   -- Unify the types `ty1' and `ty2', where
   -- `ty1' is the expected type of an expression, and
   -- `ty2' is the inferred type of the expression.
@@ -305,8 +306,6 @@ lang TCUnify = Unify + AliasTypeAst + MetaVarTypeAst + DataKindAst + PrettyPrint
             case Link ty then
               collectAliasesAndKinds acc ty
             end
-          case TyExtRec ty then 
-            collectAliasesAndKinds acc ty.ty
           case TyVar t then
             acc
           case other then 
@@ -635,7 +634,7 @@ let _computeUniverse : TCEnv -> Name -> Map Name (Set Name) =
 -- with something which also performs a proper kind check.
 lang ResolveType = ConTypeAst + AppTypeAst + AliasTypeAst + VariantTypeAst +
   UnknownTypeAst + DataTypeAst + DataKindAst + FunTypeAst + VarTypeSubstitute + 
-  AppTypeUtils + QualifiedTypeAst + ExtRecordTypeAst + MExprPrettyPrint
+  AppTypeUtils + QualifiedTypeAst + MExprPrettyPrint
   sem resolveType : Info -> TCEnv -> Bool -> Type -> Type
   sem resolveType info env closeDatas =
   | (TyCon _ | TyApp _) & ty ->

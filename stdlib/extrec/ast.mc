@@ -112,29 +112,6 @@ lang ExtRecordAst = Ast
     (acc, TmExtExtend {t with ty = ty}) 
 end
 
-lang ExtRecordTypeAst = Ast 
-  syn Type = 
-  | TyExtRec {info : Info, 
-              ident : Name,
-              ty : Type}
-  -- | TyRecData {info : Info,
-              --  fields : Map Name (Set Name)}
-
-  sem infoTy =
-  | TyExtRec t -> t.info
-  -- | TyRecData t -> t.info
-
-  sem tyWithInfo info = 
-  | TyExtRec t -> TyExtRec {t with info = info}
-  -- | TyRecData t -> TyRecData {t with info = info}
-
-  sem smapAccumL_Type_Type f acc =
-  | TyExtRec t -> 
-    match f acc t.ty with (acc, ty) in 
-    (acc, TyExtRec {t with ty = ty})
-  -- | TyRecData t & ty -> (acc, ty)
-end
-
 lang PresenceKindAst = Ast
   syn Kind = 
   | Presence ()

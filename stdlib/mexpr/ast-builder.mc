@@ -8,6 +8,9 @@ include "error.mc"
 include "stringid.mc"
 include "map.mc"
 
+-- Info
+let noinfo_ = NoInfo ()
+
 -- Types --
 
 let tyint_ = use IntTypeAst in

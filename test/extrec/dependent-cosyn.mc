@@ -1,14 +1,13 @@
 lang L0
   cosyn FooType = {a : Int} 
 
-  cosyn BarType = {a : Int, foos : [extrec {FooType of m}]} 
+  cosyn BarType = {a : Int, foos : [FooType{m}]} 
 
-  sem sum : extrec {BarType of Unknown} -> Int
-  -- sem sum : < L0::BarType -> Int
+  sem sum : BarType -> Int
   sem sum =
   | b -> 
     let foos = b.foos in 
-    let as = map (lam f : extrec {FooType of Unknown}. f.a) foos in 
+    let as = map (lam f : FooType. f.a) foos in 
     addi (foldl addi 0 as) b.a
 end
 

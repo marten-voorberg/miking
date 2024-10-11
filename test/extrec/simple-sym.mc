@@ -52,7 +52,7 @@ end
 lang SimpleSym = SimpleLang + BaseSym
   cosyn SymEnv *= {varEnv : [(String, String)]}
 
-  sem symbolizeExpr (env : extrec {SymEnv of Unknown}) += 
+  sem symbolizeExpr (env : SymEnv) += 
   | TmInt t -> TmInt t
   | TmAdd t -> 
     TmAdd {TmAddType of lhs = symbolizeExpr env t.lhs,
@@ -86,7 +86,7 @@ end
 lang ExtendedSym = ExtendedLang + BaseSym
   cosyn SymEnv *= {conEnv : [(String, String)]}
 
-  sem symbolizeExpr (env : extrec {SymEnv of Unknown}) +=
+  sem symbolizeExpr (env : SymEnv) +=
   | TmConDef t -> 
     let val = env.nextVal in 
     let conEnv = env.conEnv in 

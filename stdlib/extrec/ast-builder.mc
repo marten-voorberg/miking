@@ -17,16 +17,6 @@ let ext_proj_ = lam s. lam lhs. lam l.
                 ty = tyunknown_,
                 info = NoInfo ()}
 
-let typre_ = 
-  never
-  -- use ExtRecordTypeAst in 
-  -- TyPre ()
-
-let tyabs_ = 
-  never
-  -- use ExtRecordTypeAst in 
-  -- TyAbsent ()
-
 -- todo implement this
 recursive let extrec_bindF_ = use MLangAst in
   lam f : Expr -> Expr -> Expr. lam letexpr. lam expr.

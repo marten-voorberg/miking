@@ -4,14 +4,7 @@ include "mlang/symbolize.mc"
 
 include "ast.mc"
 
-lang ExtRecordSym = Sym + ExtRecordAst + ExtRecordTypeAst
-  sem symbolizeType env = 
-  | TyExtRec t -> 
-    let ident = getSymbol {kind = "type constructor", 
-                           info = [t.info],
-                           allowFree = env.allowFree} env.currentEnv.tyConEnv t.ident in 
-    let ty = symbolizeType env t.ty in 
-    TyExtRec {t with ident = ident, ty = ty}
+lang ExtRecordSym = Sym + ExtRecordAst
 
   sem symbolizeExpr env =
   | TmRecType t ->

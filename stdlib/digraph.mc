@@ -65,7 +65,7 @@ let digraphCountEdges : all v. all l. Digraph v l -> Int = lam g.
 let digraphEdgesFrom : all v. all l. v -> Digraph v l -> [DigraphEdge v l] =
   lam v. lam g.
   map (lam t : (v, l). (v, t.0, t.1))
-    (mapLookupOrElse (lam. error "Lookup failed") v g.adj)
+    (mapLookupOrElse (lam. dprint v; error "Lookup failed") v g.adj)
 
 -- Get the incoming edges to vertex v in graph g.
 let digraphEdgesTo : all v. all l. v -> Digraph v l -> [DigraphEdge v l] =

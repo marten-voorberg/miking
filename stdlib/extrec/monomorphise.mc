@@ -9,7 +9,7 @@ include "stringid.mc"
 include "set.mc"
 
 lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst + 
-                          ExtRecordTypeAst + MExprAst + MExprPrettyPrint +
+                          MExprAst + MExprPrettyPrint +
                           TypeAbsAst
 
   sem monomorphiseExpr : ExtRecEnvType -> Set Name -> Expr -> Expr
@@ -38,7 +38,7 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst +
             info = t.info}
   | TmRecField t -> monomorphiseExpr env names t.inexpr 
   | TmRecordUpdate t & tm -> 
-    match tyTm t.rec with TyExtRec extRec then 
+    match tyTm t.rec with TyCon tyCon then 
       TmRecordUpdate {t with value = nulam_ (nameNoSym "") t.value,
                              rec = monomorphiseExpr env names t.rec}
     else 
@@ -68,7 +68,7 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst +
     let work = lam acc. lam label. lam expr. 
       TmRecordUpdate {rec = acc, 
                       key = stringToSid label, 
-                      value = ulam_ "" expr, 
+                      value = nulam_ (nameNoSym "") expr, 
                       ty = tyunknown_,
                       info = t.info} in 
     mapFoldWithKey work t.e t.bindings
@@ -130,11 +130,6 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst +
     else 
       TyApp {t with lhs = removeExtRecTypes_Type env t.lhs,
                     rhs = removeExtRecTypes_Type env t.rhs}
-  | TyExtRec t -> 
-    TyCon {ident = t.ident, info = t.info, data = tyunknown_}
-    -- TyApp {lhs = TyCon {ident = t.ident, info = t.info, data = tyunknown_},
-    --        rhs = intyvar_ t.info mapParamIdent, 
-    --        info = t.info}
   | TyAll t & ty ->
     match t.kind with Data _ then
       removeExtRecTypes_Type env t.ty

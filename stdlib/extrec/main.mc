@@ -39,8 +39,8 @@ end
 lang BigSym = MLangSym + ExtRecordSym + RecFieldDeclSym + RecTypeDeclSym
 end
 
-lang BigTypeCheck = MExprTypeCheckMost + GetPresenceKind + MExprTypeCheckLamLetVar +
-                    ExtRecordTypeCheck + ExtRowUnify + PresenceKindAstUnify
+lang BigTypeCheck = MExprTypeCheckMost + MExprTypeCheckLamLetVar +
+                    ExtRecordTypeCheck + PresenceKindAstUnify
 end
 
 lang BigIncludeHandler = MLangIncludeHandler + BootParserMLang + ExtRecBootParser + RecDeclBootParser + CosynBootParser + CosemBootParser
@@ -178,7 +178,11 @@ lang BigPipeline = BigIncludeHandler +
         let ctx = _emptyCompilationContext env in 
 
         let mlangTyDeps = getProgTyDeps env.baseMap2 p in  
+        endPhaseStatsProg log "mlang-dependency-analysis" p; 
+
         let p = resolveQualifiedNameProgram mlangTyDeps env.baseMap2 p in 
+        endPhaseStatsProg log "resolve-qualified-name" p; 
+
         let compilationCtx = _emptyCompilationContext env in 
         let compilationCtx = {compilationCtx with baseMap = env.baseMap2} in 
 

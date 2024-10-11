@@ -13,7 +13,7 @@ include "ast-builder.mc"
 
 let gcopat = lam tree. lam i. bootParserGetCopat tree i 
 
-lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordTypeAst
+lang ExtRecBootParser = BootParserMLang + ExtRecordAst
   sem matchTerm t = 
   | 117 -> 
     let n = glistlen t 0 in 
@@ -53,15 +53,9 @@ lang ExtRecBootParser = BootParserMLang + ExtRecordAst + ExtRecordTypeAst
                  e = e,
                  ty = tyunknown_, 
                  info = ginfo t 0}
-
-  sem matchType t = 
-  | 215 -> 
-    TyExtRec {info = ginfo t 0,
-              ident = gname t 0,
-              ty = gtype t 0}
 end
 
-lang RecDeclBootParser = BootParserMLang + ExtRecordTypeAst + RecTypeDeclAst + 
+lang RecDeclBootParser = BootParserMLang + RecTypeDeclAst + 
                          RecFieldDeclAst
   sem matchTop d = 
   | 711 ->

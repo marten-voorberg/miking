@@ -22,7 +22,7 @@ type ResolveQualifiedNameEnv = {
 -- correct kind instead of having to introduce forall terms which may
 -- not be legal in all places.
 lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst + 
-                            MLangPrettyPrint + ExtRecordTypeAst
+                            MLangPrettyPrint
                             
   sem resolveQualifiedNameProgram tydeps baseMap = 
   | prog -> 
@@ -215,7 +215,7 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
     let ident = mapLookupOr ident ident staticEnv.baseMap in 
 
     let newTy = match mapLookup ident env.prodFields with Some _
-                  then TyExtRec {info = t.info, ident = ident, ty = tyvar} 
+                  then never 
                 else match mapLookup ident env.sumFields with Some _
                   then TyApp {lhs = TyCon {ident = ident, info = t.info, data = tyvar},
                               rhs = tyvar,

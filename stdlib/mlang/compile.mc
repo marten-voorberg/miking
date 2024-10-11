@@ -199,7 +199,7 @@ end
 
 lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst + 
                         SynDeclAst + TypeDeclAst + SynProdExtDeclAst + 
-                        ExtRecordAst + ExtRecordTypeAst + CosynDeclAst
+                        ExtRecordAst + CosynDeclAst
                         + CosemDeclAst + RecordCopatAst
   sem compileDecl ctx = 
   | DeclLang l -> 
@@ -343,9 +343,9 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
                                     ty = tyunknown_,
                                     info = infoTy ty}) in
         let ctx = mapFoldWithKey work ctx rec.fields in 
-        let lhs = TyExtRec {info = infoTy def.tyIdent,
-                                   ident = recIdent,
-                                   ty = intyvar_ s.info mapParamIdent} in 
+        let lhs = TyCon {info = infoTy def.tyIdent,
+                         ident = recIdent,
+                         data = intyvar_ s.info mapParamIdent} in 
         withExpr ctx (TmConDef {ident = def.ident,
                                 tyIdent = forallWrapper (tyarrow_ lhs tyconApp),
                                 inexpr = uunit_,

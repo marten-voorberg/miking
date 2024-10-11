@@ -18,16 +18,14 @@ type GlobalExtInfo = use MLangAst in {
 
 type MLangTyDepsEnv = {
   depGraph : DependencyGraph,
-  allBaseSyns : Set Name,
-  allSynTypes : Set Name,
+  extensibleTypes : Set Name,
   globalExtMap : Map Name [GlobalExtInfo],
   baseMap : Map Name Name
 }
 
 
 
-lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst + 
-                          ExtRecordTypeAst + TypeAbsAst 
+lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst + TypeAbsAst 
   sem _collectNames : MLangTyDepsEnv -> Decl -> MLangTyDepsEnv
   sem _collectNames env = 
   | _ -> env
@@ -35,15 +33,15 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
     foldl _collectNames env d.decls 
   | DeclSyn d -> 
     let env = if null d.includes 
-              then {env with allBaseSyns = setInsert d.ident env.allBaseSyns} 
+              then {env with extensibleTypes = setInsert d.ident env.extensibleTypes} 
               else env in 
     
     let typeIdents = map (lam def. def.tyName) d.defs in 
 
-    {env with allSynTypes = foldr setInsert env.allSynTypes typeIdents}
+    {env with extensibleTypes = foldr setInsert env.extensibleTypes typeIdents}
   | DeclCosyn d ->
     if d.isBase then
-      {env with allSynTypes = setInsert (nameRemoveSym d.ident) env.allSynTypes}
+      {env with extensibleTypes = setInsert d.ident env.extensibleTypes}
     else 
       env
   | SynDeclProdExt d -> 
@@ -62,9 +60,7 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
   sem _gatherDeps : MLangTyDepsEnv -> Set Name -> Type -> Set Name
   sem _gatherDeps env acc = 
   | TyCon t -> 
-    if setMem t.ident env.allBaseSyns then
-      setInsert t.ident acc 
-    else if setMem (nameRemoveSym t.ident) env.allSynTypes then 
+    if setMem t.ident env.extensibleTypes then 
       setInsert t.ident acc 
     else 
       acc
@@ -90,8 +86,7 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
   | DeclLang d -> 
     foldl _establishDepGraph env d.decls 
   | DeclCosyn d ->
-    let ident = nameRemoveSym d.ident in 
-    printLn "here!";
+    let ident = d.ident in 
     let deps = _gatherDeps env (setEmpty nameCmp) d.ty in 
     {env with depGraph = setFold (lam g. lam dep. digraphMaybeAddEdge ident dep () g) env.depGraph deps}
   | DeclSyn d -> 
@@ -132,15 +127,13 @@ lang ComputeMLangTyDeps = MLangAst + MExprAst + ExtRecordAst +
   sem getProgTyDeps baseMap =
   | {decls = decls} -> 
     let env = {baseMap = baseMap, 
-               allSynTypes = setEmpty nameCmp,
-               allBaseSyns = setEmpty nameCmp,
+               extensibleTypes = setEmpty nameCmp,
                globalExtMap = mapEmpty nameCmp,
                depGraph = digraphEmpty nameCmp (lam. lam. true)} in 
 
     let env = foldl _collectNames env decls in 
 
-    let env = {env with depGraph = digraphAddVertices (setToSeq env.allSynTypes) env.depGraph} in 
-    let env = {env with depGraph = digraphAddVertices (setToSeq env.allBaseSyns) env.depGraph} in 
+    let env = {env with depGraph = digraphAddVertices (setToSeq env.extensibleTypes) env.depGraph} in 
 
     let env = foldl _establishDepGraph env decls in 
 

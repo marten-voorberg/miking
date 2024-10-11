@@ -19,7 +19,7 @@ let _emptyAccEnv : AccEnv = {
   defs = mapEmpty nameCmp
 }
 
-lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordTypeAst + 
+lang ExtRecCollectEnv = MExprAst + ExtRecordAst + 
                         TypeAbsAst
   sem collectEnv : AccEnv -> Expr -> AccEnv
   sem collectEnv env = 
@@ -64,7 +64,7 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst + ExtRecordTypeAst +
 
   sem includedRowTypes : Set Name -> Type -> Set Name 
   sem includedRowTypes acc = 
-  | TyExtRec {ident = ident} -> setInsert ident acc
+  | TyCon {ident = ident} -> setInsert ident acc
   | ty -> sfold_Type_Type includedRowTypes acc ty
 
   sem updateDependencyGraph : DependencyGraph -> Name -> [Type] -> DependencyGraph

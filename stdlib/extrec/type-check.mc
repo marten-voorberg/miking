@@ -4,11 +4,6 @@ include "mexpr/pattern-analysis.mc"
 include "unify.mc"
 include "ast.mc"
 
-lang GetPresenceKind = GetKind + PresenceKindAst + ExtRecordTypeAst
-  -- sem getKind env = 
-  -- | TyPre _ | TyAbsent _ -> Presence ()
-end 
-
 lang TypeAbsAppResolver = TypeAbsAppAst + TypeAbsAst + VarTypeAst
   sem _subst : Name -> Type -> Type -> Type
   sem _subst name replacement =
@@ -25,7 +20,7 @@ lang TypeAbsAppResolver = TypeAbsAppAst + TypeAbsAst + VarTypeAst
     _subst tyAbs.ident rhs tyAbs.body
 end
 
-lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst + 
+lang ExtRecordTypeCheck = TypeCheck + ExtRecordAst + 
                           PresenceKindAst + TypeAbsAppAst + GetKind + 
                           TypeAbsAppResolver + ResolveType + RecordAst +
                           RecordTypeAst + MatchAst + RecordPat + 
@@ -167,9 +162,9 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
 
     let bindings = mapMapWithKey typeCheckBinding t.bindings in 
 
-    let ty = TyExtRec {info = NoInfo () ,
-                       ident = t.ident,
-                       ty = r} in 
+    let ty = TyCon {info = NoInfo (),
+                    ident = t.ident,
+                    data = r} in 
 
     TmExtRecord {t with ty = ty,
                         bindings = bindings}
@@ -199,8 +194,9 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     let kind = Data {types = kindMap} in 
     let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
 
-    let expectedTy = TyExtRec {ident = t.ident, ty = r, info = NoInfo ()} in
-
+    let expectedTy = TyCon {ident = t.ident,
+                            data = r, 
+                            info = noinfo_} in 
 
     unify env [t.info] expectedTy actualTy ;
 
@@ -215,7 +211,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
   | TmExtExtend t ->
     let e = typeCheckExpr env t.e in 
 
-    let ident = match _inspectTyWithinAlias (tyTm e) with TyExtRec {ident = ident} then ident
+    let ident = match _inspectTyWithinAlias (tyTm e) with TyCon {ident = ident} then ident
                 else errorSingle [infoTm e] (join [
                   " * You are attempting to extend some other type!\n",
                   " * Or the type identifier of the extensible record can not be ",
@@ -228,6 +224,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
 
     match mapLookup ident env.extRecordType.tyDeps with Some tydeps in 
     match mapLookup ident env.extRecordType.defs with Some labelToType in 
+
     let allLabels = map fst (mapToSeq labelToType) in 
     let boundLabels = mapKeys t.bindings in  
     let unboundLabels = setSubtract (setOfKeys labelToType) (setOfKeys t.bindings) in 
@@ -237,9 +234,9 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
     let oldKind = Data {types = kindMap} in 
     let oldR = newnmetavar "r" oldKind env.currentLvl (NoInfo ()) in
 
-    let ty = TyExtRec {info = NoInfo (),
-                       ident = ident,
-                       ty = oldR} in 
+    let ty = TyCon {info = NoInfo (),
+                    ident = ident,
+                    data = oldR} in 
 
     unify env [infoTm e] ty (tyTm e) ;
 
@@ -310,9 +307,9 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
 
     iter work (setToSeq unchangedDeps);
 
-    let resultTy = TyExtRec {ident = ident,
-                             info = NoInfo (),
-                             ty = newR} in 
+    let resultTy = TyCon {ident = ident,
+                          info = NoInfo (),
+                          data = newR} in 
 
     -- printLn "===";
     -- print "\t";
@@ -326,7 +323,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
   | TmRecordUpdate t ->
     let rec = typeCheckExpr env t.rec in 
 
-    match _inspectTyWithinAlias (tyTm rec) with TyExtRec extRec then
+    match _inspectTyWithinAlias (tyTm rec) with TyCon extRec then
       match mapLookup extRec.ident env.extRecordType.defs with Some labelToType in 
       match mapLookup extRec.ident env.extRecordType.tyDeps with Some tydeps in 
       let label = sidToString t.key in 
@@ -345,12 +342,18 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
 
       
       let kindMap = mapMap (lam. {lower = setEmpty nameCmp, upper = None ()}) tydeps in 
-      let kindMap = mapUpdate extRec.ident (lam. Some {lower = setSingleton nameCmp (nameNoSym label), upper = None ()}) kindMap in 
+      let kindMap = mapUpdate 
+        extRec.ident 
+        (lam. Some {lower = setSingleton nameCmp (nameNoSym label), 
+                    upper = None ()}) 
+        kindMap in 
 
       let kind = Data {types = kindMap} in 
       let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
 
-      let expectedTy = TyExtRec {ident = extRec.ident, ty = r, info = NoInfo ()} in
+      let expectedTy = TyCon {ident = extRec.ident, 
+                              data = r,
+                              info = NoInfo ()} in
 
       unify env [t.info] expectedTy actualTy ;
 
@@ -361,7 +364,6 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
       
       let value = typeCheckExpr env t.value in 
       unify env [infoTm value] ty (tyTm value) ;
-      -- printLn (type2str ty) ;
 
       TmRecordUpdate {t with rec = rec,
                              value = value,
@@ -396,7 +398,7 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
                       nameGetStr extRec.ident,
                       "'!"
                      ]) in 
-        let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = extRec.ty}) in 
+        let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = extRec.data}) in 
         let expectedTy = resolveType (NoInfo ()) env false expectedTy in 
         unify env [NoInfo ()] ty expectedTy ;
 
@@ -408,18 +410,18 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordTypeAst + ExtRecordAst +
       let kindMap = mapInsert extRec.ident {lower = lowerBound, upper = None ()} kindMap in 
       let kind = Data {types = kindMap} in 
       let r = newnmetavar "r" kind env.currentLvl (NoInfo ()) in 
-      let ty = TyExtRec {info = NoInfo (), ident = extRec.ident, ty = r} in 
+      let ty = TyCon {info = noinfo_, ident = extRec.ident, data = r} in 
       (patEnv, PatRecord {p with bindings = bindings, ty = ty})
     in
 
-    let res = match _inspectTyWithinAlias (tyTm target) with TyExtRec extRec then
+    let res = match _inspectTyWithinAlias (tyTm target) with TyCon extRec then
       handleExtRec extRec
     else 
       match typeCheckPat env (mapEmpty nameCmp) t.pat with (patEnv, pat) in
       (patEnv, pat)
     in 
 
-    (match _inspectTyWithinAlias (tyTm target) with TyExtRec extRec then
+    (match _inspectTyWithinAlias (tyTm target) with TyCon extRec then
       recursive let f = lam acc. lam p. 
         match p with PatNamed {ident = PName n} then 
           setInsert n acc
