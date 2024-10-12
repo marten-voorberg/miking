@@ -1,4 +1,28 @@
-include "string.mc"
+let and = lam b1. lam b2.
+  if b1 then b2 else false
+
+let digit2char = lam d.
+  int2char (addi d (char2int '0'))
+  
+recursive let eqString = lam s1. lam s2.
+  match (s1, s2) with ([], []) then 
+    true
+  else match (s1, s2) with ([h1] ++ t1, [h2] ++ t2) then
+    and (eqc h1 h2) (eqString t1 t2)
+  else 
+    false
+end
+
+let int2string = lam n.
+  recursive
+  let int2string_rechelper = lam n. lam acc.
+    if lti n 10
+    then cons (digit2char n) acc
+    else int2string_rechelper (divi n 10) (cons (digit2char (modi n 10)) acc)
+  in
+  if lti n 0
+  then cons '-' (int2string_rechelper (negi n) "")
+  else int2string_rechelper n ""
 
 let mapInsert = lam k. lam v. lam m.
   cons (k, v) m

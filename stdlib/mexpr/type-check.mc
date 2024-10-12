@@ -1411,9 +1411,11 @@ lang DataTypeCheck = TypeCheck + DataAst + FunTypeAst + ResolveType + Substitute
       "* right-hand side should refer to a constructor type.\n",
       "* When type checking the expression\n"
     ] in
+    -- printLn "We are here now ;)";
+    -- printLn (type2str ty);
     match inspectType ty with TyArrow {to = to} then
       match getTypeArgs to with (TyCon target, _) then
-        if disableConstructorTypes then (target.ident, setOfSeq nameCmp [target.ident], ty)
+        if or true disableConstructorTypes then (target.ident, setOfSeq nameCmp [target.ident], ty)
         else
           recursive let substituteData = lam v. lam acc. lam x.
             switch x
@@ -1465,20 +1467,31 @@ lang DataTypeCheck = TypeCheck + DataAst + FunTypeAst + ResolveType + Substitute
     unify env [t.info, infoTm inexpr] (newpolyvar env.currentLvl t.info) (tyTm inexpr);
     TmConDef {t with tyIdent = tyIdent, inexpr = inexpr, ty = tyTm inexpr}
   | TmConApp t ->
+    -- printLn "Were are here!";
     let body = typeCheckExpr env t.body in
     match mapLookup t.ident env.conEnv with Some (_, lty) then
       let lty =
-        if env.disableConstructorTypes then lty
+        if env.disableConstructorTypes then 
+          -- printLn "Constructor type sare disabled";
+          lty
         else
+          -- printLn "Constructor type sare not disabled!";
           match lty with TyAll (r & {kind = Data d}) then
             let types = mapMap (lam ks. {ks with lower = setInsert t.ident ks.lower}) d.types in
+            -- print "\t";
+            -- printLn (kind2str ( Data {d with types = types}));
             TyAll {r with kind = Data {d with types = types}}
-          else error "Invalid constructor type in typeCheckExpr!"
+          else 
+            errorSingle [t.info] "Invalid constructor type in typeCheckExpr!"
       in
       match inst t.info env.currentLvl lty with TyArrow {from = from, to = to} then
+        -- printLn (type2str lty);
+        -- printLn (type2str from);
+        -- printLn (type2str to);
         unify env [infoTm body] from (tyTm body);
         TmConApp {t with body = body, ty = to}
-      else error "Invalid constructor type in typeCheckExpr!"
+      else 
+        errorSingle [t.info] "Invalid constructor type in typeCheckExpr!"
     else
       let msg = join [
         "* Encountered an unbound constructor: ",

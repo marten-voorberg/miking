@@ -82,7 +82,7 @@ lang STLC = TypeCheck + LC + IntArith
   syn Term *= 
   | TmAbs {tyAnnot : Ty}
 
-  cosyn Env *= {varMap : [(String, Ty{m} m)]}
+  cosyn Env *= {varMap : [(String, Ty)]}
 
   cosem emptyEnv arg *=
   | {Env of varMap} <- {varMap = []}

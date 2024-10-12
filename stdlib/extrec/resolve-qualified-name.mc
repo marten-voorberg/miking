@@ -214,12 +214,10 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
 
     let ident = mapLookupOr ident ident staticEnv.baseMap in 
 
-    let newTy = match mapLookup ident env.prodFields with Some _
-                  then TyCon {ident = ident, info = t.info, data = tyvar}
-                else match mapLookup ident env.sumFields with Some _
-                  then TyApp {lhs = TyCon {ident = ident, info = t.info, data = tyvar},
-                              rhs = tyvar,
-                              info = t.info}
+    let newTy = match mapLookup ident env.prodFields with Some _ then 
+                  TyCon {ident = ident, info = t.info, data = tyvar}
+                else match mapLookup ident env.sumFields with Some _ then
+                  TyCon {ident = ident, info = t.info, data = tyvar}
                 else errorSingle [t.info] (join [
                   " * Illegal state! The right-hand side '",
                   nameGetStr ident,
@@ -229,8 +227,6 @@ lang ResolveQualifiedName = MLangAst + RecordTypeAst + QualifiedTypeAst +
                   " * is neither a sum or product type. This should be impossible!"
                 ])
     in
-    -- printLn (type2str ty);
-    -- printLn (kind2str kind);
 
 
     -- TODO(11/10/2024, voorberg): There is a bug when we introduce syntactic 

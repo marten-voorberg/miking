@@ -1,7 +1,14 @@
-include "stdlib/string.mc"
-
 let and = lam b1. lam b2.
   if b1 then b2 else false
+
+recursive let eqString = lam s1. lam s2.
+  match (s1, s2) with ([], []) then 
+    true
+  else match (s1, s2) with ([h1] ++ t1, [h2] ++ t2) then
+    and (eqc h1 h2) (eqString t1 t2)
+  else 
+    false
+end
 
 lang LC 
   syn Ty = 

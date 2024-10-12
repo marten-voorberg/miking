@@ -107,7 +107,7 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst +
 
   sem removeExtRecTypes_Expr env = 
   | TmType t ->
-    TmType {t with params = filter (lam n. not (nameEq mapParamIdent n)) t.params,
+    TmType {t with params = tail t.params,
                    tyIdent = removeExtRecTypes_Type env t.tyIdent,
                    ty = removeExtRecTypes_Type env t.ty,
                    inexpr = removeExtRecTypes_Expr env t.inexpr}
@@ -119,21 +119,22 @@ lang ExtRecMonomorphise = RecordAst + ExtRecordAst + MatchAst +
   sem removeExtRecTypes_Type env = 
   | TyQualifiedName t -> 
     TyCon {ident = t.rhs, info = t.info, data = tyunknown_}
-  | TyCon t -> TyCon {t with data = tyunknown_}
-  | TyApp {rhs = TyVar tyVar} & TyApp t ->
-    if nameEq tyVar.ident mapParamIdent then 
-      removeExtRecTypes_Type env t.lhs 
-    else if eqString (nameGetStr tyVar.ident) "m" then
-      removeExtRecTypes_Type env t.lhs 
-    else if eqString (nameGetStr tyVar.ident) "ss" then
-      removeExtRecTypes_Type env t.lhs 
-    else 
-      TyApp {t with lhs = removeExtRecTypes_Type env t.lhs,
-                    rhs = removeExtRecTypes_Type env t.rhs}
+  | TyCon t -> 
+    TyCon {t with data = tyunknown_}
+  -- | TyApp {lhs = TyCon t, rhs = TyVar _} ->
+  --   TyCon{t with data = tyunknown_}
+  -- | TyApp {rhs = TyVar tyVar} & TyApp t ->
+  --   if eqString (nameGetStr tyVar.ident) "M" then
+  --     removeExtRecTypes_Type env t.lhs 
+  --   else if eqString (nameGetStr tyVar.ident) "ss" then
+  --     removeExtRecTypes_Type env t.lhs 
+  --   else 
+  --     TyApp {t with lhs = removeExtRecTypes_Type env t.lhs,
+  --                   rhs = removeExtRecTypes_Type env t.rhs}
   | TyAll t & ty ->
     match t.kind with Data _ then
       removeExtRecTypes_Type env t.ty
-    else if nameEq t.ident mapParamIdent then
+    else if eqString (nameGetStr t.ident) "M" then
       removeExtRecTypes_Type env t.ty
     else 
       TyAll {t with ty = removeExtRecTypes_Type env t.ty,

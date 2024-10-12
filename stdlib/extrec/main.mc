@@ -16,6 +16,7 @@ include "unify.mc"
 include "monomorphise.mc"
 include "resolve-qualified-name.mc"
 include "mlang-ty-deps.mc"
+include "insert-implicit-recursion-var.mc"
 
 include "mlang/include-handler.mc"
 include "mlang/pprint.mc"
@@ -64,7 +65,8 @@ lang BigPipeline = BigIncludeHandler +
                    ComputeMLangTyDeps +
                    PhaseStats +
                    PostProcess + 
-                   PruneUnusedLangs 
+                   PruneUnusedLangs +
+                   InsertImplictRecursionVar
 
   sem dumpKinds acc = 
   -- | TyVar t -> cons (nameGetStr t.ident) acc
@@ -157,6 +159,9 @@ lang BigPipeline = BigIncludeHandler +
     let usedLangs = collectUsedLangs_Prog p in 
     endPhaseStatsProg log "collect-used-langs" p;
 
+    let p = insertImplicitParams p in 
+    endPhaseStatsProg log "insert-implicit-recursion-var" p;
+
     match symbolizeMLang symEnvDefault p with (_, p) in 
     endPhaseStatsProg log "symbolization" p;
 
@@ -212,8 +217,8 @@ lang BigPipeline = BigIncludeHandler +
         let tcEnv = {typcheckEnvDefault with
           disableConstructorTypes = false, 
           extRecordType = {defs = defs, 
-                          tyDeps = tyDeps,
-                          labelTyDeps = labelTyDeps}} in 
+                           tyDeps = tyDeps,
+                           labelTyDeps = labelTyDeps}} in 
         
         let expr = typeCheckExpr tcEnv expr in 
         endPhaseStatsExpr log "extrec-type-check" expr;
@@ -253,6 +258,8 @@ lang BigPipeline = BigIncludeHandler +
     -- printLn (mlang2str p);
 
     let usedLangs = collectUsedLangs_Prog p in 
+
+    let p = insertImplicitParams p in 
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
 

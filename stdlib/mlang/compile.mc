@@ -43,6 +43,12 @@ include "error.mc"
 include "set.mc"
 include "result.mc"
 
+let data_ = lam ident : Name. 
+  use DataKindAst in 
+  let types = mapEmpty nameCmp in 
+  let types = mapInsert ident {lower = setEmpty nameCmp, upper = None ()} types in 
+  Data {types = types}
+
 type CompilationContext = use MLangAst in {
   -- Accumulator of compilation result
   exprs: [Expr],
@@ -79,11 +85,6 @@ let _emptyCompilationContext : CompositionCheckEnv -> CompilationContext = lam e
   baseMap = mapEmpty nameCmp,
   globalFields = mapEmpty nameCmp
 }
-
-let mapParamIdent = nameNoSym "m"
--- let mapParamIdent = nameSym "m"
-let baseExtIdent = nameSym "BaseExt"
-
 
 let withExpr = lam ctx. lam expr. {ctx with exprs = snoc ctx.exprs expr}
 
@@ -244,22 +245,20 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     match mapLookup (langStr, nameGetStr s.ident) ctx.compositionCheckEnv.baseMap 
     with Some baseIdent in 
 
-    match find (lam n. eqString "m" (nameGetStr n)) s.params with Some implicitParam in 
-
-    let remainingParams = filter (lam n. not (nameEq implicitParam n)) s.params in 
-
     let ctx = if s.isBase 
               then withExpr ctx (TmRecType {ident = s.ident,
-                                            params = remainingParams,
+                                            params = s.params,
                                             info = s.info,
                                             ty = tyunknown_,
                                             inexpr = uunit_}) 
               else ctx in 
     
+    let wrap = lam ty. lam n. nstyall_ n (data_ baseIdent) ty in 
+
     let compileField = lam ctx. lam sid. lam ty.
       let tyIdent = tyarrow_ (ntycon_ baseIdent) ty in  
       withExpr ctx (TmRecField {label = sidToString sid,
-                                tyIdent = nstyall_ implicitParam (Poly ()) tyIdent,
+                                tyIdent = foldl wrap tyIdent s.params,
                                 inexpr = uunit_,
                                 ty = tyunknown_,
                                 info = s.info}) in 
@@ -281,67 +280,56 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     -- we check that it does not include any other definitions.
     if null s.includes then
       withExpr ctx (TmType {ident = s.ident,
-                            params = cons mapParamIdent s.params,
+                            params = s.params,
                             tyIdent = tyvariant_ [],
                             inexpr = uunit_,
                             ty = tyunknown_,
                             info = s.info})
     else
       ctx
-  
-  sem _insertImplicitTyVars : CompilationContext -> Type -> Type
-  sem _insertImplicitTyVars ctx =
-  | TyCon t & ty -> 
-    if setMem t.ident ctx.allBaseSyns then
-      TyApp {lhs = TyCon {t with data = intyvar_ t.info mapParamIdent}, 
-             rhs = intyvar_ t.info mapParamIdent, info = t.info}
-    else
-      ty
-  | ty -> smap_Type_Type (_insertImplicitTyVars ctx) ty
 
   sem compileSynConstructors : String -> CompilationContext -> Decl -> CompilationContext
   sem compileSynConstructors langStr ctx = 
   | DeclSyn s ->
-    let baseIdent = (match mapLookup (langStr, nameGetStr s.ident) ctx.compositionCheckEnv.baseMap with Some ident in ident) in
+    match mapLookup (langStr, nameGetStr s.ident) ctx.compositionCheckEnv.baseMap 
+    with Some baseIdent in 
 
-    let params = cons mapParamIdent s.params in 
+    let forallWrapper : Type -> Type = 
+      lam ty. 
+        let ty = foldl (lam ty. lam n. ntyall_ n ty) ty (tail s.params) in 
+        nstyall_ (head s.params) (data_ baseIdent) ty 
+    in
 
-    recursive let makeForallWrapper = lam params. lam ty. 
-      match params with [h] ++ t then
-        ntyall_ h (makeForallWrapper t ty)
-      else
-        ty
-    in 
-    let forallWrapper = makeForallWrapper params in 
-    let tyconApp = foldl (lam acc. lam n. tyapp_ acc (intyvar_ s.info n)) (ntycon_ baseIdent) params in 
+    let tyconApp = TyCon {info = s.info, ident = baseIdent, data = intyvar_ s.info (head s.params)} in 
+    -- let tyconApp = foldl (lam acc. lam n. tyapp_ acc (intyvar_ s.info n)) (ntycon_ baseIdent) s.params in 
+
     let compileDef = lam ctx. lam def : {ident : Name, tyIdent : Type, tyName : Name}.
       match def.tyIdent with TyRecord _ then
         let tyIdent = mergeRecordTypes 
           def.tyIdent
           (mapLookupOrElse (lam. tyrecord_ []) baseIdent ctx.globalFields) in 
         match tyIdent with TyRecord rec in 
-        -- TODO: Determine the proper symbol for this type.
+
         let recIdent = def.tyName in
-        -- let recIdent = nameSym (concat (nameGetStr def.ident) "Type") in 
         let ctx = {ctx with conToExtType = mapInsert def.ident recIdent ctx.conToExtType} in 
+
         let ctx = withExpr ctx (TmRecType {ident = recIdent,
-                                           params = [],
+                                           params = s.params,
                                            ty = tyunknown_,
                                            inexpr = uunit_,
                                            info = infoTy def.tyIdent}) in 
-        let work = lam acc. lam sid. lam ty. 
-          let ty = _insertImplicitTyVars ctx ty in 
+        let work = lam ctx. lam sid. lam ty. 
           let label = sidToString sid in 
           let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
-          withExpr acc (TmRecField {label = label,
-                                    tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
+          withExpr ctx (TmRecField {label = label,
+                                    tyIdent = forallWrapper tyIdent,
                                     inexpr = uunit_,
                                     ty = tyunknown_,
                                     info = infoTy ty}) in
         let ctx = mapFoldWithKey work ctx rec.fields in 
         let lhs = TyCon {info = infoTy def.tyIdent,
                          ident = recIdent,
-                         data = intyvar_ s.info mapParamIdent} in 
+                         data = intyvar_ s.info (head s.params)} in 
         withExpr ctx (TmConDef {ident = def.ident,
                                 tyIdent = forallWrapper (tyarrow_ lhs tyconApp),
                                 inexpr = uunit_,
@@ -368,6 +356,9 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
   sem compileSynProd : String -> CompilationContext -> Decl -> CompilationContext
   sem compileSynProd langStr ctx =
   | SynDeclProdExt s ->
+    match mapLookup (langStr, nameGetStr s.ident) ctx.compositionCheckEnv.baseMap 
+    with Some baseIdent in 
+
     -- Compile indiv ext
     let compileExt = lam ctx. lam ext. 
       match ext with {ident = ident, tyIdent = tyIdent} in 
@@ -375,10 +366,9 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
       match tyIdent with TyRecord rec in 
       let work = lam acc. lam sid. lam ty. 
           let label = sidToString sid in 
-          let ty = _insertImplicitTyVars ctx ty in 
           let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
           withExpr acc (TmRecField {label = label,
-                                    tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
+                                    tyIdent = nstyall_ (head s.params) (data_ recIdent) tyIdent,
                                     inexpr = uunit_,
                                     ty = tyunknown_,
                                     info = infoTy ty}) 
@@ -389,35 +379,36 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
 
     -- Compile global ext
     match s.globalExt with Some globalExt then
-      match mapLookup s.ident ctx.baseMap with Some baseIdent in 
-      match mapLookup baseIdent ctx.baseToCons with Some allConstructors in 
-      let explicitConstructors = setOfSeq nameCmp (map (lam e. e.ident) s.individualExts) in 
+      never
+      -- match mapLookup s.ident ctx.baseMap with Some baseIdent in 
+      -- match mapLookup baseIdent ctx.baseToCons with Some allConstructors in 
+      -- let explicitConstructors = setOfSeq nameCmp (map (lam e. e.ident) s.individualExts) in 
     
-      let relevantCons = setSubtract allConstructors explicitConstructors in 
+      -- let relevantCons = setSubtract allConstructors explicitConstructors in 
 
-      match globalExt with TyRecord rec in 
+      -- match globalExt with TyRecord rec in 
 
-      let compileGlobalExt = lam ctx. lam ident.
-        match mapLookup ident ctx.conToExtType with Some recIdent in 
-        let work = lam acc. lam sid. lam ty. 
-          let label = sidToString sid in 
-          let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
-            withExpr acc (TmRecField {label = label,
-                                      tyIdent = nstyall_ mapParamIdent (Poly ()) tyIdent,
-                                      inexpr = uunit_,
-                                      ty = tyunknown_,
-                                      info = infoTy ty}) 
-        in
-        mapFoldWithKey work ctx rec.fields
-      in 
+      -- let compileGlobalExt = lam ctx. lam ident.
+      --   match mapLookup ident ctx.conToExtType with Some recIdent in 
+      --   let work = lam acc. lam sid. lam ty. 
+      --     let label = sidToString sid in 
+      --     let tyIdent = tyarrow_ (ntycon_ recIdent) ty in 
+      --       withExpr acc (TmRecField {label = label,
+      --                                 tyIdent = nstyall_ mapParamIdent (data_ s.ident) tyIdent,
+      --                                 inexpr = uunit_,
+      --                                 ty = tyunknown_,
+      --                                 info = infoTy ty}) 
+      --   in
+      --   mapFoldWithKey work ctx rec.fields
+      -- in 
 
-      let ctx = setFold compileGlobalExt ctx relevantCons in 
+      -- let ctx = setFold compileGlobalExt ctx relevantCons in 
 
-      let newGlobalExt = mergeRecordTypes 
-        (mapLookupOrElse (lam. tyrecord_ []) baseIdent ctx.globalFields)
-        globalExt in 
+      -- let newGlobalExt = mergeRecordTypes 
+      --   (mapLookupOrElse (lam. tyrecord_ []) baseIdent ctx.globalFields)
+      --   globalExt in 
 
-      {ctx with globalFields = mapInsert baseIdent newGlobalExt ctx.globalFields}
+      -- {ctx with globalFields = mapInsert baseIdent newGlobalExt ctx.globalFields}
     else 
       ctx
 
