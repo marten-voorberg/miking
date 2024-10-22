@@ -11,6 +11,8 @@ recursive let eqString = lam s1. lam s2.
 end
 
 lang Base
+  syn Ty =
+
   syn Term = 
 
   sem isValue = 
@@ -68,29 +70,66 @@ lang Arith = Base
 
   sem isValue +=
   | TmInt _ -> true
+end
 
+lang LambdaCalculusArith = LambdaCalculus + Arith
   sem subst ident term += 
   | TmInt t -> TmInt t
   | TmAdd t -> TmAdd {TmAddType of lhs = subst ident term t.lhs, 
                                    rhs = subst ident term t.rhs}
 end
 
-lang LambdaCalculusArith =  LambdaCalculus + Arith
+lang STLC = LambdaCalculusArith
+
+  syn Ty += 
+  | TyArrow {lhs : Ty, rhs : Ty}
+  | TyInt {dummy : ()}
+
+  syn Term *= 
+  | TmAbs {tyAnnot : Ty}
+
+  sem eqType =
+  | (TyInt _, TyInt _) -> true
+  | (TyArrow t1, TyArrow t2) -> and (eqType (t1.lhs, t2.lhs)) (eqType (t1.rhs, t2.rhs))
+  | _ -> false
+
+  sem getFromEnv ident = 
+  | [(h, ty)] ++ t ->
+    if eqString h ident then
+      ty
+    else 
+      getFromEnv ident t
+  | [] -> error "Ident not found in env!"
+
+  sem typeCheck env = 
+  | TmVar t -> getFromEnv t.ident env
+  | TmAbs t -> TyArrow {TyArrowType of lhs = t.tyAnnot, rhs = typeCheck (cons (t.ident, t.tyAnnot) env) t.body}
+  | TmApp t -> 
+    match typeCheck env t.lhs with TyArrow inner then
+      match inner with {lhs = lhs, rhs = rhs} in 
+      if eqType (lhs, (typeCheck env t.rhs)) then rhs
+      else error "..."
+    else error "..."
+  | TmInt _ -> TyInt {TyIntType of dummy = ()}
+  | TmAdd _ -> TyInt {TyIntType of dummy = ()}
 end
 
 mexpr
-use Arith in 
+use STLC in 
+let tyInt = TyInt {TyIntType of dummy = ()} in 
+let add = TmAdd {TmAddType of lhs = TmVar {TmVarType of ident = "x"}, 
+                              rhs = TmInt {TmIntType of val = 1}} in 
+let add1 = TmAbs {TmAbsType of ident = "x", tyAnnot = tyInt, body = add} in 
 
-let pprint = lam tm.  match tm with TmInt t then print "int" else print "not int" in
+let actualTy = typeCheck [] add1 in 
+let expectedType = TyArrow {TyArrowType of lhs = tyInt, rhs = tyInt} in 
+utest actualTy with expectedType using (lam l. lam r. eqType (l, r)) in 
 
-let int_ = lam v. TmInt {TmIntType of val = v} in 
-let add_ = lam l. lam r. TmAdd {TmAddType of lhs = l, rhs = r} in 
-
-let tm = add_ (int_ 1) (int_ 2) in 
-
-let result = step tm in 
-
-pprint result ;
-
-()
-            
+let expr = TmAdd {TmAddType of lhs = TmInt {TmIntType of val = 2}, 
+                               rhs = TmInt {TmIntType of val = 1}}  in
+let result = step expr in 
+(match result with TmInt t then
+  (utest t.val with 3 in ())
+else 
+  error "Test failed, result is not int!");
+()  
