@@ -84,6 +84,7 @@
 %token <unit Ast.tokendata> PRERUN
 /* Extensible record type keywords */
 %token <unit Ast.tokendata> EXTEND
+%token <unit Ast.tokendata> NOTHING
 %token <unit Ast.tokendata> RECTYPE
 %token <unit Ast.tokendata> FIELD
 %token <unit Ast.tokendata> OF
@@ -522,10 +523,13 @@ atom:
       { List.fold_left (fun acc (k,v) ->
           TmRecordUpdate (mkinfo $1.i $5.i, acc, k, v)
         ) $2 $4}
-  // Extensible record creation
+  // Non-Empty extensible record creation
   | LBRACKET con_ident OF labels RBRACKET 
       { TmRecCreation(mkinfo $1.i $5.i, $2.v, $4 |> List.fold_left
         (fun acc (k,v) -> Record.add k v acc) Record.empty) }
+  // Empty extensible record creation
+  | LBRACKET con_ident OF NOTHING RBRACKET
+      { TmRecCreation(mkinfo $1.i $5.i, $2.v, Record.empty) }
   | LBRACKET EXTEND mexpr WITH labels RBRACKET 
     { let r = $5 |> List.fold_left
         (fun acc (k,v) -> Record.add k v acc) Record.empty in 

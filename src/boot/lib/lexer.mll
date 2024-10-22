@@ -36,6 +36,7 @@ let reserved_strings = [
   ("cosyn",         fun(i) -> Parser.COSYN{i=i;v=()});
   ("sem",           fun(i) -> Parser.SEM{i=i;v=()});
   ("cosem",         fun(i) -> Parser.COSEM{i=i;v=()});
+  ("nothing",       fun(i) -> Parser.NOTHING{i=i;v=()});
   ("use",           fun(i) -> Parser.USE{i=i;v=()});
   ("mexpr",         fun(i) -> Parser.MEXPR{i=i;v=()});
   ("include",       fun(i) -> Parser.INCLUDE{i=i;v=()});
