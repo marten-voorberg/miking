@@ -10,6 +10,7 @@ include "stringid.mc"
 include "boot-parser.mc"
 include "symbolize.mc"
 include "collect-env.mc"
+include "conapp-sugar.mc"
 include "pprint.mc"
 include "compile.mc"
 include "type-check.mc"
@@ -67,7 +68,8 @@ lang BigPipeline = BigIncludeHandler +
                    PhaseStats +
                    PostProcess + 
                    PruneUnusedLangs +
-                   InsertImplictRecursionVar
+                   InsertImplictRecursionVar + 
+                   ExtrecConappSugar
 
   sem dumpKinds acc = 
   -- | TyVar t -> cons (nameGetStr t.ident) acc
@@ -188,6 +190,9 @@ lang BigPipeline = BigIncludeHandler +
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
     endPhaseStatsProg log "symbolization" p;
+
+    let p = handleConappSugar p in 
+    endPhaseStatsProg log "handle-conapp-sugar" p;
 
     let checkOptions = {defaultCompositionCheckOptions with 
       disableStrictSumExtension = options.disableStrictSumExtension} in 
