@@ -64,10 +64,9 @@ lang IntArith = Base
 end
 
 lang TypeCheck = Base
-  cosyn Env = {dummy : ()} 
+  cosyn Env = {} 
 
   cosem emptyEnv arg = 
-  | {Env of dummy} <- {dummy = ()}
 
   sem typeCheck (env : Env) =
 
@@ -77,7 +76,7 @@ end
 lang STLC = TypeCheck + LC + IntArith
   syn Ty += 
   | TyArrow {lhs : Ty, rhs : Ty}
-  | TyInt {dummy : ()}
+  | TyInt {}
 
   syn Term *= 
   | TmAbs {tyAnnot : Ty}
@@ -119,8 +118,8 @@ lang STLC = TypeCheck + LC + IntArith
       if eqType (lhs, (typeCheck env t.rhs)) then rhs
       else error "..."
     else error "..."
-  | TmInt _ -> TyInt {TyIntType of dummy = ()}
-  | TmAdd _ -> TyInt {TyIntType of dummy = ()}
+  | TmInt _ -> TyInt {TyIntType of nothing}
+  | TmAdd _ -> TyInt {TyIntType of nothing}
 end
 
 lang SystemF = STLC + Base + TypeCheck
@@ -189,7 +188,7 @@ end
 mexpr 
 use SystemF in 
 -- Test type checking of `lam x : Int. x + 1`
-let tyInt = TyInt {TyIntType of dummy = ()} in 
+let tyInt = TyInt {TyIntType of nothing} in 
 let add = TmAdd {TmAddType of lhs = TmVar {TmVarType of ident = "x"}, 
                               rhs = TmInt {TmIntType of val = 1}} in 
 let add1 = TmAbs {TmAbsType of ident = "x", tyAnnot = tyInt, body = add} in 

@@ -63,7 +63,7 @@ end
 lang AssignTy = LCArith
   syn Ty += 
   | TyArrow {lhs : Ty, rhs : Ty}
-  | TyInt {dummy : ()}
+  | TyInt {}
 
   syn Term *= 
   | TmAbs {ty : Ty}
@@ -94,7 +94,7 @@ lang AssignTy = LCArith
   | [] -> error "Ident not found in env!"
 
   sem stripTyAnnot =
-  | TyInt _ -> TyInt {TyIntType of dummy = ()}
+  | TyInt _ -> TyInt {TyIntType of nothing}
   | TyArrow t -> 
     let lhs = stripTyAnnot t.lhs in 
     let rhs = stripTyAnnot t.rhs in 
@@ -106,7 +106,7 @@ lang AssignTy = LCArith
     TmVar {TmVarType of ident = t.ident, ty = foundType}
   | TmAbs t ->
     -- TODO: handle this by projecting!
-    -- let tyAnnot = TyInt {TyIntType of dummy = ()} in 
+    -- let tyAnnot = TyInt {TyIntType of nothing} in 
     let tyAnnot = stripTyAnnot t.tyAnnot in 
 
     let body = t.body in 
@@ -134,7 +134,7 @@ lang AssignTy = LCArith
     let ty = TyArrow {TyArrowType of lhs = leftTy, rhs = rightTy} in 
     TmApp {TmAppType of lhs = newLhs, rhs = newRhs, ty = ty} 
   | TmInt t -> 
-    let ty = TyInt {TyIntType of dummy = ()} in 
+    let ty = TyInt {TyIntType of nothing} in 
     TmInt {TmIntType of ty = ty, val = t.val}
   | TmAdd t -> 
     let lhs = t.lhs in 
@@ -146,7 +146,7 @@ lang AssignTy = LCArith
     let leftTy = tyTm newLhs in 
     let rightTy = tyTm newRhs in 
 
-    let tyInt = TyInt {TyIntType of dummy = ()} in 
+    let tyInt = TyInt {TyIntType of nothing} in 
 
     if and (eqType (tyInt, leftTy)) (eqType (tyInt, rightTy)) then
       TmAdd {TmAddType of lhs = newLhs, rhs = newRhs, ty = tyInt}
@@ -157,7 +157,7 @@ end
 mexpr
 print "\n\n\nTESTS\n\n\n";
 use AssignTy in 
-let tyInt = TyInt {TyIntType of dummy = ()} in 
+let tyInt = TyInt {TyIntType of nothing} in 
 let one = TmInt {TmIntType of val = 1} in 
 let five = TmInt {TmIntType of val = 5} in 
 

@@ -83,7 +83,7 @@ lang STLC = LambdaCalculusArith
 
   syn Ty += 
   | TyArrow {lhs : Ty, rhs : Ty}
-  | TyInt {dummy : ()}
+  | TyInt {}
 
   syn Term *= 
   | TmAbs {tyAnnot : Ty}
@@ -110,13 +110,13 @@ lang STLC = LambdaCalculusArith
       if eqType (lhs, (typeCheck env t.rhs)) then rhs
       else error "..."
     else error "..."
-  | TmInt _ -> TyInt {TyIntType of dummy = ()}
-  | TmAdd _ -> TyInt {TyIntType of dummy = ()}
+  | TmInt _ -> TyInt {TyIntType of nothing}
+  | TmAdd _ -> TyInt {TyIntType of nothing}
 end
 
 mexpr
 use STLC in 
-let tyInt = TyInt {TyIntType of dummy = ()} in 
+let tyInt = TyInt {TyIntType of nothing} in 
 let add = TmAdd {TmAddType of lhs = TmVar {TmVarType of ident = "x"}, 
                               rhs = TmInt {TmIntType of val = 1}} in 
 let add1 = TmAbs {TmAbsType of ident = "x", tyAnnot = tyInt, body = add} in 
