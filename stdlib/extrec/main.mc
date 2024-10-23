@@ -5,6 +5,7 @@
 
 include "map.mc"
 include "seq.mc"
+include "stringid.mc"
 
 include "boot-parser.mc"
 include "symbolize.mc"
@@ -121,6 +122,26 @@ lang BigPipeline = BigIncludeHandler +
   | name ->
     printLn (join [nameGetStr name, " ", int2string (sym2hash name.1)])
 
+  -- It is currently not possible due to some issue with OCaml code gen
+  -- To have an empty payload for a constructor. This work-around simply
+  -- adds a '__dummy' field to empty constructor payloads.
+  sem insertDummies = 
+  | p -> 
+    {p with decls = map (smap_Decl_Decl insertDummies_Decl) p.decls}
+
+  sem insertDummies_Decl =
+  | DeclSyn d -> 
+    let work = lam def.
+      match def.tyIdent with TyRecord ty then
+        if mapIsEmpty ty.fields then 
+          {def with tyIdent = TyRecord {ty with fields = mapSingleton cmpSID (stringToSid "__dummy") tyint_}}
+        else 
+          def
+      else
+        def
+    in 
+    DeclSyn {d with defs = map work d.defs}
+  | other -> other
 
   sem dumpTyVars_Expr = 
   | expr ->
@@ -152,6 +173,9 @@ lang BigPipeline = BigIncludeHandler +
 
     let p = constTransformProgram builtin p in
     endPhaseStatsProg log "const-transformation" p;
+
+    let p = insertDummies p in
+    endPhaseStatsProg log "insert-dummies" p;
 
     let p = composeProgram p in 
     endPhaseStatsProg log "language-inclusion-generation" p;
