@@ -586,8 +586,11 @@ name:
 
 copat: 
   | LBRACKET con_ident OF separated_list(COMMA, var_ident) RBRACKET 
-    { CopatRecord (mkinfo $1.i $5.i, $2.v, List.map (fun x -> x.v) $4) }
-
+    { let labels = List.map (fun x -> x.v) $4 in 
+      let info = mkinfo $1.i $5.i in 
+      match labels with
+      | [l] -> CopatSingletonRecord (info, $2.v, l)
+      | _ ->  CopatRecord (info, $2.v, labels) }
 
 pat:
   | pat_conj BAR pat

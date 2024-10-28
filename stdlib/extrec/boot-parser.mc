@@ -87,7 +87,8 @@ lang CosynBootParser = BootParserMLang + CosynDeclAst
                includes = []}
 end
 
-lang CosemBootParser = BootParserMLang + RecordCopatAst + CosemDeclAst
+lang CosemBootParser = BootParserMLang + RecordCopatAst + CosemDeclAst + 
+                       SingletonRecordCopatAst
   sem matchDecl d =
   | 715 ->
     let nArgs = glistlen d 0 in 
@@ -118,6 +119,10 @@ lang CosemBootParser = BootParserMLang + RecordCopatAst + CosemDeclAst
     RecordCopat {info = ginfo c 0,
                  ident = gname c 0,
                  fields = map (gstr c) (range 1 (addi n 1) 1)}
+  | 801 -> 
+    SingletonRecordCopat {info = ginfo c 0,
+                          ident = gname c 0,
+                          field = gstr c 1}
 end 
 
 lang MyPrettyPrint = MLangPrettyPrint + ExtRecPrettyPrint + DeclCosynPrettyPrint + DeclCosemPrettyPrint

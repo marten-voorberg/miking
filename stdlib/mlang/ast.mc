@@ -360,6 +360,19 @@ lang RecordCopatAst = CopatAst
   | RecordCopat c -> {RecordCopat c with info = info}
 end 
 
+lang SingletonRecordCopatAst = CopatAst
+  syn Copat =
+  | SingletonRecordCopat {info : Info, 
+                          ident : Name,
+                          field : String}
+
+  sem copatInfo =
+  | SingletonRecordCopat c -> c.info
+
+  sem copatWithInfo info =
+  | SingletonRecordCopat c -> {SingletonRecordCopat c with info = info}
+end 
+
 lang CosemDeclAst = DeclAst + CopatAst + Ast
   syn Decl = 
   | DeclCosem {info : Info, 

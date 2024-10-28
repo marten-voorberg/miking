@@ -175,6 +175,9 @@ let idDeclCosem = 715
 (* Copatterns *)
 let idRecordCopat = 800
 
+let idSingletonRecordCopat = 801
+
+
 let sym = Symb.gensym ()
 
 let patNameToStr = function NameStr (x, _) -> x | NameWildcard -> us ""
@@ -470,6 +473,8 @@ let getData = function
   (* Copatterns *)
   | PTreeCopat (CopatRecord (fi, ident, strs)) ->
       (idRecordCopat, [fi], [List.length strs], [], [], ident :: strs, [], [], [], [], [], [], [])
+  | PTreeCopat (CopatSingletonRecord (fi, ident, label)) -> 
+      (idSingletonRecordCopat, [fi], [], [], [], [ident ; label], [], [], [], [], [], [], [])
   (* MLang *)
   | PTreeProgram (Program (includes, tops, expr)) ->
       let includeStrings =

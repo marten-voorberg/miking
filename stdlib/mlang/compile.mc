@@ -200,8 +200,9 @@ end
 
 lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst + 
                         SynDeclAst + TypeDeclAst + SynProdExtDeclAst + 
-                        ExtRecordAst + CosynDeclAst
-                        + CosemDeclAst + RecordCopatAst
+                        ExtRecordAst + CosynDeclAst +
+                        CosemDeclAst + RecordCopatAst + 
+                        SingletonRecordCopatAst
   sem compileDecl ctx = 
   | DeclLang l -> 
     let langStr = nameGetStr l.ident in
@@ -412,9 +413,20 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
     else 
       ctx
 
+  sem desugarCopatCases : ExtendedCopat -> ExtendedCopat
+  sem desugarCopatCases = 
+  | {copat = SingletonRecordCopat c, thn = expr} & ec -> 
+    let copat = RecordCopat {info = c.info, 
+                             ident = c.ident,
+                             fields = [c.field]} in 
+    let expr = TmRecord {info = c.info,
+                         ty = tyunknown_,
+                         bindings = mapSingleton cmpSID (stringToSid c.field) expr} in 
+    {ec with copat = copat, thn = expr}
+  | other -> other
+
   sem compileCosem langStr ctx cosemNames = 
   | DeclCosem d -> 
-    -- TODO: gather cases from includes
     match mapLookup (langStr, nameGetStr d.ident) ctx.compositionCheckEnv.cosemCaseMap 
     with Some cases in 
 
@@ -427,6 +439,8 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
       info = d.info}
     else 
       let cases = setToSeq cases in 
+
+      let cases = map desugarCopatCases cases in 
 
       let syms = mapi (lam i. lam. (nameSym (concat "cosemResult" (int2string i)))) cases in
 
@@ -462,10 +476,10 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
       let expr = foldl (lam acc. lam arg. nulam_ arg.ident acc) expr (reverse d.args) in 
 
       {ident = d.ident,
-      tyAnnot = tyunknown_,
-      tyBody = tyunknown_,
-      body = expr,
-      info = d.info}
+       tyAnnot = tyunknown_,
+       tyBody = tyunknown_,
+       body = expr,
+       info = d.info}
 
   sem compileSem langStr ctx semNames = 
   | DeclSem d -> 
