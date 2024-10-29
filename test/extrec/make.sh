@@ -107,6 +107,16 @@ run_all() {
   done
 }
 
+run_all() {
+  for test_file in $TEST_LOCATION*.mc 
+  do
+    relative_path=$(basename $test_file)
+    # echo "$relative_path"
+    # echo "$test_file"
+    run_test $relative_path
+  done
+}
+
 run_illtyped_test() {
   input_file=$1
   file_prefix=${input_file%.*}
@@ -122,6 +132,34 @@ run_illtyped_test() {
   fi
   set -e
   rm -f ./$OUTPUT_LOCATION/$file_prefix
+}
+
+run_all_stdlib() {
+  for test_file in "stdlib/"*.mc 
+  do
+    input_file=$test_file
+    file_prefix=${input_file%.*}
+    set +e
+
+    echo "--- $input_file ---"
+    $COMPILE_EXTREC --output $OUTPUT_LOCATION/$file_prefix $input_file > /dev/null
+    if [ $? -eq 0 ] 
+    then
+      printf "${GREEN}Compilation successful!\n${NC}"
+      ./$OUTPUT_LOCATION/$file_prefix > /dev/null
+      if [ $? -eq 0 ] 
+      then 
+        printf  "${GREEN}Test Passed}!\n${NC}"
+      else 
+        printf "${RED}Test or Execution Failed!\n${NC}"
+
+      fi
+      rm ./$OUTPUT_LOCATION/$file_prefix
+    else
+      printf "${RED}Compilation error!\n${NC}"
+    fi
+    set -e
+  done
 }
 
 run_all_illtyped() {
@@ -164,6 +202,9 @@ case $1 in
     ;;
   type-log)
     generate_type_log "$2"
+    ;;
+  stdlib)
+    run_all_stdlib
     ;;
   *)
     echo "Unknown command! Use 'run-all' or 'run-test <filename>'!"
