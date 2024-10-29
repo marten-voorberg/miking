@@ -325,7 +325,7 @@ lang LangDeclCompiler = DeclCompiler + LangDeclAst + MExprAst + SemDeclAst +
                                     tyIdent = forallWrapper tyIdent,
                                     inexpr = uunit_,
                                     ty = tyunknown_,
-                                    info = infoTy ty}) in
+                                    info = infoTy def.tyIdent}) in
         let ctx = mapFoldWithKey work ctx rec.fields in 
         let lhs = TyCon {info = infoTy def.tyIdent,
                          ident = recIdent,

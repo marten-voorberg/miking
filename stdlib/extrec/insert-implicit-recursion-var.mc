@@ -1,12 +1,14 @@
 include "mlang/ast.mc"
 include "mexpr/ast.mc"
+include "mexpr/pprint.mc"
 
 include "name.mc"
 include "set.mc"
+include "map.mc"
 
 let implicitParamIdent = nameSym "M"
 
-lang InsertImplictRecursionVar = MLangAst + MExprAst
+lang InsertImplictRecursionVar = MLangAst + MExprAst + MExprPrettyPrint
   type ExtensibleNamesCtx = {
     sumTypeNames : Set Name,
     prodTypeNames : Set Name
@@ -19,6 +21,8 @@ lang InsertImplictRecursionVar = MLangAst + MExprAst
       {ctx with sumTypeNames = setInsert d.ident ctx.sumTypeNames} 
     else
       ctx
+  | DeclType (t & {tyIdent = !TyVariant _}) -> 
+    {ctx with sumTypeNames = setInsert t.ident ctx.sumTypeNames}
   | DeclCosyn d -> 
     if d.isBase then
       {ctx with prodTypeNames = setInsert d.ident ctx.prodTypeNames}
@@ -30,13 +34,8 @@ lang InsertImplictRecursionVar = MLangAst + MExprAst
   sem insertImplicitParam_Type : ExtensibleNamesCtx -> Type -> Type
   sem insertImplicitParam_Type ctx =
   | TyCon t & ty -> 
-    if setMem t.ident ctx.prodTypeNames then 
+    if or (setMem t.ident ctx.prodTypeNames) (setMem t.ident ctx.sumTypeNames) then 
       TyCon {t with data = intyvar_ t.info implicitParamIdent}   
-    else if setMem t.ident ctx.sumTypeNames then
-      TyCon {t with data = intyvar_ t.info implicitParamIdent}   
-      -- TyApp {info = t.info, 
-            --  lhs = TyCon {t with data = intyvar_ t.info implicitParamIdent},
-            --  rhs = intyvar_ t.info implicitParamIdent}
     else
       ty 
   | ty -> 
@@ -44,6 +43,25 @@ lang InsertImplictRecursionVar = MLangAst + MExprAst
 
   sem insertImplicitParam_Decl : ExtensibleNamesCtx -> Decl -> Decl
   sem insertImplicitParam_Decl ctx =
+  | DeclConDef d -> 
+    recursive let extractTyArrow = lam ty. 
+      match ty with TyAll t then extractTyArrow t.ty else ty in 
+    
+    recursive let extract2 = lam ty. 
+      match ty with TyApp t then extract2 t.lhs else ty in 
+    
+    let arrow = match extractTyArrow d.tyIdent with TyArrow arrow then arrow
+                else errorSingle [d.info] (concat "Not a TyArrow: " (type2str d.tyIdent)) in 
+    let ident = match extract2 arrow.to with TyCon t then t.ident
+                else errorSingle [d.info] (concat "Not a TyCon: " (type2str (extract2 arrow.to))) in 
+
+    let types = mapSingleton nameCmp ident {lower = setEmpty nameCmp, upper = None ()} in 
+    let tyIdent = TyAll {info = infoTy d.tyIdent,
+                         ident = implicitParamIdent,
+                         kind = Data {types = types},
+                         ty = d.tyIdent} in
+    let tyIdent = insertImplicitParam_Type ctx tyIdent in 
+    DeclConDef {d with tyIdent = tyIdent}
   | DeclCosyn d ->
     DeclCosyn {d with params = cons implicitParamIdent d.params,
                       ty = insertImplicitParam_Type ctx d.ty}

@@ -153,6 +153,11 @@ lang ExtRecordTypeCheck = TypeCheck + ExtRecordAst +
                     "'!"
                   ]) in 
       let expectedTy = resolveTyAbsApp (TyAbsApp {lhs = tyAbs, rhs = r}) in
+      match stripTyAll expectedTy with (vars, expectedTy) in
+      let newTyVarEnv =
+        foldr (lam v. mapInsert v.0 (env.currentLvl, v.1)) env.tyVarEnv vars in
+      let newEnv = {env with tyVarEnv = newTyVarEnv} in
+
       let expectedTy = resolveType t.info env false expectedTy in 
 
       unify env [t.info] (tyTm expr) expectedTy ;
