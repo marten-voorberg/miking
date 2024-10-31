@@ -26,6 +26,13 @@ include "fileutils.mc"
 include "sys.mc"
 
 lang MLangIncludeHandler = MLangAst + BootParserMLang
+  sem stripPrefix : String -> String
+  sem stripPrefix =
+  | s -> 
+    let result =  strSplit "::" s in 
+    match result with [s] then s 
+    else get result 1
+
   sem parseAndHandleIncludes : String -> MLangProgram
   sem parseAndHandleIncludes =| path -> 
     let dir = filepathConcat (sysGetCwd ()) (eraseFile path) in 
@@ -68,6 +75,7 @@ lang MLangIncludeHandler = MLangAst + BootParserMLang
 
   sem findPath : String -> Map String String -> Info -> String -> String
   sem findPath dir libs info =| path ->
+    let path = stripPrefix path in 
     let libs = mapInsert "current" dir libs in 
     let prefixes = mapValues libs in 
     let paths = map (lam prefix. filepathConcat prefix path) prefixes in 
@@ -88,3 +96,9 @@ lang MLangIncludeHandler = MLangAst + BootParserMLang
         head (setToSeq existingFilesAsSet)
     end
 end
+
+mexpr
+use MLangIncludeHandler in 
+utest stripPrefix "stdlib::set.mc" with "set.mc" in 
+utest stripPrefix "set.mc" with "set.mc" in 
+()
