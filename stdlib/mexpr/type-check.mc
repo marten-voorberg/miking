@@ -57,7 +57,6 @@ type TCEnv = {
   currentLvl : Level, -- The current nesting level of binder bodies
   disableRecordPolymorphism : Bool,
   disableConstructorTypes : Bool,
-  extPatNames : Ref (Set Name),
 
   extRecordType : ExtRecEnvType,
 
@@ -95,7 +94,6 @@ let typcheckEnvEmpty : TCEnv = {
   currentLvl = 0,
   disableRecordPolymorphism = true,
   disableConstructorTypes = true,
-  extPatNames = ref (setEmpty nameCmp),
   reptypes = {
     delayedReprUnifications = ref [],
     opNamesInScope = mapEmpty nameCmp,
@@ -768,7 +766,9 @@ lang TypeCheck = TCUnify + Generalize + RemoveMetaVar
   sem typeCheckExpr : TCEnv -> Expr -> Expr
   sem typeCheckExpr env =
   | tm ->
-    dprint tm; print "\n"; error ""
+    dprint tm;
+    print "\n"; 
+    error "Unmatched term expression in 'typeCheckExpr'"
 end
 
 lang PatTypeCheck = TCUnify
@@ -1415,11 +1415,13 @@ lang DataTypeCheck = TypeCheck + DataAst + FunTypeAst + ResolveType + Substitute
     -- printLn (type2str ty);
     match inspectType ty with TyArrow {to = to} then
       match getTypeArgs to with (TyCon target, _) then
-        if or true disableConstructorTypes then (target.ident, setOfSeq nameCmp [target.ident], ty)
+        -- if or true disableConstructorTypes then (target.ident, setOfSeq nameCmp [target.ident], ty)
+        if disableConstructorTypes then (target.ident, setOfSeq nameCmp [target.ident], ty)
         else
           recursive let substituteData = lam v. lam acc. lam x.
             switch x
-            case TyCon (t & {data = TyUnknown _}) then
+            case TyCon t then
+            -- case TyCon (t & {data = TyUnknown _}) then
               (setInsert t.ident acc, TyCon { t with data = v })
             case TyAlias t then
               match substituteData v acc t.content with (acc, content) in
@@ -1450,6 +1452,9 @@ lang DataTypeCheck = TypeCheck + DataAst + FunTypeAst + ResolveType + Substitute
     let tyIdent = substituteNewReprs env tyIdent in
     match _makeConstructorType t.info env.disableConstructorTypes t.ident tyIdent
     with (target, tydeps, tyIdent) in
+
+    -- printLn (type2str tyIdent);
+
     let tydeps =
       mapInsert target tydeps
         (setFold (lam m. lam t. mapInsert t (setOfSeq nameCmp [target]) m)
@@ -1607,6 +1612,12 @@ lang NeverTypeCheck = TypeCheck + NeverAst + IsEmpty
         ] in
         errorSingle [t.info] msg
       end
+end
+
+lang PlaceholderTypeCheck = TypeCheck + PlaceholderAst
+  sem typeCheckExpr env =
+  | TmPlaceholder t ->
+    TmPlaceholder {t with ty = newpolyvar env.currentLvl t.info}
 end
 
 lang ExtTypeCheck = TypeCheck + ExtAst + ResolveType
@@ -1771,7 +1782,7 @@ lang MExprTypeCheckMost =
   -- Terms
   AppTypeCheck + MatchTypeCheck + ConstTypeCheck + SeqTypeCheck +
   RecordTypeCheck + TypeTypeCheck + DataTypeCheck + UtestTypeCheck +
-  NeverTypeCheck + ExtTypeCheck + 
+  NeverTypeCheck + ExtTypeCheck + PlaceholderTypeCheck +
 
   -- Patterns
   NamedPatTypeCheck + SeqTotPatTypeCheck + SeqEdgePatTypeCheck +

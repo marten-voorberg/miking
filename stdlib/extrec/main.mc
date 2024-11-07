@@ -54,6 +54,7 @@ lang BigPipeline = BigIncludeHandler +
                    BigPrettyPrint + 
                    ExtRecCollectEnv + 
                    BigTypeCheck +
+                   PlaceholderAst + 
                    ExtRecordTypeCheck+ 
                    MLangConstTransformer + 
                    ExtRecMonomorphise + 
@@ -255,7 +256,7 @@ lang BigPipeline = BigIncludeHandler +
         let expr = handleTypeOf expr in 
         endPhaseStatsExpr log "handle-typeof" expr;
 
-        let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
+        let expr = monomorphiseExpr tcEnv.extRecordType expr in 
         let expr = removeExtRecTypes_Expr () expr in 
         endPhaseStatsExpr log "monomorphise" expr;
 
@@ -291,6 +292,9 @@ lang BigPipeline = BigIncludeHandler +
     let p = insertImplicitParams p in 
 
     match symbolizeMLang symEnvDefault p with (_, p) in 
+
+    let p = handleConappSugar p in 
+    printLn (mlang2str p) ;
 
 
     let res = result.consume (checkCompositionWithOptions defaultCompositionCheckOptions p) in 
@@ -346,8 +350,7 @@ lang BigPipeline = BigIncludeHandler +
     -- printLn (strJoin "\n" (dumpTypes [] expr));
     -- printLn (expr2str expr);
 
-    -- iter (lam n. printLn (nameGetStr n)) (setToSeq (deref tcEnv.extPatNames)) ;
-    let expr = monomorphiseExpr tcEnv.extRecordType (deref tcEnv.extPatNames) expr in 
+    let expr = monomorphiseExpr tcEnv.extRecordType expr in 
     let expr = removeExtRecTypes_Expr () expr in 
 
     -- printLn " === POST MONOMORPHISATION === ";

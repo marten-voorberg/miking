@@ -1,5 +1,6 @@
 include "mexpr/ast.mc"
 include "mexpr/type-check.mc"
+include "mexpr/pprint.mc"
 
 include "digraph.mc"
 include "error.mc"
@@ -19,7 +20,7 @@ let _emptyAccEnv : AccEnv = {
   defs = mapEmpty nameCmp
 }
 
-lang ExtRecCollectEnv = MExprAst + ExtRecordAst + 
+lang ExtRecCollectEnv = MExprAst + ExtRecordAst + MExprPrettyPrint + 
                         TypeAbsAst
   sem collectEnv : AccEnv -> Expr -> AccEnv
   sem collectEnv env = 
@@ -33,14 +34,41 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst +
       collectEnv {env with defs = defs} t.inexpr
   | TmRecField t -> 
     match t.tyIdent with TyAll tyAll then 
-      -- TODO: check tyAll.kind
-      match tyAll.ty with TyArrow {from = lhs, to = rhs} then
+
+      -- Collect other parameters to re-insert later.
+      recursive let work = lam acc. lam ty.
+        match ty with TyAll tyAll then
+          let acc = cons (tyAll.info, tyAll.ident, tyAll.kind) acc in 
+          work acc tyAll.ty
+        else 
+          (acc, ty)
+      in 
+      match work [] tyAll.ty with (params, ty) in 
+
+      recursive let work2 = lam ty. 
+        match ty with TyApp {lhs = lhs} then 
+          work2 lhs 
+        else 
+          ty 
+      in
+
+      match ty with TyArrow {from = lhs, to = rhs} then
+        let lhs = work2 lhs in 
+
         match lhs with TyCon {ident = ident} then 
           match mapLookup ident env.defs with Some labelTypeMap then
-            -- Update defs
-            let ty = TyAbs {ident = tyAll.ident,
-                            kind = Mono (),
-                            body = rhs} in 
+            let work = lam ty. lam triple.
+              TyAbs {ident = triple.1, 
+                     kind  = triple.2,
+                     body  = ty} in 
+
+            let params = cons (NoInfo(), tyAll.ident, Mono()) params in 
+
+            let ty = foldl work rhs (reverse params) in 
+
+            -- let ty = TyAbs {ident = tyAll.ident,
+            --                 kind = Mono (),
+            --                 body = rhs} in 
             let labelTypeMap = mapInsert t.label (nameNoSym "", ty) labelTypeMap in 
 
             let env = {env with defs = mapInsert ident labelTypeMap env.defs} in 
@@ -56,7 +84,9 @@ lang ExtRecCollectEnv = MExprAst + ExtRecordAst +
       else  
         errorMulti 
           [(t.info, "")]
-          "The type of a record field must be an arrow type!"
+          (concat 
+            "Expected an arrow arrow type! But found: "
+            (type2str t.tyIdent))
     else 
       errorSingle [t.info] "The type of a record field must be quantified over a mapping!"
   | expr -> 
